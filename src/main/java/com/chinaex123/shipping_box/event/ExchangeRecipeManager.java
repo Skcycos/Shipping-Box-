@@ -1,11 +1,7 @@
 package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.ShippingBox;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
@@ -414,6 +410,141 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         }
 
         return remaining;
+    }
+
+    /**
+     * 将当前规则序列化为JSON字符串
+     * 用于网络传输到客户端
+     *
+     * @return 序列化的JSON字符串
+     */
+    public static String serializeRulesToJson() {
+        try {
+            JsonObject root = new JsonObject();
+            JsonArray rulesArray = new JsonArray();
+
+            for (ExchangeRule rule : currentRules) {
+                JsonObject ruleObj = new JsonObject();
+
+                // 序列化输入物品
+                if (rule.getInputs().size() == 1) {
+                    // 单个输入
+                    ruleObj.add("input", serializeInputItem(rule.getInputs().get(0)));
+                } else {
+                    // 多个输入
+                    JsonArray inputsArray = new JsonArray();
+                    for (ExchangeRule.InputItem input : rule.getInputs()) {
+                        inputsArray.add(serializeInputItem(input));
+                    }
+                    ruleObj.add("input", inputsArray);
+                }
+
+                // 序列化输出物品
+                ruleObj.add("output", serializeOutputItem(rule.getOutputItem()));
+
+                rulesArray.add(ruleObj);
+            }
+
+            root.add("rules", rulesArray);
+            return GSON.toJson(root);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    /**
+     * 从JSON字符串反序列化规则并在客户端设置
+     *
+     * @param json JSON字符串
+     */
+    public static void setClientRules(String json) {
+        try {
+            JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+            JsonArray rulesArray = root.getAsJsonArray("rules");
+
+            List<ExchangeRule> clientRules = new ArrayList<>();
+
+            for (JsonElement element : rulesArray) {
+                JsonObject ruleObj = element.getAsJsonObject();
+                ExchangeRule rule = new ExchangeRule();
+
+                // 反序列化输入物品
+                List<ExchangeRule.InputItem> inputs = new ArrayList<>();
+                if (ruleObj.get("input").isJsonArray()) {
+                    // 多个输入
+                    for (JsonElement inputElement : ruleObj.getAsJsonArray("input")) {
+                        inputs.add(deserializeInputItem(inputElement.getAsJsonObject()));
+                    }
+                } else {
+                    // 单个输入
+                    inputs.add(deserializeInputItem(ruleObj.getAsJsonObject("input")));
+                }
+                rule.setInputs(inputs);
+
+                // 反序列化输出物品
+                rule.setOutput(deserializeOutputItem(ruleObj.getAsJsonObject("output")));
+
+                clientRules.add(rule);
+            }
+
+            // 在客户端设置规则
+            currentRules = clientRules;
+        } catch (Exception e) {
+            // 静默处理反序列化错误
+        }
+    }
+
+    // 辅助序列化方法
+    private static JsonObject serializeInputItem(ExchangeRule.InputItem input) {
+        JsonObject obj = new JsonObject();
+        if (input.getItem() != null) {
+            obj.addProperty("item", input.getItem());
+        }
+        if (input.getTag() != null) {
+            obj.addProperty("tag", input.getTag());
+        }
+        if (input.getComponents() != null) {
+            obj.addProperty("components", input.getComponents());
+        }
+        obj.addProperty("count", input.getCount());
+        return obj;
+    }
+
+    private static JsonObject serializeOutputItem(ExchangeRule.OutputItem output) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("item", output.getItem());
+        obj.addProperty("count", output.getCount());
+        if (output.getComponents() != null) {
+            obj.addProperty("components", output.getComponents());
+        }
+        return obj;
+    }
+
+    private static ExchangeRule.InputItem deserializeInputItem(JsonObject obj) {
+        ExchangeRule.InputItem input = new ExchangeRule.InputItem();
+        if (obj.has("item")) {
+            input.setItem(obj.get("item").getAsString());
+        }
+        if (obj.has("tag")) {
+            input.setTag(obj.get("tag").getAsString());
+        }
+        if (obj.has("components")) {
+            input.setComponents(obj.get("components").getAsString());
+        }
+        if (obj.has("count")) {
+            input.setCount(obj.get("count").getAsInt());
+        }
+        return input;
+    }
+
+    private static ExchangeRule.OutputItem deserializeOutputItem(JsonObject obj) {
+        ExchangeRule.OutputItem output = new ExchangeRule.OutputItem();
+        output.setItem(obj.get("item").getAsString());
+        output.setCount(obj.get("count").getAsInt());
+        if (obj.has("components")) {
+            output.setComponents(obj.get("components").getAsString());
+        }
+        return output;
     }
 
     /**

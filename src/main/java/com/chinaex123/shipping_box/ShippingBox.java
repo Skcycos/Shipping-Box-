@@ -10,6 +10,7 @@ import com.chinaex123.shipping_box.menu.ModMenuTypes;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -36,6 +37,7 @@ public class ShippingBox {
         // 为模组加载注册 commonSetup 方法
         modEventBus.addListener(this::commonSetup);
         NeoForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.register(this);
 
         // 注册网络数据包处理器
         modEventBus.addListener(ShippingBoxNetworking::register);
@@ -47,10 +49,21 @@ public class ShippingBox {
         ModBlockEntities.register(modEventBus); // 注册方块实体
 
         ModMenuTypes.register(modEventBus);    // 注册菜单类型
-        // 注册属性
-        ModAttributes.ATTRIBUTES.register(modEventBus);
+
+        ModAttributes.ATTRIBUTES.register(modEventBus); // 注册属性
 
         NeoForge.EVENT_BUS.register(TooltipEventHandler.class);
+    }
+
+    // 添加玩家登录事件处理方法
+    @SubscribeEvent
+    public void onPlayerLoggedIn(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            // 延迟一小段时间再同步，确保客户端完全加载
+            serverPlayer.getServer().execute(() -> {
+                ShippingBoxNetworking.syncRecipesToClient(serverPlayer);
+            });
+        }
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {

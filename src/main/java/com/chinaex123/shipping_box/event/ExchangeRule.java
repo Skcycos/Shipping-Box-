@@ -86,6 +86,10 @@ public class ExchangeRule {
             this.count = count;
         }
 
+        public String getComponents() {
+            return components;
+        }
+
         /**
          * 检查物品堆是否匹配此输入要求
          * 支持物品ID、标签和组件匹配
@@ -195,6 +199,10 @@ public class ExchangeRule {
 
         public void setComponents(String components) {
             this.components = components;
+        }
+
+        public String getComponents() {
+            return components;
         }
 
         /**

@@ -2,6 +2,7 @@ package com.chinaex123.shipping_box.network;
 
 import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
+import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -15,6 +16,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+
+import java.util.List;
 
 /**
  * 售货箱网络通信管理类
@@ -76,6 +79,34 @@ public class ShippingBoxNetworking {
     }
 
     /**
+     * 配方同步数据包记录类
+     * 用于将服务端的兑换配方同步到客户端
+     *
+     * @param rulesJson 配方规则列表的JSON字符串表示
+     */
+    public record SyncRecipes(String rulesJson) implements CustomPacketPayload {
+        public static final Type<SyncRecipes> TYPE = new Type<>(
+                ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "sync_recipes")
+        );
+
+        public static final StreamCodec<FriendlyByteBuf, SyncRecipes> STREAM_CODEC =
+                StreamCodec.composite(
+                        ByteBufCodecs.STRING_UTF8, SyncRecipes::rulesJson,
+                        SyncRecipes::new
+                );
+
+        /**
+         * 获取数据包类型
+         *
+         * @return 数据包类型标识
+         */
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
      * 注册网络数据包处理器
      *
      * @param event 负载处理器注册事件
@@ -96,6 +127,33 @@ public class ShippingBoxNetworking {
                 PlayerPlaceItem.STREAM_CODEC,
                 ShippingBoxNetworking::handlePlayerPlaceItem
         );
+
+        // 注册配方同步数据包
+        registrar.playToClient(
+                SyncRecipes.TYPE,
+                SyncRecipes.STREAM_CODEC,
+                ShippingBoxNetworking::handleSyncRecipes
+        );
+    }
+
+    /**
+     * 处理配方同步数据包
+     * 在客户端接收并应用服务端发送的配方规则
+     *
+     * @param packet 配方同步数据包
+     * @param context 网络上下文
+     */
+    private static void handleSyncRecipes(SyncRecipes packet, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            try {
+                // 在客户端设置配方规则
+                ExchangeRecipeManager.setClientRules(packet.rulesJson());
+            } catch (Exception e) {
+                // 静默处理同步错误
+            }
+        }).exceptionally(e -> {
+            return null;
+        });
     }
 
     /**
@@ -151,5 +209,38 @@ public class ShippingBoxNetworking {
      */
     public static void sendPlayerPlaceItem(ServerPlayer player, BlockPos pos, int slot) {
         PacketDistributor.sendToServer(new PlayerPlaceItem(pos, slot));
+    }
+
+    /**
+     * 向所有客户端玩家同步配方规则
+     *
+     * @param players 玩家列表
+     */
+    public static void syncRecipesToClients(List<ServerPlayer> players) {
+        try {
+            String rulesJson = ExchangeRecipeManager.serializeRulesToJson();
+            SyncRecipes packet = new SyncRecipes(rulesJson);
+
+            for (ServerPlayer player : players) {
+                PacketDistributor.sendToPlayer(player, packet);
+            }
+        } catch (Exception e) {
+            // 静默处理序列化错误
+        }
+    }
+
+    /**
+     * 向单个客户端玩家同步配方规则
+     *
+     * @param player 目标玩家
+     */
+    public static void syncRecipesToClient(ServerPlayer player) {
+        try {
+            String rulesJson = ExchangeRecipeManager.serializeRulesToJson();
+            SyncRecipes packet = new SyncRecipes(rulesJson);
+            PacketDistributor.sendToPlayer(player, packet);
+        } catch (Exception e) {
+            // 静默处理序列化错误
+        }
     }
 }
