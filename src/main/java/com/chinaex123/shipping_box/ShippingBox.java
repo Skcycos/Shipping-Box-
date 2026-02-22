@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box;
 
+import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.block.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.ModBlockEntities;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
@@ -46,6 +47,8 @@ public class ShippingBox {
         ModBlockEntities.register(modEventBus); // 注册方块实体
 
         ModMenuTypes.register(modEventBus);    // 注册菜单类型
+        // 注册属性
+        ModAttributes.ATTRIBUTES.register(modEventBus);
 
         NeoForge.EVENT_BUS.register(TooltipEventHandler.class);
     }

@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.block.entity;
 
+import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
 import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
@@ -255,6 +256,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     /**
      * 执行物品兑换的核心逻辑方法
      * 处理物品匹配、消耗输入、生成输出并重新填充容器
+     * 现在支持玩家出售价格属性加成
      *
      * @param currentDay 当前游戏天数，用于记录兑换时间
      */
@@ -298,7 +300,12 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
 
                     // 生成对应数量的输出物品
                     ItemStack output = rule.getOutputItem().getResultStack().copy();
-                    output.setCount(rule.getOutputItem().getCount() * maxExchanges);
+
+                    // 应用出售价格属性加成
+                    int baseCount = rule.getOutputItem().getCount() * maxExchanges;
+                    int enhancedCount = applySellingPriceBoost(baseCount);
+
+                    output.setCount(enhancedCount);
                     results.add(output);
 
                     exchanged = true;
@@ -342,6 +349,49 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
 
             notifyPlayersOfSuccess(serverLevel);
         }
+    }
+
+    /**
+     * 应用玩家出售价格属性加成
+     *
+     * @param baseCount 基础物品数量
+     * @return 加成后的物品数量
+     */
+    private int applySellingPriceBoost(int baseCount) {
+        // 获取参与兑换的玩家（如果有记录的话）
+        Set<UUID> playerUUIDs = new HashSet<>(slotOwners.values());
+
+        if (playerUUIDs.isEmpty()) {
+            return baseCount; // 没有玩家记录，返回基础数量
+        }
+
+        // 计算平均加成（如果有多个玩家）
+        double totalBoost = 0.0;
+        int playerCount = 0;
+
+        for (UUID playerUUID : playerUUIDs) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(playerUUID);
+            if (player != null) {
+                double boost = player.getAttributeValue(ModAttributes.SELLING_PRICE_BOOST);
+                totalBoost += boost;
+                playerCount++;
+            }
+        }
+
+        if (playerCount > 0) {
+            double averageBoost = totalBoost / playerCount;
+            // 应用加成：基础数量 × (1 + 加成系数)
+            double enhancedAmount = baseCount * (1.0 + averageBoost);
+
+            // 智能取整：小于等于5向下取整，大于5向上取整
+            if (enhancedAmount <= 5.0) {
+                return (int) Math.floor(enhancedAmount);
+            } else {
+                return (int) Math.ceil(enhancedAmount);
+            }
+        }
+
+        return baseCount;
     }
 
     /**

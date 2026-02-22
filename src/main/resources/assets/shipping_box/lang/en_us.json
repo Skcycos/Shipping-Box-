@@ -25,5 +25,8 @@
   "tooltip.item.shipping_box.diamond_creeper_coin": "§aValue§f: §d64",
   "tooltip.item.shipping_box.netherite_creeper_coin": "§aValue§f: §d512",
   "tooltip.item.shipping_box.emerald_creeper_coin": "§aValue§f: §d256",
-  "tooltip.item.shipping_box.symbols_chaos_creeper_coin": "§aValue§f: §d4096"
+  "tooltip.item.shipping_box.symbols_chaos_creeper_coin": "§aValue§f: §d4096",
+
+  "attribute.shipping_box.selling_price_boost": "Selling Price Boost",
+  "attribute.shipping_box.selling_price_boost.desc": "Affects the selling price of items"
 }
