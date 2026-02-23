@@ -1,6 +1,7 @@
 {
   "itemGroup.shipping_box_tab": "售货箱",
 
+  "item.shipping_box.dimensional_pouch": "次元钱袋",
   "item.shipping_box.copper_creeper_coin": "铜爬爬币",
   "item.shipping_box.iron_creeper_coin": "铁爬爬币",
   "item.shipping_box.gold_creeper_coin": "金爬爬币",
@@ -16,6 +17,15 @@
   "tooltip.shipping_box.instruction": "§7放入售货箱自动兑换",
   "tooltip.shipping_box.exchange_format": "[%s个%s → %s个%s]",
   "tooltip.shipping_box.unknown_item": "未知物品!",
+
+  "tooltip.item.shipping_box.dimensional_pouch.use": "右键转换实体货币或查询余额",
+  "tooltip.item.shipping_box.dimensional_pouch.right_click": "§e  ·单击右键：转换背包内",
+  "tooltip.item.shipping_box.dimensional_pouch.sneak_click": "§e  ·潜行+右击：转换容器内",
+  "message.shipping_box.dimensional_pouch.container_converted": "成功从容器中转换了 §a%d§r C！",
+  "message.shipping_box.dimensional_pouch.no_container_coins": "§c容器中未找到实体货币！",
+  "tooltip.item.shipping_box.dimensional_pouch.oh": "§6哇哦！这是什么",
+  "message.shipping_box.dimensional_pouch.current_balance": "§e当前余额：%sC",
+
   "tooltip.item.shipping_box.copper_creeper_coin": "§a价值§f：§d1",
   "tooltip.item.shipping_box.iron_creeper_coin": "§a价值§f：§d8",
   "tooltip.item.shipping_box.gold_creeper_coin": "§a价值§f：§d16",

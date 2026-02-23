@@ -33,8 +33,18 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .unlockedBy("has_shipping_box", has(Items.DIAMOND))
                 .save(recipeOutput);
 
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
+                        ModItems.DIMENSIONAL_POUCH.get())
+                .pattern("BCB")
+                .pattern("CAC")
+                .pattern("BCB")
+                .define('A', Tags.Items.GEMS_QUARTZ)
+                .define('B', Tags.Items.GEMS_AMETHYST)
+                .define('C', Tags.Items.GEMS_EMERALD)
+                .unlockedBy("has_dimensional_pouch", has(Items.QUARTZ))
+                .save(recipeOutput);
 
-        /*===================== 爬爬币 无序 =====================*/
+        /*===================== 爬爬币 有序 =====================*/
         // 爬爬币
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
                         ModItems.IRON_CREEPER_COIN.get())
@@ -83,7 +93,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .save(recipeOutput);
 
 
-        /*===================== 爬爬币 有序 =====================*/
+        /*===================== 爬爬币 无序 =====================*/
         // 铜爬爬币
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
                         ModItems.COPPER_CREEPER_COIN.get(), 8)

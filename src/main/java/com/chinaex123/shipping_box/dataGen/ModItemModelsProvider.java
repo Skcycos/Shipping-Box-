@@ -13,6 +13,7 @@ public class ModItemModelsProvider extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
+        basicItem(ModItems.DIMENSIONAL_POUCH.get());
         basicItem(ModItems.COPPER_CREEPER_COIN.get());
         basicItem(ModItems.IRON_CREEPER_COIN.get());
         basicItem(ModItems.GOLD_CREEPER_COIN.get());

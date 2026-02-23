@@ -15,6 +15,12 @@ public class ModItems {
     public static final DeferredRegister.Items ITEMS_REGISTER =
             DeferredRegister.createItems(ShippingBox.MOD_ID);
 
+    // 次元钱袋
+    public static final DeferredItem<Item> DIMENSIONAL_POUCH =
+            ITEMS_REGISTER.register("dimensional_pouch",
+                    () -> new DimensionalPouchItem(new Item.Properties().rarity(Rarity.COMMON)));
+
+    // 铜爬爬币
     public static final DeferredItem<Item> COPPER_CREEPER_COIN =
             ITEMS_REGISTER.register("copper_creeper_coin",
                     () -> new ViScriptCoinItemServer(new Item.Properties().rarity(Rarity.COMMON), 1,

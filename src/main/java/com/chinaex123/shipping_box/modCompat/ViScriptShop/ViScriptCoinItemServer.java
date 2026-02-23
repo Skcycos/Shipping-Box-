@@ -34,12 +34,6 @@ public class ViScriptCoinItemServer extends TooltipItems {
     // 存储玩家的动画状态
     private static final Map<UUID, AnimationState> animationStates = new HashMap<>();
 
-    // ViScriptShop反射缓存
-    private static Class<?> viScriptShopClass = null;
-    private static java.lang.reflect.Method getMoneyMethod = null;
-    private static java.lang.reflect.Method addMoneyMethod = null;
-    private static boolean viScriptShopChecked = false;
-
     // 动画状态类
     private static class AnimationState {
         final int startBalance;
@@ -80,48 +74,17 @@ public class ViScriptCoinItemServer extends TooltipItems {
     }
 
     /**
-     * 初始化ViScriptShop反射
-     */
-    private static void initViScriptShopReflection() {
-        if (viScriptShopChecked) return;
-
-        try {
-            viScriptShopClass = Class.forName("com.viscriptshop.util.ViScriptShopServerUtil");
-            getMoneyMethod = viScriptShopClass.getMethod("getMoney", ServerPlayer.class);
-            addMoneyMethod = viScriptShopClass.getMethod("addMoney", ServerPlayer.class, int.class);
-        } catch (Exception e) {
-            viScriptShopClass = null;
-        }
-        viScriptShopChecked = true;
-    }
-
-    /**
-     * 通过反射获取ViScriptShop余额
+     * 通过工具类获取ViScriptShop余额
      */
     private static int getViScriptShopMoney(ServerPlayer player) {
-        initViScriptShopReflection();
-        if (viScriptShopClass == null) return 0;
-
-        try {
-            return (Integer) getMoneyMethod.invoke(null, player);
-        } catch (Exception e) {
-            return 0;
-        }
+        return ViScriptShopUtil.getMoney(player);
     }
 
     /**
-     * 通过反射给ViScriptShop增加货币
+     * 通过工具类给ViScriptShop增加货币
      */
     private static boolean addViScriptShopMoney(ServerPlayer player, int amount) {
-        initViScriptShopReflection();
-        if (viScriptShopClass == null) return false;
-
-        try {
-            addMoneyMethod.invoke(null, player, amount);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+        return ViScriptShopUtil.addMoney(player, amount);
     }
 
     /**
@@ -138,8 +101,7 @@ public class ViScriptCoinItemServer extends TooltipItems {
 
         // 检查ViScriptShop是否加载
         if (!ModList.get().isLoaded("viscript_shop")) {
-            // 没有加载模组时，完全阻止右键交互
-            return InteractionResultHolder.fail(stack);
+            return InteractionResultHolder.pass(stack);
         }
 
         if (level.isClientSide) {
@@ -230,11 +192,9 @@ public class ViScriptCoinItemServer extends TooltipItems {
                 int currentBalance = state.startBalance + (int)((state.totalValue / 20.0) * state.currentStep);
                 int increment = state.totalValue;
 
-                Component message = Component.translatable("message.shipping_box.viscriptshop.balance_animation",
+                player.displayClientMessage(Component.translatable("message.shipping_box.viscriptshop.balance_animation",
                         currentBalance,
-                        increment);
-
-                player.displayClientMessage(message, true);
+                        increment), true);
 
                 state.currentStep++;
 
@@ -256,12 +216,5 @@ public class ViScriptCoinItemServer extends TooltipItems {
      */
     public int getCoinValue() {
         return coinValue;
-    }
-
-    /**
-     * 清理动画状态
-     */
-    public static void clearAnimationStates() {
-        animationStates.clear();
     }
 }
