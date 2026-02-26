@@ -130,6 +130,8 @@ dependencies {
     localRuntime "curse.maven:placebo-283644:6926281"
     localRuntime "curse.maven:pipez-443900:5609056"
     localRuntime "curse.maven:kiwi-303657:7666569"
+    localRuntime "curse.maven:kubejs-238086:7278501"
+    localRuntime "curse.maven:rhino-416294:7104526"
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime

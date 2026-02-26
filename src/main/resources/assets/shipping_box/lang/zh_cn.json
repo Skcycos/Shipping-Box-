@@ -23,6 +23,7 @@
   "message.shipping_box.viscriptshop.exchange_failed": "§c兑换失败，请稍后重试",
   "message.shipping_box.access_denied": "§c你没有权限访问这个自动售货箱！",
   "message.shipping_box.auto_box_bound": "§a自动售货箱已绑定玩家：[%s§a]",
+  "message.shipping_box.auto_box_already_bound": "§a此自动售货箱已绑定玩家：[%s§a]",
 
   "tooltip.item.shipping_box.dimensional_pouch.oh": "§6哇哦！这是什么",
   "tooltip.item.shipping_box.dimensional_pouch.use": "右键转换实体货币或查询余额",

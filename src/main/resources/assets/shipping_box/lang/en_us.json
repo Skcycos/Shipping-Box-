@@ -23,6 +23,7 @@
   "message.shipping_box.viscriptshop.exchange_failed": "§cExchange failed, please try again later",
   "message.shipping_box.access_denied": "You don't have permission to access this Auto Shipping Box!",
   "message.shipping_box.auto_box_bound": "Auto Shipping Box bound to player: [%s§a]",
+  "message.shipping_box.auto_box_already_bound": "§aThis Auto Shipping Box is bound to a player：[%s§a]",
 
   "tooltip.item.shipping_box.dimensional_pouch.oh": "§6Wow! what's this",
   "tooltip.item.shipping_box.dimensional_pouch.use": "Right-click to convert physical coins or check balance",
