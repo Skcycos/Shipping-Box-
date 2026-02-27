@@ -1,22 +1,23 @@
 # Shipping Box | 售货箱
 
-[English](#english) | [中文](#中文) | [格式/Format](#格式/Format)
+[English](#english) | [中文](#中文) | [Json](#Json)
 
 ---
 
-## English
+# **English**
 
-## Add a Shipping Bin for Item-to-Item Exchange
+### Add a Shipping Bin for Item-to-Item Exchange
 - Define "exchange rules" through data packs
 - Place items into the shipping bin, and at 6:00 the next day, exchanges will be processed according to the rules set in the "exchange rules"
 - Items automatically display exchange information, supporting JEI list display of item exchange details
+- If the "exchange rules" are configured incorrectly, an in-game reminder will be displayed.
 
-## Integrated Mods
+### Integrated Mods
 - **ViScriptShop**
     - Right-click with Pawa Coin to exchange for virtual currency based on the currency price shown in the item tooltip; sneak right-click to exchange a full stack
   - Right-click with "Secondary Currency Pouch" to convert physical currency or check balance; sneak right-click to exchange physical currency from containers
 
-## Usage Instructions
+### Usage Instructions
 - Place "exchange rules" in the data/shipping_box/recipe_manager folder
 - Supports any item as input/output with customizable quantities. Files must be in JSON format, multiple JSON files allowed
 - Supports input/output data components, with input components supporting NBT ranges
@@ -25,27 +26,30 @@
 
 ---
 
-# 中文
+# **中文**
 
-## 添加一个用于物品兑换物品的售货箱
+### 添加一个用于物品兑换物品的售货箱
 - 通过数据包定义"兑换规则"
 - 将物品放入售货箱后，在第二天6:00会按照"兑换规则"内设置的规则进行兑换
 - 物品自动有兑换信息，支持jei列表显示物品的兑换信息
+- "兑换规则"配置错误时会在游戏内提醒
 
-## 联动模组
+### 联动模组
 - **ViScriptShop**
   - 右键爬爬币会根据物品提示显示的货币价格兑换虚拟货币，潜行右键换取一组
   - 手持"次元钱袋"右键转换实体货币或查询余额，潜行右键兑换容器内的实体货币
 
-## 使用方法
+### 使用方法
 - 需要将“兑换规则”放入到data/shipping\_box/recipe\_manager文件夹内
 - 支持任意物品作为输入/输出，且数量可自定义。 文件必须是json，可以有多个json
 - 支持输入/输出数据组件，输入组件支持nbt区间
 - 组件有两种格式，字符串格式和JSON对象格式，推荐用JSON对象格式
 - 关于json内部格式和描述都在下面的代码中
 
-======================================================================
-# 格式/Format
+---
+
+# Json
+
 1.物品 ↔ 物品/Item → Item
 ```
 "rules": [
@@ -189,7 +193,7 @@ JSON对象格式/JSON Object Format
 - [min,max) - Left-closed, right-open interval (greater than or equal to min and less than max)
 ```
 "components": {
-  "tide:fish_length": "[40.0,50.0]",
+  "tide:fish_length": "[40.0,50.0)",
   "tide:catch_timestamp": "[5000,6000]"
 }
 ```
