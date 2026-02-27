@@ -1,10 +1,27 @@
 # Shipping Box | 售货箱
 
-[English](#english) | [中文](#中文)| [格式/Format](#文件格式/File Format)
+[English](#english) | [中文](#中文) | [格式/Format](#格式/Format)
 
 ---
 
 ## English
+
+## Add a Shipping Bin for Item-to-Item Exchange
+- Define "exchange rules" through data packs
+- Place items into the shipping bin, and at 6:00 the next day, exchanges will be processed according to the rules set in the "exchange rules"
+- Items automatically display exchange information, supporting JEI list display of item exchange details
+
+## Integrated Mods
+- **ViScriptShop**
+    - Right-click with Pawa Coin to exchange for virtual currency based on the currency price shown in the item tooltip; sneak right-click to exchange a full stack
+  - Right-click with "Secondary Currency Pouch" to convert physical currency or check balance; sneak right-click to exchange physical currency from containers
+
+## Usage Instructions
+- Place "exchange rules" in the data/shipping_box/recipe_manager folder
+- Supports any item as input/output with customizable quantities. Files must be in JSON format, multiple JSON files allowed
+- Supports input/output data components, with input components supporting NBT ranges
+- Components have two formats: string format and JSON object format; JSON object format is recommended
+- The internal JSON format and descriptions are provided in the code below
 
 ---
 
@@ -28,7 +45,7 @@
 - 关于json内部格式和描述都在下面的代码中
 
 ======================================================================
-# 文件格式/File Format
+# 格式/Format
 1.物品 ↔ 物品/Item → Item
 ```
 "rules": [
@@ -158,16 +175,18 @@ JSON对象格式/JSON Object Format
 ```
 
 2.[MOD]Tide2/潮汐2
-- 区间格式说明/Interval Format Description
-[min,max] - 包含边界的区间（大于等于min且小于等于max）
-(min,max) - 排除边界的区间（大于min且小于max）
-(min,max] - 左开右闭区间（大于min且小于等于max）
-[min,max) - 左闭右开区间（大于等于min且小于max）
+#### 区间格式说明/Interval Format Description
 
-[min,max] - Closed interval (greater than or equal to min and less than or equal to max)  
-(min,max) - Open interval (greater than min and less than max)  
-(min,max] - Left-open, right-closed interval (greater than min and less than or equal to max)  
-[min,max) - Left-closed, right-open interval (greater than or equal to min and less than max)
+- [min,max] - 包含边界的区间（大于等于min且小于等于max）
+- (min,max) - 排除边界的区间（大于min且小于max）
+- (min,max] - 左开右闭区间（大于min且小于等于max）
+- [min,max) - 左闭右开区间（大于等于min且小于max）
+
+
+- [min,max] - Closed interval (greater than or equal to min and less than or equal to max)  
+- (min,max) - Open interval (greater than min and less than max)  
+- (min,max] - Left-open, right-closed interval (greater than min and less than or equal to max)  
+- [min,max) - Left-closed, right-open interval (greater than or equal to min and less than max)
 ```
 "components": {
   "tide:fish_length": "[40.0,50.0]",

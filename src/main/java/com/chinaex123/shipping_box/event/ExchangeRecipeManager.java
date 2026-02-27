@@ -508,15 +508,24 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         }
     }
 
-    // 辅助序列化方法
+    /**
+     * 序列化输入物品为JSON对象
+     * 将ExchangeRule.InputItem实例转换为JSON格式
+     *
+     * @param input 要序列化的输入物品实例
+     * @return 包含输入物品配置的JSON对象
+     */
     private static JsonObject serializeInputItem(ExchangeRule.InputItem input) {
         JsonObject obj = new JsonObject();
+
         if (input.getItem() != null) {
             obj.addProperty("item", input.getItem());
         }
         if (input.getTag() != null) {
             obj.addProperty("tag", input.getTag());
         }
+
+        // 处理组件配置
         if (input.getComponents() != null) {
             if (input.getComponents() instanceof JsonObject) {
                 obj.add("components", (JsonObject) input.getComponents());
@@ -524,14 +533,25 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 obj.addProperty("components", (String) input.getComponents());
             }
         }
+
         obj.addProperty("count", input.getCount());
+
         return obj;
     }
 
+    /**
+     * 序列化输出物品为JSON对象
+     * 将ExchangeRule.OutputItem实例转换为JSON格式
+     *
+     * @param output 要序列化的输出物品实例
+     * @return 包含输出物品配置的JSON对象
+     */
     private static JsonObject serializeOutputItem(ExchangeRule.OutputItem output) {
         JsonObject obj = new JsonObject();
         obj.addProperty("item", output.getItem());
         obj.addProperty("count", output.getCount());
+
+        // 处理组件配置
         if (output.getComponents() != null) {
             if (output.getComponents() instanceof JsonObject) {
                 obj.add("components", (JsonObject) output.getComponents());
@@ -539,17 +559,28 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 obj.addProperty("components", (String) output.getComponents());
             }
         }
+
         return obj;
     }
 
+    /**
+     * 反序列化输入物品配置
+     * 将JSON对象转换为ExchangeRule.InputItem实例
+     *
+     * @param obj 包含输入物品配置的JSON对象
+     * @return 配置好的输入物品实例
+     */
     private static ExchangeRule.InputItem deserializeInputItem(JsonObject obj) {
         ExchangeRule.InputItem input = new ExchangeRule.InputItem();
+
         if (obj.has("item")) {
             input.setItem(obj.get("item").getAsString());
         }
         if (obj.has("tag")) {
             input.setTag(obj.get("tag").getAsString());
         }
+
+        // 处理组件配置
         if (obj.has("components")) {
             JsonElement componentsElement = obj.get("components");
             if (componentsElement.isJsonObject()) {
@@ -558,16 +589,27 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 input.setComponents(componentsElement.getAsString());
             }
         }
+
         if (obj.has("count")) {
             input.setCount(obj.get("count").getAsInt());
         }
+
         return input;
     }
 
+    /**
+     * 反序列化输出物品配置
+     * 将JSON对象转换为ExchangeRule.OutputItem实例
+     *
+     * @param obj 包含输出物品配置的JSON对象
+     * @return 配置好的输出物品实例
+     */
     private static ExchangeRule.OutputItem deserializeOutputItem(JsonObject obj) {
         ExchangeRule.OutputItem output = new ExchangeRule.OutputItem();
         output.setItem(obj.get("item").getAsString());
         output.setCount(obj.get("count").getAsInt());
+
+        // 处理组件配置（如果存在）
         if (obj.has("components")) {
             JsonElement componentsElement = obj.get("components");
             if (componentsElement.isJsonObject()) {
@@ -576,6 +618,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 output.setComponents(componentsElement.getAsString());
             }
         }
+
         return output;
     }
 

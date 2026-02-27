@@ -57,7 +57,7 @@ public class ExchangeRule {
     public static class InputItem {
         private String item;  // 物品ID
         private String tag;   // 标签ID
-        private Object components;  // 改为Object类型以支持JsonObject和String
+        private Object components;  // 支持JsonObject和String
         private int count = 1;
 
         public String getItem() {
@@ -89,7 +89,6 @@ public class ExchangeRule {
             this.count = count;
         }
 
-        // 修改getter方法
         public Object getComponents() {
             return components;
         }
@@ -156,8 +155,7 @@ public class ExchangeRule {
                 int componentEnd = item.lastIndexOf(']');
                 if (componentStart > 0 && componentEnd > componentStart) {
                     itemId = item.substring(0, componentStart);
-                    String componentString = item.substring(componentStart + 1, componentEnd);
-                    componentObject = componentString;
+                    componentObject = item.substring(componentStart + 1, componentEnd);
                 }
 
                 ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
@@ -173,14 +171,10 @@ public class ExchangeRule {
                 // 检查组件匹配
                 Object finalComponents = componentObject != null ? componentObject : components;
 
-                System.out.println("Debug - Checking components: " + finalComponents + " (type: " + (finalComponents != null ? finalComponents.getClass().getSimpleName() : "null") + ")");
-
                 if (finalComponents != null) {
                     if (finalComponents instanceof String) {
-                        System.out.println("Debug - Using String component matcher");
                         return ExchangeRuleComponents.matchesComponents(stack, (String) finalComponents);
                     } else if (finalComponents instanceof JsonObject) {
-                        System.out.println("Debug - Using JsonObject component matcher");
                         // 处理JsonObject类型的组件匹配 - 直接传递JsonObject对象
                         return ExchangeRuleComponents.matchesComponents(stack, (JsonObject) finalComponents);
                     }
@@ -188,7 +182,6 @@ public class ExchangeRule {
 
                 return true;
             } catch (Exception e) {
-                System.out.println("Debug - Exception in matchesItem: " + e.getMessage());
                 return false;
             }
         }
@@ -198,9 +191,9 @@ public class ExchangeRule {
      * 输出物品类，定义兑换规则中的输出物品规格
      */
     public static class OutputItem {
-        private String item;
-        private int count = 1;
-        private Object components;  // 改为Object类型以支持JsonObject和String
+        private String item; // 物品ID
+        private int count = 1; //  数量
+        private Object components;  // 支持JsonObject和String
 
         public String getItem() {
             return item;
@@ -218,12 +211,10 @@ public class ExchangeRule {
             this.count = count;
         }
 
-        // 修改setter方法
         public void setComponents(Object components) {
             this.components = components;
         }
 
-        // 修改getter方法
         public Object getComponents() {
             return components;
         }
@@ -266,7 +257,6 @@ public class ExchangeRule {
                     if (finalComponents instanceof JsonObject) {
                         // 直接是JsonObject对象
                         ExchangeRuleComponents.applyComponents(resultStack, (JsonObject) finalComponents);
-                        System.out.println("Applied components: " + resultStack.getComponents());
                     } else if (finalComponents instanceof String componentStr) {
                         // 字符串格式
                         if (!componentStr.isEmpty()) {
@@ -276,7 +266,6 @@ public class ExchangeRule {
                             } else {
                                 ExchangeRuleComponents.applyComponents(resultStack, componentStr);
                             }
-                            System.out.println("Applied components: " + resultStack.getComponents());
                         }
                     }
                 }

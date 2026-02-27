@@ -112,26 +112,18 @@ public class ExchangeRuleComponents {
      */
     public static boolean matchesComponents(ItemStack stack, JsonObject jsonObject) {
         try {
-            System.out.println("Debug - matchesComponents JsonObject called with: " + jsonObject);
-            System.out.println("Debug - Stack components: " + stack.getComponents());
-
             // 遍历JSON对象的每个条目
             for (var entry : jsonObject.entrySet()) {
                 String componentName = entry.getKey();
                 JsonElement componentValue = entry.getValue();
 
-                System.out.println("Debug - Checking component: " + componentName + " = " + componentValue);
-
                 if (!matchesSingleComponentFromJson(stack, componentName, componentValue)) {
-                    System.out.println("Debug - Component " + componentName + " does not match");
                     return false;
                 }
             }
 
-            System.out.println("Debug - All components match!");
             return true;
         } catch (Exception e) {
-            System.out.println("Debug - Exception in matchesComponents JsonObject: " + e.getMessage());
             return true; // 出错时宽松匹配
         }
     }
@@ -205,16 +197,18 @@ public class ExchangeRuleComponents {
         }
     }
 
+    /**
+     * 比较实际组件值与JSON元素是否匹配（支持区间）
+     *
+     * @param actualValue 实际的组件值
+     * @param expectedValue 期望的组件值JSON元素
+     * @return 值匹配返回true，否则返回false
+     */
     private static boolean compareComponentValuesFromJson(Object actualValue, JsonElement expectedValue) {
         try {
-            System.out.println("Debug - Comparing actual: " + actualValue + " (class: " + actualValue.getClass().getSimpleName() + ")");
-            System.out.println("Debug - With expected: " + expectedValue);
-
             // 对于简单类型，直接比较
             if (expectedValue.isJsonPrimitive()) {
-                boolean result = actualValue.toString().equals(expectedValue.getAsString());
-                System.out.println("Debug - Primitive comparison result: " + result);
-                return result;
+                return actualValue.toString().equals(expectedValue.getAsString());
             }
 
             // 对于复杂对象，我们需要更智能的比较
@@ -225,11 +219,8 @@ public class ExchangeRuleComponents {
 
             // 对于复杂对象，转换为字符串比较（作为后备方案）
             String expectedString = expectedValue.toString();
-            boolean result = actualValue.toString().equals(expectedString);
-            System.out.println("Debug - String comparison result: " + result);
-            return result;
+            return actualValue.toString().equals(expectedString);
         } catch (Exception e) {
-            System.out.println("Debug - Exception in compareComponentValuesFromJson: " + e.getMessage());
             return true;
         }
     }
@@ -245,8 +236,6 @@ public class ExchangeRuleComponents {
      */
     private static boolean compareComplexObject(Object actualValue, JsonObject expectedObj) {
         try {
-            System.out.println("Debug - Comparing complex object: " + actualValue.getClass().getSimpleName());
-
             // 获取对象的所有getter方法
             Class<?> clazz = actualValue.getClass();
             for (var entry : expectedObj.entrySet()) {
@@ -260,8 +249,6 @@ public class ExchangeRuleComponents {
                     field.setAccessible(true);
                     Object actualFieldValue = field.get(actualValue);
 
-                    System.out.println("Debug - Field " + fieldName + ": actual=" + actualFieldValue + ", expected=" + expectedFieldValue);
-
                     // 递归比较字段值
                     if (!compareFieldValues(actualFieldValue, expectedFieldValue)) {
                         return false;
@@ -273,30 +260,24 @@ public class ExchangeRuleComponents {
                         java.lang.reflect.Method getter = clazz.getMethod(getterName);
                         Object actualFieldValue = getter.invoke(actualValue);
 
-                        System.out.println("Debug - Getter " + getterName + ": actual=" + actualFieldValue + ", expected=" + expectedFieldValue);
-
                         if (!compareFieldValues(actualFieldValue, expectedFieldValue)) {
                             return false;
                         }
                     } catch (Exception getterException) {
-                        System.out.println("Debug - Cannot access field/getter for " + fieldName);
                         // 字段无法访问，宽松匹配
-                        continue;
                     }
                 }
             }
 
-            System.out.println("Debug - Complex object comparison succeeded");
             return true;
         } catch (Exception e) {
-            System.out.println("Debug - Exception in compareComplexObject: " + e.getMessage());
             return true; // 出错时宽松匹配
         }
     }
 
     /**
-     * 比较字段值
-     * 处理不同类型值的比较逻辑
+     * 比较字段值（支持区间匹配）
+     * 处理不同类型值的比较逻辑，包括数值区间匹配
      *
      * @param actualFieldValue 实际字段值
      * @param expectedFieldValue 期望的JSON元素值
@@ -307,6 +288,12 @@ public class ExchangeRuleComponents {
             if (expectedFieldValue.isJsonPrimitive()) {
                 String expectedString = expectedFieldValue.getAsString();
                 String actualString = actualFieldValue != null ? actualFieldValue.toString() : "null";
+
+                // 检查是否为区间格式 [min,max] 或 (min,max)
+                if (isRangeFormat(expectedString)) {
+                    return matchesRange(actualFieldValue, expectedString);
+                }
+
                 return actualString.equals(expectedString);
             } else if (expectedFieldValue.isJsonObject()) {
                 // 递归处理嵌套对象
@@ -316,6 +303,62 @@ public class ExchangeRuleComponents {
             return true; // 复杂情况宽松匹配
         } catch (Exception e) {
             return true;
+        }
+    }
+
+    /**
+     * 检查字符串是否为区间格式
+     * 支持 [min,max]（包含边界）和 (min,max)（排除边界）格式
+     *
+     * @param value 要检查的字符串
+     * @return 是区间格式返回true，否则返回false
+     */
+    private static boolean isRangeFormat(String value) {
+        return (value.startsWith("[") && value.endsWith("]")) ||
+                (value.startsWith("(") && value.endsWith(")"));
+    }
+
+    /**
+     * 检查数值是否在指定区间内
+     *
+     * @param actualValue 实际数值
+     * @param rangeString 区间字符串，格式如 "[10,20]" 或 "(10,20)"
+     * @return 在区间内返回true，否则返回false
+     */
+    private static boolean matchesRange(Object actualValue, String rangeString) {
+        try {
+            // 解析区间边界
+            char startChar = rangeString.charAt(0);
+            char endChar = rangeString.charAt(rangeString.length() - 1);
+            String inner = rangeString.substring(1, rangeString.length() - 1);
+
+            String[] parts = inner.split(",");
+            if (parts.length != 2) {
+                return false;
+            }
+
+            double min = Double.parseDouble(parts[0].trim());
+            double max = Double.parseDouble(parts[1].trim());
+
+            // 转换实际值为数字
+            double actualDouble;
+            if (actualValue instanceof Number) {
+                actualDouble = ((Number) actualValue).doubleValue();
+            } else {
+                actualDouble = Double.parseDouble(actualValue.toString());
+            }
+
+            // 根据边界类型判断是否包含边界
+            boolean includeMin = (startChar == '[');
+            boolean includeMax = (endChar == ']');
+
+            boolean minMatch = includeMin ? actualDouble >= min : actualDouble > min;
+            boolean maxMatch = includeMax ? actualDouble <= max : actualDouble < max;
+
+            return minMatch && maxMatch;
+
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -385,17 +428,11 @@ public class ExchangeRuleComponents {
      * @return 标准化的ResourceLocation对象，无效时返回null
      */
     public static ResourceLocation normalizeComponentId(String componentName) {
-        System.out.println("Debug - Normalizing component ID: " + componentName);
-
         // 标准化组件ID（添加minecraft:前缀如果需要）
         if (componentName.contains(":")) {
-            ResourceLocation result = ResourceLocation.tryParse(componentName);
-            System.out.println("Debug - Parsed as namespaced: " + result);
-            return result;
+            return ResourceLocation.tryParse(componentName);
         }
-        ResourceLocation result = ResourceLocation.tryParse("minecraft:" + componentName);
-        System.out.println("Debug - Parsed as minecraft namespace: " + result);
-        return result;
+        return ResourceLocation.tryParse("minecraft:" + componentName);
     }
 
     /**
