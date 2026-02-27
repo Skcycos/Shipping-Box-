@@ -25,6 +25,13 @@
   "message.shipping_box.auto_box_bound": "§a自动售货箱已绑定玩家：[%s§a]",
   "message.shipping_box.auto_box_already_bound": "§a此自动售货箱已绑定玩家：[%s§a]",
   "message.shipping_box.binding_cleared": "§a绑定信息已清除",
+  "message.shipping_box.recipe_validation_failed": "规则 #%s 验证失败: %s",
+  "message.shipping_box.recipe_parse_error": "解析规则 #%s 时出错: %s (%s)",
+  "message.shipping_box.missing_rules_array": "配置文件缺少 'rules' 数组: %s",
+  "message.shipping_box.resource_load_error": "加载资源配置文件时出错: %s - %s",
+  "message.shipping_box.scan_error": "扫描配置文件时出错: %s",
+  "message.shipping_box.recipe_error_title": "§c§l[运输箱] 配方配置错误!",
+  "message.shipping_box.recipe_error_help": "§7请检查 data/shipping_box/recipe_manager/ 目录下的JSON文件",
 
   "tooltip.item.shipping_box.dimensional_pouch.oh": "§6哇哦！这是什么",
   "tooltip.item.shipping_box.dimensional_pouch.use": "右键转换实体货币或查询余额",

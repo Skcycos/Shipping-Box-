@@ -3,7 +3,9 @@ package com.chinaex123.shipping_box.event;
 import com.chinaex123.shipping_box.ShippingBox;
 import com.google.gson.*;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
@@ -12,6 +14,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -40,6 +44,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     /** 当前生效的兑换规则列表 */
     private static List<ExchangeRule> currentRules = new ArrayList<>();
 
+
+    /** 存储待发送的错误信息 */
+    private static final List<String> pendingErrorMessages = new ArrayList<>();
     /**
      * 准备阶段：从资源配置中加载并解析兑换规则
      *
@@ -50,6 +57,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     @Override
     protected List<ExchangeRule> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
         List<ExchangeRule> rules = new ArrayList<>();
+        List<String> currentErrors = new ArrayList<>(); // 当前加载会话的错误
 
         try {
             // 遍历所有匹配的资源配置文件
@@ -71,25 +79,81 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
                             // 解析规则数组
                             if (json.has("rules") && json.get("rules").isJsonArray()) {
+                                int ruleIndex = 0;
                                 for (JsonElement element : json.getAsJsonArray("rules")) {
-                                    ExchangeRule rule = parseRule(element.getAsJsonObject());
-                                    if (validateRule(rule)) {
-                                        rules.add(rule);
+                                    try {
+                                        ExchangeRule rule = parseRule(element.getAsJsonObject());
+                                        if (validateRule(rule)) {
+                                            rules.add(rule);
+                                        } else {
+                                            // 使用本地化键
+                                            currentErrors.add(Component.translatable("message.shipping_box.recipe_validation_failed",
+                                                    ruleIndex + 1, resourceLocation.getPath()).getString());
+                                        }
+                                    } catch (Exception e) {
+                                        // 使用本地化键
+                                        currentErrors.add(Component.translatable("message.shipping_box.recipe_parse_error",
+                                                ruleIndex + 1, e.getMessage(), resourceLocation.getPath()).getString());
                                     }
+                                    ruleIndex++;
                                 }
+                            } else {
+                                // 使用本地化键
+                                currentErrors.add(Component.translatable("message.shipping_box.missing_rules_array",
+                                        resourceLocation.getPath()).getString());
                             }
                         }
                     }
                 } catch (Exception e) {
-                    // 静默处理加载错误
+                    // 使用本地化键
+                    currentErrors.add(Component.translatable("message.shipping_box.resource_load_error",
+                            resourceLocation.getPath(), e.getMessage()).getString());
                 }
             }
 
         } catch (Exception e) {
-            // 静默处理扫描错误
+            // 使用本地化键
+            currentErrors.add(Component.translatable("message.shipping_box.scan_error",
+                    e.getMessage()).getString());
+        }
+
+        // 将错误信息添加到待发送列表
+        if (!currentErrors.isEmpty()) {
+            synchronized (pendingErrorMessages) {
+                pendingErrorMessages.addAll(currentErrors);
+            }
         }
 
         return rules;
+    }
+
+    /**
+     * 服务器tick事件监听器
+     * 用于发送积累的错误信息给在线玩家
+     */
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post event) {
+        if (!pendingErrorMessages.isEmpty()) {
+            synchronized (pendingErrorMessages) {
+                // 只有当有玩家在线时才发送消息
+                if (ServerLifecycleHooks.getCurrentServer() != null && !ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers().isEmpty()) {
+                    for (ServerPlayer player : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers()) {
+                        // 发送标题提示（使用本地化）
+                        player.displayClientMessage(Component.translatable("message.shipping_box.recipe_error_title"), false);
+
+                        // 发送具体错误信息
+                        for (String errorMsg : pendingErrorMessages) {
+                            player.displayClientMessage(Component.literal("§c" + errorMsg), false);
+                        }
+
+                        // 发送帮助信息（使用本地化）
+                        player.displayClientMessage(Component.translatable("message.shipping_box.recipe_error_help"), false);
+                    }
+                    // 清空已发送的错误信息
+                    pendingErrorMessages.clear();
+                }
+            }
+        }
     }
 
     /**

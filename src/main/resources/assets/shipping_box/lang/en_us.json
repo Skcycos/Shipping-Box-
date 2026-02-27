@@ -25,6 +25,14 @@
   "message.shipping_box.auto_box_bound": "Auto Shipping Box bound to player: [%s§a]",
   "message.shipping_box.auto_box_already_bound": "§aThis Auto Shipping Box is bound to a player：[%s§a]",
   "message.shipping_box.binding_cleared": "§abinding cleared",
+  "message.shipping_box.recipe_validation_failed": "Rule #%s validation failed: %s",
+  "message.shipping_box.recipe_parse_error": "Error parsing rule #%s: %s (%s)",
+  "message.shipping_box.missing_rules_array": "Configuration file missing 'rules' array: %s",
+  "message.shipping_box.resource_load_error": "Error loading resource file: %s - %s",
+  "message.shipping_box.scan_error": "Error scanning configuration files: %s",
+  "message.shipping_box.recipe_error_title": "§c§l[Shipping Box] Recipe Configuration Error!",
+  "message.shipping_box.recipe_error_help": "§7Please check the JSON configuration files in data/shipping_box/recipe_manager/",
+
 
   "tooltip.item.shipping_box.dimensional_pouch.oh": "§6Wow! what's this",
   "tooltip.item.shipping_box.dimensional_pouch.use": "Right-click to convert physical coins or check balance",
