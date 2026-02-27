@@ -398,7 +398,7 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 比较实际组件值与期望值是否匹配
+     * 比较组件值是否匹配
      * 支持字符串、数字、布尔值等基本类型比较
      *
      * @param actualValue 实际的组件值
@@ -409,11 +409,10 @@ public class ExchangeRuleComponents {
         try {
             // 处理不同类型的值比较
             return switch (actualValue) {
-                case String s -> actualValue.equals(expectedValue.replace("\"", ""));
-                case Number number -> actualValue.toString().equals(expectedValue);
-                case Boolean b -> actualValue.toString().equals(expectedValue);
-                case null, default ->
-                        true; // 对于复杂对象，进行宽松匹配
+                case String s -> s.equals(expectedValue.replace("\"", ""));
+                case Number number -> number.toString().equals(expectedValue);
+                case Boolean b -> b.toString().equals(expectedValue);
+                case null, default -> true; // 对于复杂对象，进行宽松匹配
             };
         } catch (Exception e) {
             return true;
@@ -550,7 +549,7 @@ public class ExchangeRuleComponents {
                 return;
             }
 
-            // Check for special components
+            // 处理特殊组件类型：附魔和存储附魔
             if ("enchantments".equals(componentName) || componentId.getPath().equals("enchantments")) {
                 applyEnchantmentsFromJson(stack, componentValue);
                 return;
@@ -561,17 +560,18 @@ public class ExchangeRuleComponents {
                 return;
             }
 
-            // Generic component handling
+            // 获取通用组件类型
             DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
             if (componentType == null) {
                 return;
             }
 
+            // 检查组件是否有编解码器
             if (componentType.codec() == null) {
                 return;
             }
 
-            // Try to parse
+            // 使用组件的codec解析并应用值
             var result = componentType.codec().parse(JsonOps.INSTANCE, componentValue);
             if (result.isSuccess()) {
                 Object parsedValue = result.result().orElse(null);
