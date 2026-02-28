@@ -9,6 +9,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import java.util.Random;
 
 public class ExchangeRule {
 
@@ -182,6 +183,22 @@ public class ExchangeRule {
         }
     }
 
+    public static class WeightedItem {
+        private String item;
+        private int count = 1;
+        private int weight = 1;
+        private Object components;
+
+        public String getItem() { return item; }
+        public void setItem(String item) { this.item = item; }
+        public int getCount() { return count; }
+        public void setCount(int count) { this.count = count; }
+        public int getWeight() { return weight; }
+        public void setWeight(int weight) { this.weight = weight; }
+        public Object getComponents() { return components; }
+        public void setComponents(Object components) { this.components = components; }
+    }
+
     /**
      * 输出物品类，定义兑换规则中的输出物品规格
      */
@@ -190,6 +207,11 @@ public class ExchangeRule {
         private int count = 1; //  数量
         private Object components;  // 支持JsonObject和String
         private boolean coin = false; // 虚拟货币标识符
+
+        // 权重相关字段
+        private String type; // 输出类型："single"(默认) 或 "weight"(权重模式)
+        private List<WeightedItem> items; // 权重物品列表
+
 
         public String getItem() {
             return item;
@@ -223,6 +245,22 @@ public class ExchangeRule {
             this.coin = coin;
         }
 
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public List<WeightedItem> getItems() {
+            return items;
+        }
+
+        public void setItems(List<WeightedItem> items) {
+            this.items = items;
+        }
+
         /**
          * 根据配置生成结果物品堆
          * 支持物品ID、数量和组件数据的完整构建
@@ -235,6 +273,11 @@ public class ExchangeRule {
                 if (this.coin) {
                     // 直接返回空物品堆
                     return ItemStack.EMPTY;
+                }
+
+                // 权重模式处理
+                if ("weight".equals(this.type) && this.items != null && !this.items.isEmpty()) {
+                    return getRandomWeightedItem();
                 }
 
                 // 普通物品模式
@@ -277,6 +320,66 @@ public class ExchangeRule {
                 }
 
                 return resultStack;
+            } catch (Exception e) {
+                return ItemStack.EMPTY;
+            }
+        }
+
+        /**
+         * 根据权重随机选择一个物品
+         * @return 随机选中的物品堆
+         */
+        public ItemStack getRandomWeightedItem() {  // 改为public
+            try {
+                // 计算总权重
+                int totalWeight = 0;
+                for (WeightedItem weightedItem : items) {
+                    totalWeight += weightedItem.getWeight();
+                }
+
+                if (totalWeight <= 0) {
+                    return ItemStack.EMPTY;
+                }
+
+                // 生成随机数
+                int randomValue = new Random().nextInt(totalWeight);
+
+                // 根据权重选择物品
+                int currentWeight = 0;
+                for (WeightedItem weightedItem : items) {
+                    currentWeight += weightedItem.getWeight();
+                    if (randomValue < currentWeight) {
+                        // 创建选中的物品
+                        ResourceLocation itemResource = ResourceLocation.tryParse(weightedItem.getItem());
+                        if (itemResource == null) {
+                            continue;
+                        }
+
+                        Item resultItem = BuiltInRegistries.ITEM.get(itemResource);
+                        ItemStack resultStack = new ItemStack(resultItem, weightedItem.getCount());
+
+                        // 应用组件
+                        Object components = weightedItem.getComponents();
+                        if (components != null) {
+                            if (components instanceof JsonObject) {
+                                ExchangeRuleComponents.applyComponents(resultStack, (JsonObject) components);
+                            } else if (components instanceof String componentStr) {
+                                if (!componentStr.isEmpty()) {
+                                    if (componentStr.trim().startsWith("{") && componentStr.trim().endsWith("}")) {
+                                        JsonObject jsonObject = JsonParser.parseString(componentStr).getAsJsonObject();
+                                        ExchangeRuleComponents.applyComponents(resultStack, jsonObject);
+                                    } else {
+                                        ExchangeRuleComponents.applyComponents(resultStack, componentStr);
+                                    }
+                                }
+                            }
+                        }
+
+                        return resultStack;
+                    }
+                }
+
+                return ItemStack.EMPTY;
             } catch (Exception e) {
                 return ItemStack.EMPTY;
             }

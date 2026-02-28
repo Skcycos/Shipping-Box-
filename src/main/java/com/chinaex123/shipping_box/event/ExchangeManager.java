@@ -70,6 +70,23 @@ public class ExchangeManager {
                         // 应用属性加成
                         int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
                         totalVirtualCurrency += enhancedCount;
+                    } else if ("weight".equals(rule.getOutputItem().getType()) &&
+                            rule.getOutputItem().getItems() != null &&
+                            !rule.getOutputItem().getItems().isEmpty()) {
+                        // 权重模式：为每次兑换生成物品，然后使用通用的堆叠处理逻辑
+                        for (int i = 0; i < maxExchanges; i++) {
+                            ItemStack weightedOutput = rule.getOutputItem().getRandomWeightedItem();
+                            if (!weightedOutput.isEmpty()) {
+                                // 应用属性加成
+                                int baseCount = weightedOutput.getCount();
+                                int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
+
+                                // 创建带有增强数量的新物品堆
+                                ItemStack enhancedOutput = weightedOutput.copy();
+                                enhancedOutput.setCount(enhancedCount);
+                                results.add(enhancedOutput);
+                            }
+                        }
                     } else {
                         // 普通物品模式：生成输出物品
                         ItemStack output = rule.getOutputItem().getResultStack().copy();
@@ -104,11 +121,40 @@ public class ExchangeManager {
             // 添加剩余物品（仅限普通物品）
             results.addAll(currentItems);
 
+            // 统一堆叠处理 - 合并相同物品
+            List<ItemStack> stackedResults = new ArrayList<>();
+            for (ItemStack stack : results) {
+                if (stack.isEmpty()) continue;
+
+                boolean merged = false;
+                for (ItemStack existingStack : stackedResults) {
+                    if (ItemStack.isSameItemSameComponents(existingStack, stack)) {
+                        int maxStackSize = existingStack.getMaxStackSize();
+                        int spaceAvailable = maxStackSize - existingStack.getCount();
+                        int amountToMerge = Math.min(stack.getCount(), spaceAvailable);
+
+                        if (amountToMerge > 0) {
+                            existingStack.grow(amountToMerge);
+                            stack.shrink(amountToMerge);
+                            merged = true;
+
+                            if (stack.isEmpty()) {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!stack.isEmpty()) {
+                    stackedResults.add(stack);
+                }
+            }
+
             // 清空并重新填充
             Collections.fill(items, ItemStack.EMPTY);
             int slotIndex = 0;
 
-            for (ItemStack result : results) {
+            for (ItemStack result : stackedResults) {
                 if (slotIndex >= items.size()) break;
 
                 int maxStackSize = result.getMaxStackSize();
@@ -116,16 +162,13 @@ public class ExchangeManager {
 
                 // 遍历所有槽位，将物品按最大堆叠数分配到各个槽位中
                 while (remainingCount > 0 && slotIndex < items.size()) {
-                    // 检查当前槽位是否为空
                     if (items.get(slotIndex).isEmpty()) {
-                        // 计算当前槽位应该放置的数量（取剩余数量和最大堆叠数中的较小值）
                         int stackSize = Math.min(remainingCount, maxStackSize);
-                        ItemStack newStack = result.copy(); // 创建新的物品堆栈副本
-                        newStack.setCount(stackSize); // 设置该堆栈的数量
-                        items.set(slotIndex, newStack); // 将物品放入当前槽位
-                        remainingCount -= stackSize; // 减去已分配的数量
+                        ItemStack newStack = result.copy();
+                        newStack.setCount(stackSize);
+                        items.set(slotIndex, newStack);
+                        remainingCount -= stackSize;
                     }
-                    // 移动到下一个槽位
                     slotIndex++;
                 }
             }

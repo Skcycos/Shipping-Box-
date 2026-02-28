@@ -6,6 +6,7 @@ import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -86,6 +87,16 @@ public class ExchangeTooltipProvider {
                                 inputName,
                                 currencyText)
                         .withStyle(ChatFormatting.GOLD);
+            }
+            // 检查是否为权重模式
+            else if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
+                // 权重模式使用特殊格式："[输入数量 输入物品名称 → 随机物品]"
+                Component outputName = getLocalizedItemName(output);
+                return Component.translatable("tooltip.shipping_box.exchange_format_weight",
+                                input.getCount(),
+                                inputName,
+                                outputName)
+                        .withStyle(ChatFormatting.GOLD);
             } else {
                 // 普通物品使用原有格式："[输入数量 输入物品名称 → 输出数量 输出物品名称]"
                 Component outputName = getLocalizedItemName(output);
@@ -113,7 +124,7 @@ public class ExchangeTooltipProvider {
         try {
             // 如果是标签
             if (input.getTag() != null && !input.getTag().isEmpty()) {
-                // 对于标签，显示标签名称（可以进一步优化）
+                // 对于标签，显示标签名称
                 String tagName = input.getTag();
                 if (tagName.startsWith("#")) {
                     tagName = tagName.substring(1);
@@ -145,6 +156,12 @@ public class ExchangeTooltipProvider {
                         .withStyle(ChatFormatting.GOLD);
             }
 
+            // 检查是否为权重模式
+            if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
+                // 权重模式：显示"随机物品"或者列出所有可能的物品
+                return buildWeightedItemsDisplay(output.getItems());
+            }
+
             if (output.getItem() != null && !output.getItem().isEmpty()) {
                 return getLocalizedItemName(output.getItem());
             }
@@ -152,6 +169,54 @@ public class ExchangeTooltipProvider {
             // 异常处理
         }
         return Component.translatable("tooltip.shipping_box.unknown_item").withStyle(ChatFormatting.RED);
+    }
+
+    /**
+     * 构建权重物品的显示文本
+     *
+     * @param weightedItems 权重物品列表
+     * @return 格式化的显示组件
+     */
+    private static Component buildWeightedItemsDisplay(List<ExchangeRule.WeightedItem> weightedItems) {
+        try {
+            // 只显示物品名称，不限制数量和权重
+            List<Component> itemNames = new ArrayList<>();
+
+            // 最多显示3个物品
+            int displayLimit = Math.min(3, weightedItems.size());
+
+            for (int i = 0; i < displayLimit; i++) {
+                ExchangeRule.WeightedItem item = weightedItems.get(i);
+                Component itemName = getLocalizedItemName(item.getItem());
+                itemNames.add(itemName);
+            }
+
+            // 如果还有更多物品，添加"以及更多"提示
+            if (weightedItems.size() > 3) {
+                Component moreText = Component.translatable("tooltip.shipping_box.and_more")
+                        .withStyle(ChatFormatting.GRAY);
+                itemNames.add(moreText);
+            }
+
+            // 用逗号连接所有物品名称
+            if (itemNames.isEmpty()) {
+                return Component.translatable("tooltip.shipping_box.random_item").withStyle(ChatFormatting.GOLD);
+            }
+
+            // 手动拼接组件
+            MutableComponent result = Component.empty();
+            for (int i = 0; i < itemNames.size(); i++) {
+                result.append(itemNames.get(i));
+                if (i < itemNames.size() - 1) {
+                    result.append(Component.literal("/"));
+                }
+            }
+
+            return result.withStyle(ChatFormatting.GOLD);
+
+        } catch (Exception e) {
+            return Component.translatable("tooltip.shipping_box.random_item").withStyle(ChatFormatting.GOLD);
+        }
     }
 
     /**

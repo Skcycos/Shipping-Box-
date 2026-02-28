@@ -248,6 +248,27 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return output; // 虚拟货币模式下不需要其他字段
         }
 
+        // 处理权重模式
+        if (outputObj.has("type") && "weight".equals(outputObj.get("type").getAsString())) {
+            output.setType("weight");
+
+            // 解析权重物品列表
+            if (outputObj.has("items") && outputObj.get("items").isJsonArray()) {
+                List<ExchangeRule.WeightedItem> weightedItems = new ArrayList<>();
+                JsonArray itemsArray = outputObj.getAsJsonArray("items");
+
+                for (JsonElement itemElement : itemsArray) {
+                    JsonObject itemObj = itemElement.getAsJsonObject();
+                    ExchangeRule.WeightedItem weightedItem = parseWeightedItem(itemObj);
+                    weightedItems.add(weightedItem);
+                }
+
+                output.setItems(weightedItems);
+            }
+
+            return output; // 权重模式下不需要其他字段
+        }
+
         // 普通物品模式
         if (outputObj.has("item")) {
             output.setItem(outputObj.get("item").getAsString());
@@ -270,6 +291,39 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         }
 
         return output;
+    }
+
+    /**
+     * 解析权重物品JSON对象
+     *
+     * @param itemObj 权重物品JSON对象
+     * @return 解析后的权重物品实例
+     */
+    private ExchangeRule.WeightedItem parseWeightedItem(JsonObject itemObj) {
+        ExchangeRule.WeightedItem weightedItem = new ExchangeRule.WeightedItem();
+
+        // 解析基本属性
+        if (itemObj.has("item")) {
+            weightedItem.setItem(itemObj.get("item").getAsString());
+        }
+        if (itemObj.has("count")) {
+            weightedItem.setCount(itemObj.get("count").getAsInt());
+        }
+        if (itemObj.has("weight")) {
+            weightedItem.setWeight(itemObj.get("weight").getAsInt());
+        }
+
+        // 解析组件
+        if (itemObj.has("components")) {
+            JsonElement componentsElement = itemObj.get("components");
+            if (componentsElement.isJsonObject()) {
+                weightedItem.setComponents(componentsElement.getAsJsonObject());
+            } else if (componentsElement.isJsonPrimitive()) {
+                weightedItem.setComponents(componentsElement.getAsString());
+            }
+        }
+
+        return weightedItem;
     }
 
     /**
@@ -324,10 +378,19 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * @param output 输出物品对象
      * @return 物品有效返回true，否则返回false
      */
-
     private boolean validateOutputItem(ExchangeRule.OutputItem output) {
         // 虚拟货币模式下不需要验证物品ID
         if (output.isCoin()) {
+            return true;
+        }
+
+        // 权重模式验证
+        if ("weight".equals(output.getType()) && output.getItems() != null) {
+            for (ExchangeRule.WeightedItem weightedItem : output.getItems()) {
+                if (!validateItemWithComponents(weightedItem.getItem())) {
+                    return false;
+                }
+            }
             return true;
         }
 
@@ -638,6 +701,33 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return obj;
         }
 
+        // 权重模式
+        if ("weight".equals(output.getType()) && output.getItems() != null) {
+            obj.addProperty("type", "weight");
+            JsonArray itemsArray = new JsonArray();
+
+            for (ExchangeRule.WeightedItem weightedItem : output.getItems()) {
+                JsonObject itemObj = new JsonObject();
+                itemObj.addProperty("item", weightedItem.getItem());
+                itemObj.addProperty("count", weightedItem.getCount());
+                itemObj.addProperty("weight", weightedItem.getWeight());
+
+                // 序列化组件
+                if (weightedItem.getComponents() != null) {
+                    if (weightedItem.getComponents() instanceof JsonObject) {
+                        itemObj.add("components", (JsonObject) weightedItem.getComponents());
+                    } else if (weightedItem.getComponents() instanceof String) {
+                        itemObj.addProperty("components", (String) weightedItem.getComponents());
+                    }
+                }
+
+                itemsArray.add(itemObj);
+            }
+
+            obj.add("items", itemsArray);
+            return obj;
+        }
+
         // 普通物品模式
         obj.addProperty("item", output.getItem());
         obj.addProperty("count", output.getCount());
@@ -707,6 +797,26 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return output;
         }
 
+        // 处理权重模式
+        if (obj.has("type") && "weight".equals(obj.get("type").getAsString())) {
+            output.setType("weight");
+
+            if (obj.has("items") && obj.get("items").isJsonArray()) {
+                List<ExchangeRule.WeightedItem> weightedItems = new ArrayList<>();
+                JsonArray itemsArray = obj.getAsJsonArray("items");
+
+                for (JsonElement itemElement : itemsArray) {
+                    JsonObject itemObj = itemElement.getAsJsonObject();
+                    ExchangeRule.WeightedItem weightedItem = deserializeWeightedItem(itemObj);
+                    weightedItems.add(weightedItem);
+                }
+
+                output.setItems(weightedItems);
+            }
+
+            return output;
+        }
+
         // 普通物品模式
         output.setItem(obj.get("item").getAsString());
         output.setCount(obj.get("count").getAsInt());
@@ -722,6 +832,33 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         }
 
         return output;
+    }
+
+    /**
+     * 反序列化权重物品配置
+     * 将JSON对象转换为ExchangeRule.WeightedItem实例
+     *
+     * @param itemObj 包含权重物品配置的JSON对象
+     * @return 配置好的权重物品实例
+     */
+    private static ExchangeRule.WeightedItem deserializeWeightedItem(JsonObject itemObj) {
+        ExchangeRule.WeightedItem weightedItem = new ExchangeRule.WeightedItem();
+
+        weightedItem.setItem(itemObj.get("item").getAsString());
+        weightedItem.setCount(itemObj.get("count").getAsInt());
+        weightedItem.setWeight(itemObj.get("weight").getAsInt());
+
+        // 反序列化组件
+        if (itemObj.has("components")) {
+            JsonElement componentsElement = itemObj.get("components");
+            if (componentsElement.isJsonObject()) {
+                weightedItem.setComponents(componentsElement.getAsJsonObject());
+            } else if (componentsElement.isJsonPrimitive()) {
+                weightedItem.setComponents(componentsElement.getAsString());
+            }
+        }
+
+        return weightedItem;
     }
 
     /**
