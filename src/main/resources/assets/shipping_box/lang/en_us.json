@@ -53,6 +53,7 @@
   "tooltip.shipping_box.unknown_item": "Unknown Item",
   "tooltip.shipping_box.random_item": "Random Item",
   "tooltip.shipping_box.and_more": "and more",
+  "tooltip.shipping_box.with_components": "(with components)",
 
   "attribute.shipping_box.selling_price_boost": "Selling Price Boost",
   "attribute.shipping_box.selling_price_boost.desc": "Affects the selling price of items"

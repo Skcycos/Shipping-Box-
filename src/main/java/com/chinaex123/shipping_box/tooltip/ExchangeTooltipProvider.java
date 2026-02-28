@@ -133,7 +133,7 @@ public class ExchangeTooltipProvider {
             }
             // 如果是物品ID
             else if (input.getItem() != null && !input.getItem().isEmpty()) {
-                return getLocalizedItemName(input.getItem());
+                return getLocalizedItemNameWithComponents(input.getItem(), input.getComponents());
             }
         } catch (Exception e) {
             // 异常处理
@@ -163,12 +163,39 @@ public class ExchangeTooltipProvider {
             }
 
             if (output.getItem() != null && !output.getItem().isEmpty()) {
-                return getLocalizedItemName(output.getItem());
+                return getLocalizedItemNameWithComponents(output.getItem(), output.getComponents());
             }
         } catch (Exception e) {
             // 异常处理
         }
         return Component.translatable("tooltip.shipping_box.unknown_item").withStyle(ChatFormatting.RED);
+    }
+
+    /**
+     * 获取带组件信息的物品名称显示
+     *
+     * @param itemIdentifier 物品标识符
+     * @param components 组件信息
+     * @return 带组件提示的物品名称组件
+     */
+    private static Component getLocalizedItemNameWithComponents(String itemIdentifier, Object components) {
+        try {
+            Component baseName = getLocalizedItemName(itemIdentifier);
+
+            // 如果有组件信息，添加组件提示
+            if (components != null) {
+                Component componentIndicator = Component.translatable("tooltip.shipping_box.with_components")
+                        .withStyle(ChatFormatting.GRAY);
+                return Component.empty()
+                        .append(baseName)
+                        .append(Component.literal(" "))
+                        .append(componentIndicator);
+            }
+
+            return baseName;
+        } catch (Exception e) {
+            return getLocalizedItemName(itemIdentifier);
+        }
     }
 
     /**

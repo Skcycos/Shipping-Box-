@@ -53,6 +53,7 @@
   "tooltip.shipping_box.unknown_item": "未知物品!",
   "tooltip.shipping_box.random_item": "随机物品",
   "tooltip.shipping_box.and_more": "以及更多",
+  "tooltip.shipping_box.with_components": "(含组件)",
 
   "attribute.shipping_box.selling_price_boost": "出售价格加成",
   "attribute.shipping_box.selling_price_boost.desc": "影响物品出售的价格"
