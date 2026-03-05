@@ -33,6 +33,8 @@ public class ShippingBox {
 
     public ShippingBox(IEventBus modEventBus, ModContainer modContainer) {
         NeoForge.EVENT_BUS.addListener(this::onServerStopping); // 添加服务器停止事件监听器
+        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn); // 注册玩家登录事件监听器
+        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut); // 注册玩家登出事件监听器
 
         modEventBus.addListener(this::registerCapabilities); // 能力注册事件
         modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
