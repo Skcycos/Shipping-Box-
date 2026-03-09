@@ -8,6 +8,7 @@ import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRuleComponents;
 import com.chinaex123.shipping_box.item.ModItems;
 import com.chinaex123.shipping_box.network.ClientSoldCountCache;
+import com.chinaex123.shipping_box.network.RecipeChunkCache;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
 import net.minecraft.core.RegistryAccess;
@@ -89,9 +90,9 @@ public class ShippingBox {
      */
     @SubscribeEvent
     public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
-        // 清理客户端缓存
-        if (FMLEnvironment.dist == Dist.CLIENT) {
-            ClientSoldCountCache.clearCache();
+        if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            // 清理该玩家的配方分片缓存
+            RecipeChunkCache.onPlayerLogout(serverPlayer);
         }
     }
 

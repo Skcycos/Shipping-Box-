@@ -21,7 +21,7 @@ public class ModAttributes {
             () -> new PercentageAttribute(
                     "attribute.shipping_box.selling_price_boost",
                     0.0,    // 默认值
-                    0.0,    // 最小值
+                    -10.0,    // 最小值
                     10.0    // 最大值
             ).setSyncable(true)
     );

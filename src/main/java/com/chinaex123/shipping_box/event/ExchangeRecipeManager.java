@@ -599,20 +599,119 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
     /**
      * 查找匹配给定物品列表的兑换规则
+     * 优先匹配精确度更高的规则（有组件要求 > 有标签要求 > 仅有物品 ID）
      *
      * @param availableStacks 可用物品列表
-     * @return 匹配的规则，如果没有匹配则返回null
+     * @return 匹配的规则，如果没有匹配则返回 null
      */
     public static ExchangeRule findMatchingRule(List<ItemStack> availableStacks) {
-        for (int i = 0; i < currentRules.size(); i++) {
-            ExchangeRule rule = currentRules.get(i);
+        ExchangeRule bestMatch = null;
+        int bestMatchScore = -1;
 
+        for (ExchangeRule rule : currentRules) {
             if (matchesRule(rule, availableStacks)) {
-                return rule;
+                int matchScore = calculateMatchPrecision(rule);
+
+                if (matchScore > bestMatchScore) {
+                    bestMatch = rule;
+                    bestMatchScore = matchScore;
+                }
             }
         }
 
-        return null;
+        return bestMatch;
+    }
+
+    /**
+     * 计算规则的匹配精确度
+     * 精确度评分标准（优先级从高到低）：
+     * 1. 有组件要求：基础 100 分
+     * 2. 组件内容复杂度：每个组件属性 +10 分
+     * 3. 组件嵌套深度：每层嵌套 +5 分
+     * 4. 仅有物品 ID: 基础 10 分
+     * 5. 有标签要求：基础 5 分
+     * 6. 有数量要求（大于 1）：额外 +1 分
+     * 7. 输入物品数量：每个输入物品 +2 分（多物品配方更精确）
+     *
+     * @param rule 兑换规则
+     * @return 规则的精确度分数
+     */
+    private static int calculateMatchPrecision(ExchangeRule rule) {
+        int precision = 0;
+        
+        for (ExchangeRule.InputItem input : rule.getInputs()) {
+            // 第一层：判断是否有组件
+            if (input.getComponents() != null) {
+                // 有组件要求：基础 100 分
+                precision += 100;
+                
+                // 第二层：计算组件复杂度（更精确的匹配）
+                if (input.getComponents() instanceof JsonObject componentsObj) {
+                    // 计算 JSON 对象的属性数量
+                    precision += componentsObj.size() * 10;
+                    
+                    // 计算嵌套深度
+                    precision += calculateNestingDepth(componentsObj) * 5;
+                } else if (input.getComponents() instanceof String componentStr) {
+                    // 字符串格式：按逗号分割计算属性数量
+                    String[] parts = componentStr.split(",");
+                    precision += parts.length * 10;
+                    
+                    // 如果包含等号，说明有具体的值，额外加分
+                    for (String part : parts) {
+                        if (part.contains("=")) {
+                            precision += 2;
+                        }
+                    }
+                }
+            } else if (input.getItem() != null && !input.getItem().isEmpty()) {
+                // 仅有物品 ID: 中等精度 +10 分
+                precision += 10;
+            } else if (input.getTag() != null && !input.getTag().isEmpty()) {
+                // 有标签要求：最低精度 +5 分
+                precision += 5;
+            }
+            
+            // 额外加成：有数量要求（大于 1）
+            if (input.getCount() > 1) {
+                precision += 1;
+            }
+        }
+        
+        // 额外加成：多物品配方（输入物品越多，规则越具体）
+        if (rule.getInputs().size() > 1) {
+            precision += rule.getInputs().size() * 2;
+        }
+        
+        return precision;
+    }
+    
+    /**
+     * 计算 JSON 对象的嵌套深度
+     * 用于评估组件的复杂程度
+     *
+     * @param obj JSON 对象
+     * @return 嵌套深度
+     */
+    private static int calculateNestingDepth(JsonObject obj) {
+        int maxDepth = 0;
+        
+        for (var entry : obj.entrySet()) {
+            JsonElement value = entry.getValue();
+            int currentDepth = 1;
+            
+            if (value.isJsonObject()) {
+                currentDepth += calculateNestingDepth(value.getAsJsonObject());
+            } else if (value.isJsonArray()) {
+                currentDepth += 1;
+            }
+            
+            if (currentDepth > maxDepth) {
+                maxDepth = currentDepth;
+            }
+        }
+        
+        return maxDepth;
     }
 
     /**

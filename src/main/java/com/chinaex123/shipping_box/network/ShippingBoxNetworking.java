@@ -20,12 +20,15 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 售货箱网络通信管理类
  * 处理多人协作时的数据同步
  */
 public class ShippingBoxNetworking {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShippingBoxNetworking.class);
 
     /**
      * 发送销售计数同步到所有客户端玩家
@@ -100,10 +103,13 @@ public class ShippingBoxNetworking {
     /**
      * 配方同步数据包记录类
      * 用于将服务端的兑换配方同步到客户端
+     * 支持分段发送以避免字符串超长问题
      *
-     * @param rulesJson 配方规则列表的JSON字符串表示
+     * @param rulesJson 配方规则列表的 JSON 字符串表示
+     * @param chunkIndex 当前分片索引（从 0 开始）
+     * @param totalChunks 总分片数量
      */
-    public record SyncRecipes(String rulesJson) implements CustomPacketPayload {
+    public record SyncRecipes(String rulesJson, int chunkIndex, int totalChunks) implements CustomPacketPayload {
         public static final Type<SyncRecipes> TYPE = new Type<>(
                 ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "sync_recipes")
         );
@@ -111,6 +117,8 @@ public class ShippingBoxNetworking {
         public static final StreamCodec<FriendlyByteBuf, SyncRecipes> STREAM_CODEC =
                 StreamCodec.composite(
                         ByteBufCodecs.STRING_UTF8, SyncRecipes::rulesJson,
+                        ByteBufCodecs.INT, SyncRecipes::chunkIndex,
+                        ByteBufCodecs.INT, SyncRecipes::totalChunks,
                         SyncRecipes::new
                 );
 
@@ -172,10 +180,24 @@ public class ShippingBoxNetworking {
     private static void handleSyncRecipes(SyncRecipes packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             try {
-                // 在客户端设置配方规则
-                ExchangeRecipeManager.setClientRules(packet.rulesJson());
+                // 检查是否是分段数据
+                if (packet.totalChunks() > 1) {
+                    // 使用缓存来存储接收到的分片
+                    RecipeChunkCache cache = RecipeChunkCache.getOrCreate(context.player());
+                    cache.addChunk(packet.chunkIndex(), packet.totalChunks(), packet.rulesJson());
+
+                    // 检查是否已接收所有分片
+                    if (cache.isComplete()) {
+                        String completeJson = cache.assembleJson();
+                        ExchangeRecipeManager.setClientRules(completeJson);
+                        cache.clear();
+                    }
+                } else {
+                    // 单个数据包，直接应用
+                    ExchangeRecipeManager.setClientRules(packet.rulesJson());
+                }
             } catch (Exception e) {
-                // 静默处理同步错误
+                LOGGER.error("Failed to apply recipe sync: {}", e.getMessage());
             }
         }).exceptionally(e -> null);
     }
@@ -215,16 +237,40 @@ public class ShippingBoxNetworking {
 
     /**
      * 向单个客户端玩家同步配方规则
+     * 使用分段发送机制避免字符串超长问题
      *
      * @param player 目标玩家
      */
     public static void syncRecipesToClient(ServerPlayer player) {
         try {
             String rulesJson = ExchangeRecipeManager.serializeRulesToJson();
-            SyncRecipes packet = new SyncRecipes(rulesJson);
-            PacketDistributor.sendToPlayer(player, packet);
+
+            // Minecraft 网络包字符串最大长度：32767 字符
+            // 为了安全起见，我们限制在 30000 字符
+            final int MAX_CHUNK_SIZE = 30000;
+
+            if (rulesJson.length() <= MAX_CHUNK_SIZE) {
+                // 如果规则较小，直接发送完整数据
+                SyncRecipes packet = new SyncRecipes(rulesJson, 0, 1);
+                PacketDistributor.sendToPlayer(player, packet);
+            } else {
+                // 分段发送
+                int totalChunks = (int) Math.ceil((double) rulesJson.length() / MAX_CHUNK_SIZE);
+
+                for (int i = 0; i < totalChunks; i++) {
+                    int start = i * MAX_CHUNK_SIZE;
+                    int end = Math.min(start + MAX_CHUNK_SIZE, rulesJson.length());
+                    String chunk = rulesJson.substring(start, end);
+
+                    SyncRecipes packet = new SyncRecipes(chunk, i, totalChunks);
+                    PacketDistributor.sendToPlayer(player, packet);
+
+                    // 短暂延迟，避免网络拥塞
+                    Thread.sleep(10);
+                }
+            }
         } catch (Exception e) {
-            // 静默处理序列化错误
+            LOGGER.error("Failed to sync recipes to client: {}", e.getMessage());
         }
     }
 }

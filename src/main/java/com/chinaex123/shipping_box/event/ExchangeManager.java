@@ -266,11 +266,12 @@ public class ExchangeManager {
      * <p>
      * 根据玩家的出售价格属性加成值，计算增强后的物品数量。
      * 采用智能取整策略：小数量向下取整保证平衡，大数量向上取整激励玩家。
+     * 支持负数属性（减少售价），最少为 0 个物品。
      *
      * @param baseCount 基础物品数量
      * @param level 游戏世界实例，用于获取服务器和玩家信息
      * @param playerUUID 玩家唯一标识符
-     * @return 应用属性加成后的最终物品数量
+     * @return 应用属性加成后的最终物品数量（最少为 0）
      */
     public static int applySellingPriceBoost(int baseCount, Level level, UUID playerUUID) {
         if (level == null || playerUUID == null) {
@@ -287,14 +288,19 @@ public class ExchangeManager {
             // 获取该玩家的出售价格属性加成
             double boost = player.getAttributeValue(ModAttributes.SELLING_PRICE_BOOST);
 
-            if (boost <= 0.0) {
-                return baseCount;
+            if (boost == 0.0) {
+                return baseCount; // 无加成，直接返回
             }
 
             // 应用加成：基础数量 × (1 + 加成系数)
             double enhancedAmount = baseCount * (1.0 + boost);
 
-            // 智能取整：小于等于5向下取整，大于5向上取整
+            // 处理负数情况：如果结果小于 0，返回 0
+            if (enhancedAmount < 0) {
+                return 0;
+            }
+
+            // 智能取整：小于等于 5 向下取整，大于 5 向上取整
             int result;
             if (enhancedAmount <= 5.0) {
                 result = (int) Math.floor(enhancedAmount);
