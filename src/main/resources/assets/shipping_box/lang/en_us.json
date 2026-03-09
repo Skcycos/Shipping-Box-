@@ -72,5 +72,10 @@
   "tooltip.shipping_box.reset_info_waiting": "Waiting reset (%s/%s days)",
 
   "attribute.shipping_box.selling_price_boost": "Selling Price Boost",
-  "attribute.shipping_box.selling_price_boost.desc": "Affects the selling price of items"
+  "attribute.shipping_box.selling_price_boost.desc": "Affects the selling price of items",
+
+  "command.shipping_box.not_player": "§cOnly players can execute this command.",
+  "command.shipping_box.no_block_target": "§cNo block targeted.",
+  "command.shipping_box.invalid_block_entity": "§cThe targeted block is not a Shipping Box.",
+  "command.shipping_box.force_exchange_success": "§aSuccessfully forced exchange for Shipping Box at %s"
 }

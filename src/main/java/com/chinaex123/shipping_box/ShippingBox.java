@@ -26,6 +26,9 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
+import com.chinaex123.shipping_box.command.ModCommands;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+
 @Mod(ShippingBox.MOD_ID)
 public class ShippingBox {
     // 在公共位置定义模组ID，供所有地方引用
@@ -35,6 +38,7 @@ public class ShippingBox {
         NeoForge.EVENT_BUS.addListener(this::onServerStopping); // 添加服务器停止事件监听器
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn); // 注册玩家登录事件监听器
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut); // 注册玩家登出事件监听器
+        NeoForge.EVENT_BUS.addListener(this::registerCommands); // 注册命令
 
         modEventBus.addListener(this::registerCapabilities); // 能力注册事件
         modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
@@ -45,6 +49,16 @@ public class ShippingBox {
         ModBlockEntities.register(modEventBus); // 注册方块实体
         ModAttributes.ATTRIBUTES.register(modEventBus); // 注册自定义属性系统
         NeoForge.EVENT_BUS.register(TooltipEventHandler.class); // 注册工具提示事件处理器
+    }
+
+    /**
+     * 注册命令事件监听器
+     *
+     * @param event 命令注册事件
+     */
+    @SubscribeEvent
+    public void registerCommands(RegisterCommandsEvent event) {
+        ModCommands.register(event.getDispatcher());
     }
 
     /**
