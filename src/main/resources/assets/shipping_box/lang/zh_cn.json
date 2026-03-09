@@ -72,5 +72,10 @@
   "tooltip.shipping_box.reset_info_waiting": "等待重置 (%s/%s天)",
 
   "attribute.shipping_box.selling_price_boost": "出售价格加成",
-  "attribute.shipping_box.selling_price_boost.desc": "影响物品出售的价格"
+  "attribute.shipping_box.selling_price_boost.desc": "影响物品出售的价格",
+
+  "command.shipping_box.not_player": "§c只有玩家可以执行此命令。",
+  "command.shipping_box.no_block_target": "§c未指向任何方块。",
+  "command.shipping_box.invalid_block_entity": "§c目标方块不是售货箱。",
+  "command.shipping_box.force_exchange_success": "§a已强制触发售货箱 (%s) 的出货逻辑"
 }

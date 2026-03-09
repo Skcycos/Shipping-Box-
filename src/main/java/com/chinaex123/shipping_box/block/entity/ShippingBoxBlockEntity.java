@@ -348,6 +348,19 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     }
 
     /**
+     * 强制执行物品兑换
+     * 忽略时间检查，直接触发兑换逻辑
+     * 主要用于调试和管理员操作
+     */
+    public void forceExchange() {
+        if (level != null && !level.isClientSide) {
+            performExchange(level.getDayTime() / 24000);
+            lastExchangeDay = level.getDayTime() / 24000;
+            setChanged();
+        }
+    }
+
+    /**
      * 执行物品兑换的核心逻辑方法
      * 处理物品匹配、消耗输入、生成输出并重新填充容器
      * 采用为每个玩家单独处理的方式，确保物品归属正确
