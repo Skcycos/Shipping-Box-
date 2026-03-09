@@ -38,7 +38,6 @@ public class ShippingBox {
     public ShippingBox(IEventBus modEventBus, ModContainer modContainer) {
         NeoForge.EVENT_BUS.addListener(this::onServerStopping); // 添加服务器停止事件监听器
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn); // 注册玩家登录事件监听器
-        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut); // 注册玩家登出事件监听器
         NeoForge.EVENT_BUS.addListener(this::registerCommands); // 注册指令事件监听器
 
         modEventBus.addListener(this::registerCapabilities); // 能力注册事件
@@ -80,22 +79,6 @@ public class ShippingBox {
             serverPlayer.getServer().execute(() -> {
                 ShippingBoxNetworking.syncRecipesToClient(serverPlayer);
             });
-        }
-    }
-
-    /**
-     * 玩家登出事件监听器
-     * <p>
-     * 当玩家从服务器断开连接时调用此方法，用于执行客户端相关的清理操作。
-     * 主要负责清除客户端的销售数量缓存，释放内存资源并确保数据一致性。
-     *
-     * @param event 玩家登出事件对象，包含登出玩家的相关信息
-     */
-    @SubscribeEvent
-    public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
-        // 清理客户端缓存
-        if (FMLEnvironment.dist == Dist.CLIENT) {
-            ClientSoldCountCache.clearCache();
         }
     }
 

@@ -17,6 +17,9 @@ import com.chinaex123.shipping_box.network.PacketExchangeEffects;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import com.chinaex123.shipping_box.event.strategy.ExchangeStrategy;
+import com.chinaex123.shipping_box.event.strategy.ExchangeStrategyFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.*;
 
 public class ExchangeManager {
@@ -70,101 +73,11 @@ public class ExchangeManager {
                         currentItems = ExchangeRecipeManager.consumeInputs(rule, currentItems);
                     }
 
-                    // 处理输出 - 重新排列条件判断顺序
-                    if (rule.getOutputItem().isCoin() &&
-                            "dynamic_pricing".equals(rule.getOutputItem().getType()) &&
-                            rule.getOutputItem().getDynamicProperties() != null) {
-
-                        // 动态定价+虚拟货币模式
-                        // 修复：使用输入物品作为标识符
-                        String itemIdentifier = rule.getInputs().getFirst().getItem();
-
-                        // 获取重置天数配置
-                        int resetDay = rule.getOutputItem().getDynamicProperties().getDay();
-
-                        // 获取当前累计售出数量（使用带重置天数的版本）
-                        int currentSoldCount = DynamicPricingManager.getSoldCount(itemIdentifier, resetDay);
-
-                        // 逐个物品计算虚拟货币数量（累计阈值机制）
-                        int totalVirtualCurrencyCount = 0;
-                        int itemsToProcess = maxExchanges; // 虚拟货币模式下每次兑换就是1个单位
-
-                        for (int i = 0; i < itemsToProcess; i++) {
-                            // 为每个单位单独计算基于当前累计数量的单价
-                            int dynamicCount = rule.getOutputItem().getDynamicCount(currentSoldCount + i);
-                            totalVirtualCurrencyCount += dynamicCount;
-                        }
-
-                        // 更新累计售出数量（增加这一批的数量）
-                        DynamicPricingManager.addSoldCount(itemIdentifier, itemsToProcess, resetDay);
-
-                        // 应用属性加成到总数量
-                        int enhancedCount = applySellingPriceBoost(totalVirtualCurrencyCount, level, boundPlayerUUID);
-                        totalVirtualCurrency += enhancedCount;
-
-                    } else if (rule.getOutputItem().isCoin()) {
-                        // 普通虚拟货币模式：使用固定数量
-                        int baseCount = rule.getOutputItem().getCount() * maxExchanges;
-                        // 应用属性加成
-                        int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
-                        totalVirtualCurrency += enhancedCount;
-
-                    } else if ("dynamic_pricing".equals(rule.getOutputItem().getType()) &&
-                            rule.getOutputItem().getDynamicProperties() != null) {
-                        // 动态定价模式处理 - 逐个物品计算以支持跨阈值
-                        String itemIdentifier = rule.getOutputItem().getItem();
-
-                        // 获取重置天数配置
-                        int resetDay = rule.getOutputItem().getDynamicProperties().getDay();
-
-                        // 获取当前累计售出数量（使用带重置天数的版本）
-                        int currentSoldCount = DynamicPricingManager.getSoldCount(itemIdentifier, resetDay);
-
-                        // 逐个物品计算输出数量
-                        int totalOutputCount = 0;
-                        int itemsToProcess = rule.getOutputItem().getCount() * maxExchanges;
-
-                        for (int i = 0; i < itemsToProcess; i++) {
-                            // 为每个物品单独计算基于当前累计数量的单价
-                            int dynamicCount = rule.getOutputItem().getDynamicCount(currentSoldCount + i);
-                            totalOutputCount += dynamicCount;
-                        }
-
-                        // 更新累计售出数量（增加这一批的数量）
-                        DynamicPricingManager.addSoldCount(itemIdentifier, itemsToProcess, resetDay);
-
-                        // 生成输出物品
-                        ItemStack output = rule.getOutputItem().getResultStack().copy();
-                        if (!output.isEmpty()) {
-                            // 应用属性加成
-                            int enhancedCount = applySellingPriceBoost(totalOutputCount, level, boundPlayerUUID);
-                            output.setCount(enhancedCount);
-                            results.add(output);
-                        }
-                    } else if ("weight".equals(rule.getOutputItem().getType()) &&
-                            rule.getOutputItem().getItems() != null &&
-                            !rule.getOutputItem().getItems().isEmpty()) {
-                        // 权重模式：为每次兑换独立随机选择一个物品
-                        for (int i = 0; i < maxExchanges; i++) {
-                            ItemStack weightedOutput = rule.getOutputItem().getRandomWeightedItem();
-                            if (!weightedOutput.isEmpty()) {
-                                // 对权重选出的物品也应用属性加成
-                                int baseCount = weightedOutput.getCount();
-                                int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
-                                weightedOutput.setCount(enhancedCount);
-                                results.add(weightedOutput);
-                            }
-                        }
-                    } else {
-                        // 普通物品模式 - 处理 type 为 null 或 "item" 的情况
-                        ItemStack output = rule.getOutputItem().getResultStack().copy();
-                        if (!output.isEmpty()) {
-                            int baseCount = rule.getOutputItem().getCount() * maxExchanges;
-                            int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
-                            output.setCount(enhancedCount);
-                            results.add(output);
-                        }
-                    }
+                    // 执行兑换策略
+                    ExchangeStrategy strategy = ExchangeStrategyFactory.getStrategy(rule);
+                    AtomicInteger currencyWrapper = new AtomicInteger(totalVirtualCurrency);
+                    strategy.execute(rule, maxExchanges, level, boundPlayerUUID, results, currencyWrapper);
+                    totalVirtualCurrency = currencyWrapper.get();
 
                     exchanged = true;
                     hasValidExchange = true;

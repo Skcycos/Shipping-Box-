@@ -42,11 +42,15 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     /** 记录玩家放置的物品数量 */
     private final Map<UUID, Integer> playerItemCounts = new HashMap<>();
 
+    /** 存储辅助类 */
+    private final ShippingBoxStorageHelper storageHelper;
+
     // 在构造函数中初始化
     public ShippingBoxBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SHIPPING_BOX_BE.get(), pos, state);
         // 初始化共享存储
         this.sharedItems = NonNullList.withSize(54, ItemStack.EMPTY);
+        this.storageHelper = new ShippingBoxStorageHelper(this);
     }
 
     /**
@@ -293,71 +297,41 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
             return;
         }
 
-        long dayTime = level.getDayTime();
-        long timeOfDay = dayTime % 24000;
+        if (!hasAnyItems()) {
+            return;
+        }
 
-        // 检查所有存储中是否存在物品
-        boolean hasItems = false;
+        if (TimeScheduler.shouldExchange(level, lastExchangeDay)) {
+            try {
+                long currentDay = level.getDayTime() / 24000;
+                performExchange(currentDay);
+                lastExchangeDay = currentDay;
+                setChanged();
+            } catch (Exception e) {
+                // 异常处理保持简洁
+            }
+        }
+    }
 
+    /**
+     * 检查是否存在任何物品需要兑换
+     */
+    private boolean hasAnyItems() {
         // 检查共享存储
         for (ItemStack stack : sharedItems) {
             if (!stack.isEmpty()) {
-                hasItems = true;
-                break;
+                return true;
             }
         }
 
-        // 如果共享存储没有物品，检查玩家独立存储
-        if (!hasItems) {
-            for (UUID playerUUID : playerStorageManager.getAllPlayerUUIDs()) {
-                if (!playerStorageManager.isPlayerStorageEmpty(playerUUID)) {
-                    hasItems = true;
-                    break;
-                }
+        // 检查玩家独立存储
+        for (UUID playerUUID : playerStorageManager.getAllPlayerUUIDs()) {
+            if (!playerStorageManager.isPlayerStorageEmpty(playerUUID)) {
+                return true;
             }
         }
-
-        if (!hasItems) return;
-
-        // 检测兑换时间窗口
-        int configExchangeTime = ModConfig.COMMON.exchangeTime.get();
-        // 设置一个合理的时间窗口（例如180 ticks = 9秒）
-        int windowEnd = configExchangeTime + 180;
         
-        // 处理跨天的时间窗口（例如时间设为23900，窗口可能跨越到第二天的0-80）
-        boolean inWindow;
-        if (windowEnd >= 24000) {
-            inWindow = (timeOfDay >= configExchangeTime) || (timeOfDay <= (windowEnd % 24000));
-        } else {
-            inWindow = (timeOfDay >= configExchangeTime && timeOfDay <= windowEnd);
-        }
-
-        if (inWindow) {
-            // 检查是否距离上次兑换已经过去了一天
-            long timeSinceLastExchange = dayTime - (lastExchangeDay * 24000);
-
-            // 如果距离上次兑换超过一天，或者这是第一次兑换
-            if (timeSinceLastExchange >= 24000 || lastExchangeDay == -1L) {
-                try {
-                    performExchange(dayTime / 24000);
-                    lastExchangeDay = dayTime / 24000;
-                    setChanged();
-                } catch (Exception e) {
-                    // 异常处理保持简洁
-                }
-            }
-            // 处理时间重置的特殊情况
-            else if (timeSinceLastExchange < 0) {
-                // 时间被重置到过去，强制进行兑换
-                try {
-                    performExchange(dayTime / 24000);
-                    lastExchangeDay = dayTime / 24000;
-                    setChanged();
-                } catch (Exception e) {
-                    // 异常处理保持简洁
-                }
-            }
-        }
+        return false;
     }
 
     /**
@@ -382,139 +356,24 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
             return;
         }
 
-        // 使用最简单直接的方式：为每个玩家单独处理
-        Map<UUID, List<ItemStack>> playerItemsToProcess = new HashMap<>();
-
-        // 收集共享存储的物品
-        for (int i = 0; i < sharedItems.size(); i++) {
-            ItemStack stack = sharedItems.get(i);
-            if (!stack.isEmpty()) {
-                UUID owner = slotOwners.get(i);
-                if (owner != null) {
-                    playerItemsToProcess.computeIfAbsent(owner, k -> new ArrayList<>()).add(stack.copy());
-                }
-            }
-        }
-
-        // 收集玩家独立存储的物品
-        for (UUID playerUUID : playerStorageManager.getAllPlayerUUIDs()) {
-            NonNullList<ItemStack> playerItems = playerStorageManager.getPlayerStorage(playerUUID);
-            for (ItemStack stack : playerItems) {
-                if (!stack.isEmpty()) {
-                    playerItemsToProcess.computeIfAbsent(playerUUID, k -> new ArrayList<>()).add(stack.copy());
-                }
-            }
-        }
+        // 1. 收集所有需要处理的物品
+        Map<UUID, List<ItemStack>> playerItemsToProcess = storageHelper.collectItemsToProcess(sharedItems, slotOwners);
 
         if (playerItemsToProcess.isEmpty()) {
             return;
         }
 
-        // 清空所有存储
-        Collections.fill(sharedItems, ItemStack.EMPTY);
-        playerStorageManager.clearAllStorages();
+        // 2. 清空所有存储
+        storageHelper.clearAllStorage(sharedItems);
 
-        // 为每个玩家单独执行兑换
-        Map<UUID, List<ItemStack>> playerResults = new HashMap<>();
-        Set<UUID> successfulPlayers = new HashSet<>();
-
-        for (Map.Entry<UUID, List<ItemStack>> entry : playerItemsToProcess.entrySet()) {
-            UUID playerUUID = entry.getKey();
-            List<ItemStack> items = entry.getValue();
-
-            // 使用共享的兑换逻辑
-            NonNullList<ItemStack> tempStorage = NonNullList.withSize(54, ItemStack.EMPTY);
-            // 将物品复制到临时存储
-            for (int i = 0; i < Math.min(items.size(), tempStorage.size()); i++) {
-                tempStorage.set(i, items.get(i).copy());
-            }
-
-            // 执行兑换
-            ExchangeManager.performExchange(tempStorage, level, worldPosition, playerUUID);
-
-            // 收集结果
-            List<ItemStack> results = new ArrayList<>();
-            for (ItemStack stack : tempStorage) {
-                if (!stack.isEmpty()) {
-                    results.add(stack.copy());
-                }
-            }
-
-            if (!results.isEmpty()) {
-                playerResults.put(playerUUID, results);
-                successfulPlayers.add(playerUUID);
-            }
-        }
-
-        // 将兑换结果分配给对应的玩家存储
-        for (Map.Entry<UUID, List<ItemStack>> resultEntry : playerResults.entrySet()) {
-            UUID playerUUID = resultEntry.getKey();
-            List<ItemStack> results = resultEntry.getValue();
-
-            NonNullList<ItemStack> playerStorage = getPlayerItems(playerUUID);
-            int slotIndex = 0;
-
-            // 遍历该玩家的所有结果物品
-            for (ItemStack result : results) {
-                // 如果存储已满，停止分配
-                if (slotIndex >= playerStorage.size()) {
-                    break;
-                }
-
-                int maxStackSize = result.getMaxStackSize();
-                int remainingCount = result.getCount();
-
-                // 将大堆叠物品分割成标准堆叠大小
-                while (remainingCount > 0 && slotIndex < playerStorage.size()) {
-                    // 寻找空槽位放置物品
-                    if (playerStorage.get(slotIndex).isEmpty()) {
-                        int stackSize = Math.min(remainingCount, maxStackSize);
-                        ItemStack newStack = result.copy();
-                        newStack.setCount(stackSize);
-                        playerStorage.set(slotIndex, newStack);
-                        remainingCount -= stackSize;
-                    }
-                    slotIndex++;
-                }
-            }
-        }
+        // 3. 执行兑换并分配结果
+        Set<UUID> successfulPlayers = storageHelper.processExchange(playerItemsToProcess, serverLevel, worldPosition);
 
         lastExchangeDay = currentDay;
         setChanged();
 
-        // 为成功兑换的玩家发送个性化通知
-        if (!successfulPlayers.isEmpty()) {
-            serverLevel.playSound(null, worldPosition,
-                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
-                    SoundSource.BLOCKS,
-                    0.5F, 1.0F);
-
-            notifySuccessfulPlayers(serverLevel, successfulPlayers);
-        }
-    }
-
-    /**
-     * 向成功兑换的玩家发送个性化通知
-     *
-     * @param serverLevel 服务器世界实例
-     * @param successfulPlayers 成功兑换的玩家UUID集合
-     */
-    private void notifySuccessfulPlayers(ServerLevel serverLevel, Set<UUID> successfulPlayers) {
-        for (UUID playerUUID : successfulPlayers) {
-            ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(playerUUID);
-            if (player != null) {
-                // 向特定玩家播放声音（无视距离）
-                player.playNotifySound(
-                        SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
-                        SoundSource.BLOCKS,
-                        0.5F,
-                        1.0F
-                );
-
-                // 发送个性化的成功消息
-                player.displayClientMessage(Component.translatable("message.shipping_box.exchange_success"), true);
-            }
-        }
+        // 4. 为成功兑换的玩家发送个性化通知
+        storageHelper.notifySuccessfulPlayers(serverLevel, successfulPlayers, worldPosition);
     }
 
     /**

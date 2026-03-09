@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
@@ -76,7 +77,8 @@ public class DynamicPricingManager {
             data.setDirty();
 
             // 同步到所有客户端
-            ShippingBoxNetworking.sendSoldCountSync(itemIdentifier, newCount);
+            // 使用 PacketDistributor 发送数据包
+            PacketDistributor.sendToAllPlayers(new com.chinaex123.shipping_box.network.PacketSoldCountSync(itemIdentifier, newCount));
         }
     }
 
@@ -342,7 +344,7 @@ public class DynamicPricingManager {
             data.setDirty();
 
             // 同步到所有客户端
-            ShippingBoxNetworking.sendSoldCountSync(itemIdentifier, data.getCount(itemIdentifier));
+            PacketDistributor.sendToAllPlayers(new com.chinaex123.shipping_box.network.PacketSoldCountSync(itemIdentifier, data.getCount(itemIdentifier)));
         }
     }
 }
