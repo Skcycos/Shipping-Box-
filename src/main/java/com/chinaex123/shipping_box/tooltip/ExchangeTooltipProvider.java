@@ -216,7 +216,7 @@ public class ExchangeTooltipProvider {
                 return Component.translatable("tooltip.shipping_box.exchange.format.coin_dynamic_no_count",
                                 Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
-                                Component.translatable("tooltip.shipping_box.virtual_currency_info").withStyle(ChatFormatting.LIGHT_PURPLE))
+                                Component.literal("◎").withStyle(ChatFormatting.LIGHT_PURPLE))
                         .withStyle(ChatFormatting.WHITE);
             }
             // 普通虚拟货币模式
@@ -225,7 +225,7 @@ public class ExchangeTooltipProvider {
                                 Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
                                 Component.literal(String.valueOf(output.getCount())).withStyle(ChatFormatting.AQUA),
-                                Component.translatable("tooltip.shipping_box.virtual_currency_unit").withStyle(ChatFormatting.LIGHT_PURPLE))
+                                Component.literal("◎").withStyle(ChatFormatting.LIGHT_PURPLE))
                         .withStyle(ChatFormatting.WHITE);
             }
             // 动态定价模式（普通物品）

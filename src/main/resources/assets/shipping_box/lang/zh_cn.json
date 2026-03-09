@@ -52,9 +52,7 @@
   "tooltip.shipping_box.exchange_format_no_count": "[%s个%s → %s]",
   "tooltip.shipping_box.exchange_format_weight": "[%s个%s → %s]",
   "tooltip.shipping_box.exchange.format.coin_dynamic_no_count": "[%s个%s → %s]",
-  "tooltip.shipping_box.virtual_currency_unit": "◎",
   "tooltip.shipping_box.virtual_currency": "%s◎",
-  "tooltip.shipping_box.virtual_currency_info": "◎",
   "tooltip.shipping_box.unknown_item": "未知物品!",
   "tooltip.shipping_box.random_item": "随机物品",
   "tooltip.shipping_box.and_more": "以及更多",
@@ -74,8 +72,8 @@
   "attribute.shipping_box.selling_price_boost": "出售价格加成",
   "attribute.shipping_box.selling_price_boost.desc": "影响物品出售的价格",
 
-  "command.shipping_box.not_player": "§c只有玩家可以执行此命令。",
-  "command.shipping_box.no_block_target": "§c未指向任何方块。",
-  "command.shipping_box.invalid_block_entity": "§c目标方块不是售货箱。",
-  "command.shipping_box.force_exchange_success": "§a已强制触发售货箱 (%s) 的出货逻辑"
+  "command.shipping_box.not_player": "只有玩家可以执行此命令。",
+  "command.shipping_box.no_block_target": "未指向任何方块。",
+  "command.shipping_box.invalid_block_entity": "目标方块不是售货箱。",
+  "command.shipping_box.force_exchange_success": "§a已强制触发售货箱 §f(%s§f) §a的出货逻辑"
 }
