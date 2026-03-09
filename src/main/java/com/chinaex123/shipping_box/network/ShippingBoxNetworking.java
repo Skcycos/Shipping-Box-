@@ -28,6 +28,34 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
 public class ShippingBoxNetworking {
 
     /**
+     * 销售计数同步数据包
+     * @param itemIdentifier 物品标识符
+     * @param soldCount 销售数量
+     */
+    public record SoldCountSyncPacket(String itemIdentifier, int soldCount) implements CustomPacketPayload {
+        public static final Type<SoldCountSyncPacket> TYPE = new Type<>(
+                ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "sold_count_sync")
+        );
+
+        public static final StreamCodec<FriendlyByteBuf, SoldCountSyncPacket> STREAM_CODEC = StreamCodec.composite(
+                ByteBufCodecs.STRING_UTF8, SoldCountSyncPacket::itemIdentifier,
+                ByteBufCodecs.INT, SoldCountSyncPacket::soldCount,
+                SoldCountSyncPacket::new
+        );
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+
+        public static void handle(SoldCountSyncPacket packet, IPayloadContext context) {
+            context.enqueueWork(() -> {
+                // 客户端处理逻辑，例如更新GUI
+            });
+        }
+    }
+
+    /**
      * 发送销售计数同步到所有客户端玩家
      * 使用服务器广播方法，性能优于遍历方式
      *
@@ -159,6 +187,13 @@ public class ShippingBoxNetworking {
                 SoldCountSyncPacket.TYPE,
                 SoldCountSyncPacket.STREAM_CODEC,
                 SoldCountSyncPacket::handle
+        );
+        
+        // 注册特效数据包
+        registrar.playToClient(
+                PacketExchangeEffects.TYPE,
+                PacketExchangeEffects.STREAM_CODEC,
+                PacketExchangeEffects::handle
         );
     }
 

@@ -12,6 +12,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import com.chinaex123.shipping_box.ModConfig;
+import com.chinaex123.shipping_box.network.PacketExchangeEffects;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
@@ -261,9 +264,35 @@ public class ExchangeManager {
             if (boundPlayerUUID != null) {
                 ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
                 if (player != null) {
-                    // 发送成功提示消息包
-                    ShippingBoxNetworking.ShowSuccessMessage successPacket = new ShippingBoxNetworking.ShowSuccessMessage();
-                    PacketDistributor.sendToPlayer(player, successPacket);
+                    // 1. 发送配置的聊天消息
+                    String line1 = ModConfig.COMMON.successMessageLine1.get();
+                    if (line1 != null && !line1.isEmpty()) {
+                        player.sendSystemMessage(Component.literal(line1));
+                    }
+                    
+                    String line2 = ModConfig.COMMON.successMessageLine2.get();
+                    if (line2 != null && !line2.isEmpty()) {
+                        line2 = line2.replace("{amount}", String.valueOf(totalVirtualCurrency));
+                        player.sendSystemMessage(Component.literal(line2));
+                    }
+                    
+                    String line3 = ModConfig.COMMON.successMessageLine3.get();
+                    if (line3 != null && !line3.isEmpty()) {
+                        long totalBalance = 0;
+                        if (ViScriptShopUtil.isAvailable()) {
+                            totalBalance = ViScriptShopUtil.getMoney(player);
+                        }
+                        line3 = line3.replace("{total}", String.valueOf(totalBalance));
+                        player.sendSystemMessage(Component.literal(line3));
+                    }
+                    
+                    // 2. 发送特效数据包
+                    PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(totalVirtualCurrency));
+                    
+                    // 3. (可选) 仍发送旧的成功提示消息包，如果客户端仍需要它显示ActionBar消息
+                    // 如果不需要旧的ActionBar提示，可以注释掉下面这行
+                    // ShippingBoxNetworking.ShowSuccessMessage successPacket = new ShippingBoxNetworking.ShowSuccessMessage();
+                    // PacketDistributor.sendToPlayer(player, successPacket);
                 }
             }
         }

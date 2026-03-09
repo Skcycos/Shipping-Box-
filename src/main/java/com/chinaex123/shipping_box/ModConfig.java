@@ -15,6 +15,9 @@ public class ModConfig {
 
     public static class Common {
         public final ModConfigSpec.IntValue exchangeTime;
+        public final ModConfigSpec.ConfigValue<String> successMessageLine1;
+        public final ModConfigSpec.ConfigValue<String> successMessageLine2;
+        public final ModConfigSpec.ConfigValue<String> successMessageLine3;
 
         public Common(ModConfigSpec.Builder builder) {
             builder.push("general");
@@ -24,6 +27,18 @@ public class ModConfig {
                             "Default is 0 (6:00 AM).",
                             "Range: 0 - 23999")
                     .defineInRange("exchangeTime", 0, 0, 23999);
+
+            builder.push("messages");
+            successMessageLine1 = builder
+                    .comment("Line 1 of the exchange success message.")
+                    .define("successMessageLine1", "黎明时分，星之精灵已取走货物。");
+            successMessageLine2 = builder
+                    .comment("Line 2 of the exchange success message. Use {amount} for earnings.")
+                    .define("successMessageLine2", "昨日收益：{amount} 硬币");
+            successMessageLine3 = builder
+                    .comment("Line 3 of the exchange success message. Use {total} for total wealth.")
+                    .define("successMessageLine3", "累计财富：{total} 硬币");
+            builder.pop();
             
             builder.pop();
         }
