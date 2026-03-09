@@ -2,6 +2,7 @@ package com.chinaex123.shipping_box.block.entity;
 
 import com.chinaex123.shipping_box.event.*;
 import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
+import com.chinaex123.shipping_box.ModConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
@@ -319,7 +320,19 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         if (!hasItems) return;
 
         // 检测兑换时间窗口
-        if (timeOfDay >= 0 && timeOfDay <= 180) {
+        int configExchangeTime = ModConfig.COMMON.exchangeTime.get();
+        // 设置一个合理的时间窗口（例如180 ticks = 9秒）
+        int windowEnd = configExchangeTime + 180;
+        
+        // 处理跨天的时间窗口（例如时间设为23900，窗口可能跨越到第二天的0-80）
+        boolean inWindow;
+        if (windowEnd >= 24000) {
+            inWindow = (timeOfDay >= configExchangeTime) || (timeOfDay <= (windowEnd % 24000));
+        } else {
+            inWindow = (timeOfDay >= configExchangeTime && timeOfDay <= windowEnd);
+        }
+
+        if (inWindow) {
             // 检查是否距离上次兑换已经过去了一天
             long timeSinceLastExchange = dayTime - (lastExchangeDay * 24000);
 
@@ -344,6 +357,15 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
                     // 异常处理保持简洁
                 }
             }
+        }
+    }
+
+    /**
+     * 强制执行物品兑换（用于调试指令）
+     */
+    public void forceExchange() {
+        if (level != null) {
+            performExchange(level.getDayTime() / 24000);
         }
     }
 

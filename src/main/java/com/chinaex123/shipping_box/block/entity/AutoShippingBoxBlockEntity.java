@@ -61,6 +61,15 @@ public class AutoShippingBoxBlockEntity extends BlockEntity implements MenuProvi
     }
 
     /**
+     * 强制执行物品兑换（用于调试指令）
+     */
+    public void forceExchange() {
+        if (level != null) {
+            performExchange(level.getDayTime() / 24000);
+        }
+    }
+
+    /**
      * 执行自动售货箱的物品兑换逻辑
      * <p>
      * 该方法负责收集自动售货箱中的物品，调用兑换管理器进行处理，

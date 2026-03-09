@@ -31,9 +31,11 @@ public class ExchangeManager {
         }
 
         List<ItemStack> currentItems = new ArrayList<>();
+        List<ItemStack> initialItems = new ArrayList<>(); // 记录初始物品用于日志
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
                 currentItems.add(stack.copy());
+                initialItems.add(stack.copy());
             }
         }
 
@@ -181,6 +183,19 @@ public class ExchangeManager {
 
         // 只有当确实有有效兑换发生时才处理物品和播放音效
         if (hasValidExchange) {
+            // 计算实际消耗的物品
+            List<ItemStack> consumedItems = calculateConsumedItems(initialItems, currentItems);
+            
+            // 记录交易日志
+            String playerName = "Unknown";
+            if (boundPlayerUUID != null) {
+                ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
+                if (player != null) {
+                    playerName = player.getName().getString();
+                }
+            }
+            TransactionLogger.logTransaction(boundPlayerUUID, playerName, consumedItems, results, totalVirtualCurrency, level);
+
             // 添加剩余物品
             results.addAll(currentItems);
 
@@ -336,5 +351,68 @@ public class ExchangeManager {
         }
 
         return maxExchanges;
+    }
+
+    /**
+     * 计算实际消耗的物品
+     */
+    private static List<ItemStack> calculateConsumedItems(List<ItemStack> initialItems, List<ItemStack> remainingItems) {
+        List<ItemStack> consumed = new ArrayList<>();
+        
+        // 创建剩余物品的深拷贝列表，用于模拟扣除过程
+        List<ItemStack> remainingCopy = new ArrayList<>();
+        for (ItemStack stack : remainingItems) {
+            remainingCopy.add(stack.copy());
+        }
+
+        for (ItemStack initStack : initialItems) {
+            ItemStack stackToProcess = initStack.copy();
+            int originalCount = stackToProcess.getCount();
+            int currentRemaining = originalCount;
+            
+            // 在剩余物品中寻找匹配项并扣除
+            for (int i = 0; i < remainingCopy.size(); i++) {
+                ItemStack remStack = remainingCopy.get(i);
+                if (ItemStack.isSameItemSameComponents(stackToProcess, remStack)) {
+                    int deduct = Math.min(currentRemaining, remStack.getCount());
+                    currentRemaining -= deduct;
+                    remStack.shrink(deduct);
+                    
+                    if (remStack.isEmpty()) {
+                        remainingCopy.remove(i);
+                        i--;
+                    }
+                    
+                    if (currentRemaining <= 0) break;
+                }
+            }
+            
+            // 消耗量 = 原始数量 - 剩余未匹配数量
+            int consumedCount = originalCount - currentRemaining;
+            
+            if (consumedCount > 0) {
+                ItemStack consumedStack = stackToProcess.copy();
+                consumedStack.setCount(consumedCount);
+                consumed.add(consumedStack);
+            }
+        }
+        
+        // 合并相同的消耗物品
+        List<ItemStack> mergedConsumed = new ArrayList<>();
+        for (ItemStack stack : consumed) {
+            boolean merged = false;
+            for (ItemStack existing : mergedConsumed) {
+                if (ItemStack.isSameItemSameComponents(existing, stack)) {
+                    existing.grow(stack.getCount());
+                    merged = true;
+                    break;
+                }
+            }
+            if (!merged) {
+                mergedConsumed.add(stack);
+            }
+        }
+        
+        return mergedConsumed;
     }
 }

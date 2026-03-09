@@ -10,19 +10,23 @@ import com.chinaex123.shipping_box.item.ModItems;
 import com.chinaex123.shipping_box.network.ClientSoldCountCache;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
+import com.chinaex123.shipping_box.command.ShippingBoxCommand;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
 import net.neoforged.bus.api.IEventBus;
+
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
@@ -35,9 +39,13 @@ public class ShippingBox {
         NeoForge.EVENT_BUS.addListener(this::onServerStopping); // 添加服务器停止事件监听器
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn); // 注册玩家登录事件监听器
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut); // 注册玩家登出事件监听器
+        NeoForge.EVENT_BUS.addListener(this::registerCommands); // 注册指令事件监听器
 
         modEventBus.addListener(this::registerCapabilities); // 能力注册事件
         modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
+        
+        // 注册配置文件
+        modContainer.registerConfig(ModConfig.Type.COMMON, com.chinaex123.shipping_box.ModConfig.COMMON_SPEC);
 
         ModCreativeTabs.register(modEventBus); // 注册自定义创造模式物品栏
         ModBlocks.register(modEventBus); // 注册方块
@@ -45,6 +53,16 @@ public class ShippingBox {
         ModBlockEntities.register(modEventBus); // 注册方块实体
         ModAttributes.ATTRIBUTES.register(modEventBus); // 注册自定义属性系统
         NeoForge.EVENT_BUS.register(TooltipEventHandler.class); // 注册工具提示事件处理器
+    }
+
+    /**
+     * 注册指令事件监听器
+     *
+     * @param event 注册指令事件
+     */
+    @SubscribeEvent
+    public void registerCommands(RegisterCommandsEvent event) {
+        ShippingBoxCommand.register(event.getDispatcher());
     }
 
     /**
