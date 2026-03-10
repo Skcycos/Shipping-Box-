@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "shipping_box:item/iron_creeper_coin"
+  }
+}
