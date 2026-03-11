@@ -140,15 +140,17 @@
 
 ### Interval Format Description
 Used for numerical range matching (such as durability, fish length, etc.):
-| Format | Description | Example |
-|--------|-------------|---------|
-| `[min,max]` | Inclusive boundaries | `[40.0,50.0]` |
-| `(min,max)` | Exclusive boundaries | `(40.0,50.0)` |
+
+| Format      | Description             | Example       |
+|-------------|-------------------------|---------------|
+| `[min,max]` | Inclusive boundaries    | `[40.0,50.0]` |
+| `(min,max)` | Exclusive boundaries    | `(40.0,50.0)` |
 | `(min,max]` | Left-open, right-closed | `(40.0,50.0]` |
 | `[min,max)` | Left-closed, right-open | `[40.0,50.0)` |
 
 ### Other Mod Component Examples
-[MOD] Quality Food
+[MOD] Quality Food - Crop quality
+- Support input and output
 ```json
 {
   "components": {
@@ -160,12 +162,23 @@ Used for numerical range matching (such as durability, fish length, etc.):
 }
 ```
 
-[MOD] Tide
+[MOD] Tide - The weight and length of the fish
+- Support input and output
 ```json
 {
   "components": {
     "tide:fish_length": "[40.0,50.0)",
     "tide:catch_timestamp": "[5000,6000]"
+  }
+}
+```
+
+[MOD]Kaleidoscope Tavern - Brewing quality
+- Support input and output
+```json
+{
+  "components": {
+    "kaleidoscope_tavern:brew_level": 7
   }
 }
 ```
@@ -410,15 +423,17 @@ Used for numerical range matching (such as durability, fish length, etc.):
 
 ### 区间格式说明
 用于数值范围匹配（如耐久度、鱼长度等）：
-| 格式 | 说明 | 示例 |
-|------|------|------|
-| `[min,max]` | 包含边界 | `[40.0,50.0]` |
-| `(min,max)` | 排除边界 | `(40.0,50.0)` |
-| `(min,max]` | 左开右闭 | `(40.0,50.0]` |
-| `[min,max)` | 左闭右开 | `[40.0,50.0)` |
+
+| 格式            | 说明   | 示例          |
+|:--------------|:-----|:------------|
+| `[40.0,50.0]` | 包含边界 | [40.0,50.0] |
+| `(40.0,50.0)` | 排除边界 | (40.0,50.0) |
+| `(40.0,50.0]` | 左开右闭 | (40.0,50.0] |
+| `[40.0,50.0)` | 左闭右开 | [40.0,50.0) |
 
 ### 其他模组组件示例
-[MOD]Quality Food
+[MOD]Quality Food - 作物的品质
+- 支持输入输出
 ```json
 {
   "components": {
@@ -430,12 +445,23 @@ Used for numerical range matching (such as durability, fish length, etc.):
 }
 ```
 
-[MOD]潮汐(Tide)
+[MOD]潮汐 - 鱼的重量和长度
+- 支持输入输出
 ```json
 {
   "components": {
     "tide:fish_length": "[40.0,50.0)",
     "tide:catch_timestamp": "[5000,6000]"
+  }
+}
+```
+
+[MOD]森罗物语：酒馆 - 酿酒品质
+- 支持输入输出
+```json
+{
+  "components": {
+    "kaleidoscope_tavern:brew_level": 7
   }
 }
 ```

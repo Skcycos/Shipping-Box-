@@ -41,14 +41,14 @@ public class EclipticSeasonsUtil {
             getSolarTermMethod = eclipticUtilClass.getMethod("getNowSolarTerm", levelClass);
             getSolarTermMethod.setAccessible(true);
 
-            // 获取 SolarTerm 枚举类 - 正确的包路径
+            // 获取 SolarTerm 枚举类
             solarTermEnumClass = Class.forName("com.teamtea.eclipticseasons.api.constant.solar.SolarTerm");
 
             // 获取 getSeason() 方法
             getSeasonMethod = solarTermEnumClass.getMethod("getSeason");
             getSeasonMethod.setAccessible(true);
 
-            // 获取 Season 类的 getSerializedName() 方法 - 正确的包路径
+            // 获取 Season 类的 getSerializedName() 方法
             Class<?> seasonClass = Class.forName("com.teamtea.eclipticseasons.api.constant.solar.Season");
 
             getSerializedNameMethod = seasonClass.getMethod("getSerializedName");

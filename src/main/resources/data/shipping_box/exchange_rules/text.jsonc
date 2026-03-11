@@ -230,7 +230,7 @@
     // 不兼容VSS货币模式
     {
       "input": {
-        "item": "minecraft:carrot",
+        "item": "minecraft:potato",
         "count": 1
       },
       "output": {

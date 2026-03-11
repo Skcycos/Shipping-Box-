@@ -123,12 +123,13 @@ dependencies {
     localRuntime "curse.maven:ldlib-626676:7658151"
     localRuntime "curse.maven:viscriptshop-1408178:7594435"
     // 联动 - 节气
-    implementation "curse.maven:ecliptic-seasons-1118306:7733270"
+    localRuntime "curse.maven:ecliptic-seasons-1118306:7733270"
 
     // 规则测试
     localRuntime "curse.maven:cloth-config-348521:5729127"
     localRuntime "curse.maven:tide-884685:7586281" // 潮汐
     localRuntime "curse.maven:quality-food-973932:7653821" // 品质作物
+    localRuntime "curse.maven:kaleidoscope-tavern-1475175:7704373" // 森罗酒馆
 
     // 辅助
     localRuntime "curse.maven:jei-238222:7420587"
