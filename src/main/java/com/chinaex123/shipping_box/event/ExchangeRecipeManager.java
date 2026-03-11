@@ -236,12 +236,15 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
             // 节气联动模式验证
             if ("ecliptic_seasons".equals(output.getType())) {
+                // 验证基本物品信息
                 if (output.getItem() == null || output.getItem().isEmpty()) {
                     return "missing_output_item";
                 }
+                // 验证节气联动属性
                 if (output.getEclipticSeasonsProperties() == null) {
                     return "missing_ecliptic_seasons_properties";
                 }
+                // 验证季节列表
                 var ecsProps = output.getEclipticSeasonsProperties();
                 if (ecsProps.getSeason() == null || ecsProps.getSeason().isEmpty()) {
                     return "missing_season_list";
@@ -1262,29 +1265,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
             // 序列化节气联动属性
             if (output.getEclipticSeasonsProperties() != null) {
-                JsonObject ecsPropsObj = new JsonObject();
-
-                var ecsProps = output.getEclipticSeasonsProperties();
-
-                // 序列化季节列表
-                if (ecsProps.getSeason() != null) {
-                    JsonArray seasonArray = new JsonArray();
-                    for (String season : ecsProps.getSeason()) {
-                        seasonArray.add(season);
-                    }
-                    ecsPropsObj.add("season", seasonArray);
-                }
-
-                // 序列化仅限季节出售
-                ecsPropsObj.addProperty("seasonal_only", ecsProps.isSeasonal_only());
-
-                // 序列化应季加成
-                ecsPropsObj.addProperty("add_season_bonus", ecsProps.getAdd_season_bonus());
-
-                // 序列化非应季减益
-                ecsPropsObj.addProperty("reduce_season_bonus", ecsProps.getReduce_season_bonus());
-
-                obj.add("ecliptic_seasons", ecsPropsObj);
+                obj.add("ecliptic_seasons", serializeEclipticSeasonsProperties(output.getEclipticSeasonsProperties()));
             }
 
             return obj;
