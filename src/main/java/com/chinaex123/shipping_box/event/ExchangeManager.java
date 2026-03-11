@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.attribute.ModAttributes;
+import com.chinaex123.shipping_box.modCompat.EclipticSeasons.EclipticSeasonsUtil;
 import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import net.minecraft.core.NonNullList;
@@ -23,7 +24,7 @@ public class ExchangeManager {
      * @param items 物品存储列表
      * @param level 世界实例
      * @param blockPos 方块位置
-     * @param boundPlayerUUID 绑定的玩家UUID（可为null）
+     * @param boundPlayerUUID 绑定的玩家 UUID（可为 null）
      */
     public static void performExchange(NonNullList<ItemStack> items, Level level, BlockPos blockPos, UUID boundPlayerUUID) {
         if (!(level instanceof ServerLevel serverLevel)) {
@@ -57,6 +58,16 @@ public class ExchangeManager {
                     return;
                 }
 
+                // 检查节气联动 - 如果启用了仅限季节出售且当前不在指定季节，跳过
+                if (rule.getOutputItem().getEclipticSeasonsProperties() != null) {
+                    var ecsProps = rule.getOutputItem().getEclipticSeasonsProperties();
+                    if (ecsProps.isSeasonal_only() &&
+                            !EclipticSeasonsUtil.isInSeasons(level, ecsProps.getSeason())) {
+                        // 不在指定季节，跳过此兑换
+                        break;
+                    }
+                }
+
                 int maxExchanges = getMaxExchanges(rule, currentItems);
 
                 if (maxExchanges > 0) {
@@ -70,7 +81,7 @@ public class ExchangeManager {
                             "dynamic_pricing".equals(rule.getOutputItem().getType()) &&
                             rule.getOutputItem().getDynamicProperties() != null) {
 
-                        // 动态定价+虚拟货币模式
+                        // 动态定价 + 虚拟货币模式
                         // 修复：使用输入物品作为标识符
                         String itemIdentifier = rule.getInputs().getFirst().getItem();
 
@@ -82,7 +93,7 @@ public class ExchangeManager {
 
                         // 逐个物品计算虚拟货币数量（累计阈值机制）
                         int totalVirtualCurrencyCount = 0;
-                        int itemsToProcess = maxExchanges; // 虚拟货币模式下每次兑换就是1个单位
+                        int itemsToProcess = maxExchanges; // 虚拟货币模式下每次兑换就是 1 个单位
 
                         for (int i = 0; i < itemsToProcess; i++) {
                             // 为每个单位单独计算基于当前累计数量的单价
@@ -93,15 +104,18 @@ public class ExchangeManager {
                         // 更新累计售出数量（增加这一批的数量）
                         DynamicPricingManager.addSoldCount(itemIdentifier, itemsToProcess, resetDay);
 
-                        // 应用属性加成到总数量
-                        int enhancedCount = applySellingPriceBoost(totalVirtualCurrencyCount, level, boundPlayerUUID);
+                        // 应用所有加成（属性 + 节气）
+                        int enhancedCount = applyAllBonuses(totalVirtualCurrencyCount, rule, level, boundPlayerUUID);
+
                         totalVirtualCurrency += enhancedCount;
 
                     } else if (rule.getOutputItem().isCoin()) {
                         // 普通虚拟货币模式：使用固定数量
                         int baseCount = rule.getOutputItem().getCount() * maxExchanges;
-                        // 应用属性加成
-                        int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
+
+                        // 应用所有加成（属性 + 节气）
+                        int enhancedCount = applyAllBonuses(baseCount, rule, level, boundPlayerUUID);
+
                         totalVirtualCurrency += enhancedCount;
 
                     } else if ("dynamic_pricing".equals(rule.getOutputItem().getType()) &&
@@ -131,8 +145,9 @@ public class ExchangeManager {
                         // 生成输出物品
                         ItemStack output = rule.getOutputItem().getResultStack().copy();
                         if (!output.isEmpty()) {
-                            // 应用属性加成
-                            int enhancedCount = applySellingPriceBoost(totalOutputCount, level, boundPlayerUUID);
+                            // 应用所有加成（属性 + 节气）
+                            int enhancedCount = applyAllBonuses(totalOutputCount, rule, level, boundPlayerUUID);
+
                             output.setCount(enhancedCount);
                             results.add(output);
                         }
@@ -143,9 +158,10 @@ public class ExchangeManager {
                         for (int i = 0; i < maxExchanges; i++) {
                             ItemStack weightedOutput = rule.getOutputItem().getRandomWeightedItem();
                             if (!weightedOutput.isEmpty()) {
-                                // 对权重选出的物品也应用属性加成
+                                // 对权重选出的物品应用所有加成（属性 + 节气）
                                 int baseCount = weightedOutput.getCount();
-                                int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
+                                int enhancedCount = applyAllBonuses(baseCount, rule, level, boundPlayerUUID);
+
                                 weightedOutput.setCount(enhancedCount);
                                 results.add(weightedOutput);
                             }
@@ -155,7 +171,10 @@ public class ExchangeManager {
                         ItemStack output = rule.getOutputItem().getResultStack().copy();
                         if (!output.isEmpty()) {
                             int baseCount = rule.getOutputItem().getCount() * maxExchanges;
-                            int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
+
+                            // 应用所有加成（属性 + 节气）
+                            int enhancedCount = applyAllBonuses(baseCount, rule, level, boundPlayerUUID);
+
                             output.setCount(enhancedCount);
                             results.add(output);
                         }
@@ -312,6 +331,70 @@ public class ExchangeManager {
         } catch (Exception e) {
             return baseCount;
         }
+    }
+
+    /**
+     * 应用节气价格加成/减益
+     * <p>
+     * 根据节气模组配置，检查当前季节是否在目标季节列表中，
+     * 如果是则应用加成（价格更高），否则应用减益（价格更低）。
+     *
+     * @param baseCount 基础物品数量
+     * @param rule 兑换规则
+     * @param level 游戏世界实例
+     * @return 应用节气加成后的最终物品数量（最少为 0）
+     */
+    public static int applyEclipticSeasonsBonus(int baseCount, ExchangeRule rule, Level level) {
+        if (rule == null || rule.getOutputItem() == null || rule.getOutputItem().getEclipticSeasonsProperties() == null) {
+            return baseCount;
+        }
+
+        var ecsProps = rule.getOutputItem().getEclipticSeasonsProperties();
+
+        // 检查节气模组是否可用
+        if (!EclipticSeasonsUtil.isAvailable()) {
+            return baseCount;
+        }
+
+        // 获取当前季节并检查是否在目标季节列表中
+        boolean isInSeason = EclipticSeasonsUtil.isInSeasons(level, ecsProps.getSeason());
+
+        if (isInSeason) {
+            // 应季：应用加成（价格更高）
+            int bonus = ecsProps.getAdd_season_bonus();
+            if (bonus > 0) {
+                double enhancedAmount = baseCount * (1.0 + (bonus / 100.0));
+                return (int) Math.ceil(enhancedAmount);
+            }
+        } else {
+            // 非应季：应用减益（价格更低）
+            int penalty = ecsProps.getReduce_season_bonus();
+            if (penalty > 0) {
+                double reducedAmount = baseCount * (1.0 - (penalty / 100.0));
+                return Math.max(0, (int) Math.floor(reducedAmount));
+            }
+        }
+
+        return baseCount;
+    }
+
+    /**
+     * 应用所有加成（属性 + 节气）
+     * <p>
+     * 依次应用玩家属性加成和节气加成到基础数量。
+     * 采用智能取整策略：小数量向下取整保证平衡，大数量向上取整激励玩家。
+     * 支持负数属性（减少售价），最少为 0 个物品。
+     *
+     * @param baseCount 基础物品数量
+     * @param rule 兑换规则
+     * @param level 游戏世界实例
+     * @param playerUUID 玩家唯一标识符
+     * @return 应用所有加成后的最终物品数量（最少为 0）
+     */
+    public static int applyAllBonuses(int baseCount, ExchangeRule rule, Level level, UUID playerUUID) {
+        int enhancedCount = applySellingPriceBoost(baseCount, level, playerUUID);
+        enhancedCount = applyEclipticSeasonsBonus(enhancedCount, rule, level);
+        return enhancedCount;
     }
 
     /**

@@ -13,8 +13,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ModCommands {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ModCommands.class);
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("shipping_box")
@@ -65,7 +68,7 @@ public class ModCommands {
 
         } catch (Exception e) {
             context.getSource().sendFailure(Component.literal("Error executing command: " + e.getMessage()));
-            e.printStackTrace();
+            LOGGER.error("[Shipping Box]执行命令时出错: {}", e.getMessage());
             return 0;
         }
     }

@@ -5,6 +5,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -14,6 +16,7 @@ import java.util.List;
  */
 @EventBusSubscriber
 public class TooltipEventHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TooltipEventHandler.class);
 
     /**
      * 物品工具提示事件处理器
@@ -47,7 +50,7 @@ public class TooltipEventHandler {
                 }
 
                 // 添加额外的行信息
-                if (!tooltipData.getAdditionalLines().isEmpty()) {
+                if (tooltipData.getAdditionalLines() != null && !tooltipData.getAdditionalLines().isEmpty()) {
                     for (Component additionalLine : tooltipData.getAdditionalLines()) {
                         tooltip.add(Component.literal("  ").append(additionalLine));
                     }
@@ -59,6 +62,7 @@ public class TooltipEventHandler {
             }
         } catch (Exception e) {
             // 静默处理异常，避免游戏崩溃
+            LOGGER.error("[Shipping Box]Tooltip处理程序出错: {}", e.getMessage());
         }
     }
 }

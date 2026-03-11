@@ -1,8 +1,8 @@
 package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.ShippingBox;
-import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import com.google.gson.*;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -67,7 +67,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
             for (ResourceLocation resourceLocation : resources.keySet()) {
                 try {
-                    // 正确处理Optional<Resource>
+                    // 正确处理 Optional<Resource>
                     Optional<Resource> resourceOptional = resourceManager.getResource(resourceLocation);
                     if (resourceOptional.isPresent()) {
                         Resource resource = resourceOptional.get();
@@ -75,7 +75,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                              BufferedReader reader = new BufferedReader(
                                      new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
 
-                            // 解析JSON配置文件
+                            // 解析 JSON 配置文件
                             JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
 
                             // 解析规则数组
@@ -92,25 +92,39 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                                         if (validateRule(rule)) {
                                             rules.add(rule);
                                         } else {
-                                            currentErrors.add("Rule " + (ruleIndex + 1) + " validation failed in " + resourceLocation.getPath());
+                                            // 详细验证错误信息
+                                            String validationError = getValidationErrorDetails(rule);
+                                            if (validationError != null && !validationError.isEmpty()) {
+                                                currentErrors.add(String.format("error.shipping_box.rule_validation_failed|%d|%s|%s",
+                                                        ruleIndex + 1, resourceLocation.getPath(), validationError));
+                                            } else {
+                                                currentErrors.add(String.format("error.shipping_box.rule_validation_failed|%d|%s|%s",
+                                                        ruleIndex + 1, resourceLocation.getPath(), "unknown_error"));
+                                            }
                                         }
+                                    } catch (JsonParseException e) {
+                                        currentErrors.add(String.format("error.shipping_box.json_parse_error|%s|%s",
+                                                resourceLocation.getPath(), e.getMessage()));
                                     } catch (Exception e) {
-                                        currentErrors.add("Rule " + (ruleIndex + 1) + " parse error: " + e.getMessage() + " in " + resourceLocation.getPath());
+                                        currentErrors.add(String.format("error.shipping_box.rule_parse_error|%s|%s",
+                                                resourceLocation.getPath(), e.getMessage()));
                                     }
                                     ruleIndex++;
                                 }
                             } else {
-                                currentErrors.add("Missing 'rules' array in " + resourceLocation.getPath());
+                                currentErrors.add(String.format("error.shipping_box.missing_rules_array|%s",
+                                        resourceLocation.getPath()));
                             }
                         }
                     }
                 } catch (Exception e) {
-                    currentErrors.add("Resource load error for " + resourceLocation.getPath() + ": " + e.getMessage());
+                    currentErrors.add(String.format("error.shipping_box.resource_load_error|%s|%s",
+                            resourceLocation.getPath(), e.getMessage()));
                 }
             }
 
         } catch (Exception e) {
-            currentErrors.add("Scan error: " + e.getMessage());
+            currentErrors.add(String.format("error.shipping_box.scan_error|%s", e.getMessage()));
         }
 
         // 将错误信息添加到待发送列表
@@ -121,6 +135,151 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         }
 
         return rules;
+    }
+
+    /**
+     * 获取规则验证失败的详细信息
+     * @param rule 验证失败的规则
+     * @return 详细错误信息键
+     */
+    private static String getValidationErrorDetails(ExchangeRule rule) {
+        try {
+            // 检查输入物品
+            if (rule.getInputs() == null || rule.getInputs().isEmpty()) {
+                return "missing_input";
+            }
+
+            for (ExchangeRule.InputItem input : rule.getInputs()) {
+                if (input.getItem() == null && input.getTag() == null) {
+                    return "invalid_input_item";
+                }
+                if (input.getItem() != null && !input.getItem().isEmpty()) {
+                    if (!BuiltInRegistries.ITEM.containsKey(ResourceLocation.tryParse(input.getItem()))) {
+                        return "unknown_item|" + input.getItem();
+                    }
+                }
+                if (input.getTag() != null && !input.getTag().isEmpty()) {
+                    String tagId = input.getTag().startsWith("#") ? input.getTag().substring(1) : input.getTag();
+                    if (ResourceLocation.tryParse(tagId) == null) {
+                        return "invalid_tag|" + input.getTag();
+                    }
+                }
+            }
+
+            // 检查输出物品
+            if (rule.getOutputItem() == null) {
+                return "missing_output";
+            }
+
+            var output = rule.getOutputItem();
+
+            // 虚拟货币模式验证
+            if (output.isCoin()) {
+                if ("dynamic_pricing".equals(output.getType())) {
+                    if (output.getDynamicProperties() == null) {
+                        return "missing_dynamic_properties";
+                    }
+                    int[] thresholds = output.getDynamicProperties().getThreshold();
+                    int[] values = output.getDynamicProperties().getValue();
+                    if (thresholds == null || values == null) {
+                        return "missing_threshold_or_value";
+                    }
+                    if (thresholds.length != values.length) {
+                        return "threshold_value_mismatch";
+                    }
+                    for (int i = 1; i < thresholds.length; i++) {
+                        if (thresholds[i] <= thresholds[i-1]) {
+                            return "threshold_not_increasing";
+                        }
+                    }
+                }
+                return null; // 虚拟货币模式通过验证
+            }
+
+            // 动态定价模式验证
+            if ("dynamic_pricing".equals(output.getType())) {
+                if (output.getItem() == null || output.getItem().isEmpty()) {
+                    return "missing_output_item";
+                }
+                if (output.getDynamicProperties() == null) {
+                    return "missing_dynamic_properties";
+                }
+                int[] thresholds = output.getDynamicProperties().getThreshold();
+                int[] values = output.getDynamicProperties().getValue();
+                if (thresholds == null || values == null) {
+                    return "missing_threshold_or_value";
+                }
+                if (thresholds.length != values.length) {
+                    return "threshold_value_mismatch";
+                }
+                for (int i = 1; i < thresholds.length; i++) {
+                    if (thresholds[i] <= thresholds[i-1]) {
+                        return "threshold_not_increasing";
+                    }
+                }
+            }
+
+            // 权重模式验证
+            if ("weight".equals(output.getType())) {
+                if (output.getItems() == null || output.getItems().isEmpty()) {
+                    return "missing_weighted_items";
+                }
+                for (ExchangeRule.WeightedItem item : output.getItems()) {
+                    if (item.getItem() == null || item.getItem().isEmpty()) {
+                        return "invalid_weighted_item";
+                    }
+                    if (item.getWeight() <= 0) {
+                        return "invalid_weight";
+                    }
+                }
+            }
+
+            // 节气联动模式验证
+            if ("ecliptic_seasons".equals(output.getType())) {
+                if (output.getItem() == null || output.getItem().isEmpty()) {
+                    return "missing_output_item";
+                }
+                if (output.getEclipticSeasonsProperties() == null) {
+                    return "missing_ecliptic_seasons_properties";
+                }
+                var ecsProps = output.getEclipticSeasonsProperties();
+                if (ecsProps.getSeason() == null || ecsProps.getSeason().isEmpty()) {
+                    return "missing_season_list";
+                }
+                // 验证季节名称
+                for (String season : ecsProps.getSeason()) {
+                    if (!isValidSeason(season)) {
+                        return "invalid_season|" + season;
+                    }
+                }
+            }
+
+            // 普通物品模式验证
+            if (output.getItem() == null || output.getItem().isEmpty()) {
+                return "missing_output_item";
+            }
+
+            return null; // 验证通过
+        } catch (Exception e) {
+            return "validation_exception|" + e.getMessage();
+        }
+    }
+
+    /**
+     * 检查是否为有效的季节名称
+     * @param season 季节名称
+     * @return 是否有效
+     */
+    private static boolean isValidSeason(String season) {
+        if (season == null || season.isEmpty()) {
+            return false;
+        }
+        // 允许的季节值
+        return "all".equals(season) ||
+                "spring".equals(season) ||
+                "summer".equals(season) ||
+                "autumn".equals(season) ||
+                "winter".equals(season);
     }
 
     /**
@@ -137,9 +296,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                         // 发送标题提示
                         player.displayClientMessage(Component.translatable("message.shipping_box.recipe_error_title"), false);
 
-                        // 发送具体错误信息
+                        // 发送具体错误信息（解析本地化键）
                         for (String errorMsg : pendingErrorMessages) {
-                            player.displayClientMessage(Component.literal("§c" + errorMsg), false);
+                            Component errorComponent = parseLocalizedError(errorMsg);
+                            player.displayClientMessage(errorComponent, false);
                         }
 
                         // 发送帮助信息
@@ -149,6 +309,38 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                     pendingErrorMessages.clear();
                 }
             }
+        }
+    }
+
+    /**
+     * 解析本地化错误信息
+     * @param errorString 格式：key|param1|param2
+     * @return 格式化后的文本组件
+     */
+    private static Component parseLocalizedError(String errorString) {
+        try {
+            String[] parts = errorString.split("\\|");
+            String key = parts[0];
+
+            if (parts.length == 1) {
+                // 没有参数
+                return Component.translatable(key).withStyle(ChatFormatting.RED);
+            } else {
+                // 有参数，提取参数
+                String[] params = new String[parts.length - 1];
+                System.arraycopy(parts, 1, params, 0, parts.length - 1);
+
+                // 创建带参数的本地化组件
+                Component[] paramComponents = new Component[params.length];
+                for (int i = 0; i < params.length; i++) {
+                    paramComponents[i] = Component.literal(params[i]);
+                }
+
+                return Component.translatable(key, (Object) paramComponents).withStyle(ChatFormatting.RED);
+            }
+        } catch (Exception e) {
+            // 解析失败时显示原始信息
+            return Component.literal(errorString).withStyle(ChatFormatting.RED);
         }
     }
 
@@ -317,6 +509,68 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return output;
         }
 
+        // 处理节气联动模式
+        if (outputObj.has("type") && "ecliptic_seasons".equals(outputObj.get("type").getAsString())) {
+            output.setType("ecliptic_seasons");
+
+            // 解析基本物品信息
+            if (outputObj.has("item")) {
+                output.setItem(outputObj.get("item").getAsString());
+            }
+
+            if (outputObj.has("count")) {
+                output.setCount(outputObj.get("count").getAsInt());
+            }
+
+            // 处理 components 字段的类型
+            if (outputObj.has("components")) {
+                JsonElement componentsElement = outputObj.get("components");
+                if (componentsElement.isJsonObject()) {
+                    // 直接保存 JsonObject
+                    output.setComponents(componentsElement.getAsJsonObject());
+                } else if (componentsElement.isJsonPrimitive()) {
+                    // 字符串格式
+                    output.setComponents(componentsElement.getAsString());
+                }
+            }
+
+            // 解析节气联动属性
+            if (outputObj.has("ecliptic_seasons") && outputObj.get("ecliptic_seasons").isJsonObject()) {
+                JsonObject ecsPropsObj = outputObj.getAsJsonObject("ecliptic_seasons");
+
+                ExchangeRule.EclipticSeasonsProperties ecsProps = new ExchangeRule.EclipticSeasonsProperties();
+
+                // 解析季节列表
+                if (ecsPropsObj.has("season") && ecsPropsObj.get("season").isJsonArray()) {
+                    JsonArray seasonArray = ecsPropsObj.getAsJsonArray("season");
+                    List<String> seasons = new ArrayList<>();
+                    for (JsonElement seasonElement : seasonArray) {
+                        seasons.add(seasonElement.getAsString());
+                    }
+                    ecsProps.setSeason(seasons);
+                }
+
+                // 解析仅限季节出售
+                if (ecsPropsObj.has("seasonal_only")) {
+                    ecsProps.setSeasonal_only(ecsPropsObj.get("seasonal_only").getAsBoolean());
+                }
+
+                // 解析应季加成
+                if (ecsPropsObj.has("add_season_bonus")) {
+                    ecsProps.setAdd_season_bonus(ecsPropsObj.get("add_season_bonus").getAsInt());
+                }
+
+                // 解析非应季减益
+                if (ecsPropsObj.has("reduce_season_bonus")) {
+                    ecsProps.setReduce_season_bonus(ecsPropsObj.get("reduce_season_bonus").getAsInt());
+                }
+
+                output.setEclipticSeasonsProperties(ecsProps);
+            }
+
+            return output;
+        }
+
         // 普通物品模式
         if (outputObj.has("item")) {
             output.setItem(outputObj.get("item").getAsString());
@@ -427,9 +681,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * @return 物品有效返回true，否则返回false
      */
     private boolean validateOutputItem(ExchangeRule.OutputItem output) {
-        // 虚拟货币模式下不需要验证物品ID
+        // 虚拟货币模式下不需要验证物品 ID
         if (output.isCoin()) {
-            // 对于动态定价+虚拟货币模式，只需要验证动态属性
+            // 对于动态定价 + 虚拟货币模式，只需要验证动态属性
             if ("dynamic_pricing".equals(output.getType())) {
                 if (output.getDynamicProperties() == null) {
                     return false;
@@ -489,6 +743,28 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 }
             }
             return true;
+        }
+
+        // 节气联动模式验证
+        if ("ecliptic_seasons".equals(output.getType())) {
+            // 验证基本物品信息
+            if (output.getItem() == null || output.getItem().isEmpty()) {
+                return false;
+            }
+
+            // 验证节气联动属性
+            if (output.getEclipticSeasonsProperties() == null) {
+                return false;
+            }
+
+            var ecsProps = output.getEclipticSeasonsProperties();
+
+            // 验证季节列表
+            if (ecsProps.getSeason() == null || ecsProps.getSeason().isEmpty()) {
+                return false;
+            }
+
+            return validateItemWithComponents(output.getItem());
         }
 
         if (output.getItem() == null || output.getItem().isEmpty()) {
@@ -638,25 +914,25 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      */
     private static int calculateMatchPrecision(ExchangeRule rule) {
         int precision = 0;
-        
+
         for (ExchangeRule.InputItem input : rule.getInputs()) {
             // 第一层：判断是否有组件
             if (input.getComponents() != null) {
                 // 有组件要求：基础 100 分
                 precision += 100;
-                
+
                 // 第二层：计算组件复杂度（更精确的匹配）
                 if (input.getComponents() instanceof JsonObject componentsObj) {
                     // 计算 JSON 对象的属性数量
                     precision += componentsObj.size() * 10;
-                    
+
                     // 计算嵌套深度
                     precision += calculateNestingDepth(componentsObj) * 5;
                 } else if (input.getComponents() instanceof String componentStr) {
                     // 字符串格式：按逗号分割计算属性数量
                     String[] parts = componentStr.split(",");
                     precision += parts.length * 10;
-                    
+
                     // 如果包含等号，说明有具体的值，额外加分
                     for (String part : parts) {
                         if (part.contains("=")) {
@@ -671,21 +947,21 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 // 有标签要求：最低精度 +5 分
                 precision += 5;
             }
-            
+
             // 额外加成：有数量要求（大于 1）
             if (input.getCount() > 1) {
                 precision += 1;
             }
         }
-        
+
         // 额外加成：多物品配方（输入物品越多，规则越具体）
         if (rule.getInputs().size() > 1) {
             precision += rule.getInputs().size() * 2;
         }
-        
+
         return precision;
     }
-    
+
     /**
      * 计算 JSON 对象的嵌套深度
      * 用于评估组件的复杂程度
@@ -695,22 +971,22 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      */
     private static int calculateNestingDepth(JsonObject obj) {
         int maxDepth = 0;
-        
+
         for (var entry : obj.entrySet()) {
             JsonElement value = entry.getValue();
             int currentDepth = 1;
-            
+
             if (value.isJsonObject()) {
                 currentDepth += calculateNestingDepth(value.getAsJsonObject());
             } else if (value.isJsonArray()) {
                 currentDepth += 1;
             }
-            
+
             if (currentDepth > maxDepth) {
                 maxDepth = currentDepth;
             }
         }
-        
+
         return maxDepth;
     }
 
@@ -969,6 +1245,51 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return obj;
         }
 
+        // 节气联动模式
+        if ("ecliptic_seasons".equals(output.getType())) {
+            obj.addProperty("type", "ecliptic_seasons");
+            obj.addProperty("item", output.getItem());
+            obj.addProperty("count", output.getCount());
+
+            // 处理组件配置
+            if (output.getComponents() != null) {
+                if (output.getComponents() instanceof JsonObject) {
+                    obj.add("components", (JsonObject) output.getComponents());
+                } else if (output.getComponents() instanceof String) {
+                    obj.addProperty("components", (String) output.getComponents());
+                }
+            }
+
+            // 序列化节气联动属性
+            if (output.getEclipticSeasonsProperties() != null) {
+                JsonObject ecsPropsObj = new JsonObject();
+
+                var ecsProps = output.getEclipticSeasonsProperties();
+
+                // 序列化季节列表
+                if (ecsProps.getSeason() != null) {
+                    JsonArray seasonArray = new JsonArray();
+                    for (String season : ecsProps.getSeason()) {
+                        seasonArray.add(season);
+                    }
+                    ecsPropsObj.add("season", seasonArray);
+                }
+
+                // 序列化仅限季节出售
+                ecsPropsObj.addProperty("seasonal_only", ecsProps.isSeasonal_only());
+
+                // 序列化应季加成
+                ecsPropsObj.addProperty("add_season_bonus", ecsProps.getAdd_season_bonus());
+
+                // 序列化非应季减益
+                ecsPropsObj.addProperty("reduce_season_bonus", ecsProps.getReduce_season_bonus());
+
+                obj.add("ecliptic_seasons", ecsPropsObj);
+            }
+
+            return obj;
+        }
+
         // 普通物品模式
         obj.addProperty("item", output.getItem());
         obj.addProperty("count", output.getCount());
@@ -1017,6 +1338,37 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         dynamicPropsObj.addProperty("day", props.getDay());
 
         return dynamicPropsObj;
+    }
+
+    /**
+     * 序列化节气联动属性为 JSON 对象
+     * 将 ExchangeRule.EclipticSeasonsProperties 实例转换为 JSON 格式
+     *
+     * @param props 要序列化的节气联动属性实例
+     * @return 包含节气联动配置的 JSON 对象
+     */
+    private static JsonObject serializeEclipticSeasonsProperties(ExchangeRule.EclipticSeasonsProperties props) {
+        JsonObject ecsPropsObj = new JsonObject();
+
+        // 序列化季节列表
+        if (props.getSeason() != null) {
+            JsonArray seasonArray = new JsonArray();
+            for (String season : props.getSeason()) {
+                seasonArray.add(season);
+            }
+            ecsPropsObj.add("season", seasonArray);
+        }
+
+        // 序列化仅限季节出售
+        ecsPropsObj.addProperty("seasonal_only", props.isSeasonal_only());
+
+        // 序列化应季加成
+        ecsPropsObj.addProperty("add_season_bonus", props.getAdd_season_bonus());
+
+        // 序列化非应季减益
+        ecsPropsObj.addProperty("reduce_season_bonus", props.getReduce_season_bonus());
+
+        return ecsPropsObj;
     }
 
     /**
@@ -1173,6 +1525,69 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
             return output;
         }
+
+        // 处理节气联动模式
+        if (obj.has("type") && "ecliptic_seasons".equals(obj.get("type").getAsString())) {
+            output.setType("ecliptic_seasons");
+
+            if (obj.has("item")) {
+                output.setItem(obj.get("item").getAsString());
+            }
+
+            if (obj.has("count")) {
+                output.setCount(obj.get("count").getAsInt());
+            }
+
+            // 处理组件配置
+            if (obj.has("components")) {
+                JsonElement componentsElement = obj.get("components");
+                if (componentsElement.isJsonObject()) {
+                    output.setComponents(componentsElement.getAsJsonObject());
+                } else if (componentsElement.isJsonPrimitive()) {
+                    output.setComponents(componentsElement.getAsString());
+                }
+            }
+
+            // 反序列化节气联动属性
+            if (obj.has("ecliptic_seasons") && obj.get("ecliptic_seasons").isJsonObject()) {
+                JsonObject ecsPropsObj = obj.getAsJsonObject("ecliptic_seasons");
+
+                ExchangeRule.EclipticSeasonsProperties ecsProps = new ExchangeRule.EclipticSeasonsProperties();
+
+                // 反序列化季节列表
+                if (ecsPropsObj.has("season") && ecsPropsObj.get("season").isJsonArray()) {
+                    JsonArray seasonArray = ecsPropsObj.getAsJsonArray("season");
+                    List<String> seasons = new ArrayList<>();
+                    for (JsonElement seasonElement : seasonArray) {
+                        seasons.add(seasonElement.getAsString());
+                    }
+                    ecsProps.setSeason(seasons);
+                }
+
+                // 反序列化仅限季节出售
+                if (ecsPropsObj.has("seasonal_only")) {
+                    ecsProps.setSeasonal_only(ecsPropsObj.get("seasonal_only").getAsBoolean());
+                }
+
+                // 反序列化应季加成
+                if (ecsPropsObj.has("add_season_bonus")) {
+                    ecsProps.setAdd_season_bonus(ecsPropsObj.get("add_season_bonus").getAsInt());
+                }
+
+                // 反序列化非应季减益
+                if (ecsPropsObj.has("reduce_season_bonus")) {
+                    ecsProps.setReduce_season_bonus(ecsPropsObj.get("reduce_season_bonus").getAsInt());
+                }
+
+                output.setEclipticSeasonsProperties(ecsProps);
+            }
+
+            return output;
+        }
+
+        // 普通物品模式
+        output.setItem(obj.get("item").getAsString());
+        output.setCount(obj.get("count").getAsInt());
 
         // 普通物品模式
         output.setItem(obj.get("item").getAsString());

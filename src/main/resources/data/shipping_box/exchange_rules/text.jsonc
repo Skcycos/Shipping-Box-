@@ -42,7 +42,7 @@
     // 物品 ↔ 简单组件物品
     {
       "input": {
-        "item": "minecraft:iron_ingot",
+        "item": "minecraft:iron_sword",
         "count": 1
       },
       "output": {
@@ -70,13 +70,13 @@
     // 物品 ↔ 附魔物品
     {
       "input": {
-        "item": "minecraft:golden_sword",
+        "item": "minecraft:book",
         "count": 1
       },
       "output": {
-        "item": "minecraft:golden_sword",
+        "item": "minecraft:enchanted_book",
         "components": {
-          "enchantments": {
+          "stored_enchantments": {
             "levels": {
               "minecraft:sharpness": 3,
               "minecraft:unbreaking": 3
@@ -97,23 +97,13 @@
         "type": "dynamic_pricing",
         "item": "minecraft:diamond",
         "dynamic_properties": {
-          "threshold": [
-            64,
-            128,
-            256,
-            512
-          ], // 阈值数组
-          "value": [
-            5,
-            4,
-            3,
-            2
-          ], // 价值数组
-          "day": 3 // 重置天数
+          "threshold": [64,128,256,512], // 阈值数组
+          "value": [5,4,3,2], // 价值数组
+          "day": 3 // 重置天数，-1为永不重置
         }
       }
     },
-    // ViScriptShop联动
+    // ViScriptShop 联动
     // 物品 → 货币
     {
       "input": {
@@ -136,18 +126,8 @@
         "type": "dynamic_pricing",
         "coin": true,
         "dynamic_properties": {
-          "threshold": [
-            64,
-            128,
-            256,
-            512
-          ], // 阈值数组
-          "value": [
-            5,
-            4,
-            3,
-            2
-          ], // 货币价值
+          "threshold": [64,128,256,512], // 阈值数组
+          "value": [5,4,3,2], // 货币价值
           "day": 3 // 重置天数
         }
       }
@@ -242,6 +222,25 @@
           "threshold": [32,64],
           "value": [20,10],
           "day": 5
+        }
+      }
+    },
+    // 节气 联动
+    // 判断售卖的物品是否在当前季节，如果是的话则增加售额，如果不是则减少售额
+    // 不兼容VSS货币模式
+    {
+      "input": {
+        "item": "minecraft:carrot",
+        "count": 1
+      },
+      "output": {
+        "type": "ecliptic_seasons", // 节气类型
+        "item": "minecraft:emerald",
+        "ecliptic_seasons": {
+          "season": ["winter"], // spring, summer, autumn, winter, all，必须是数组格式
+          "seasonal_only": false, // 仅限当前季节出售，启用的话限制只有"season"设定的季节才会出售
+          "add_season_bonus": 30,// 应季时，价格加成%（卖得更贵）
+          "reduce_season_bonus": 20// 非应季时，价格减益%（卖得更便宜）
         }
       }
     }

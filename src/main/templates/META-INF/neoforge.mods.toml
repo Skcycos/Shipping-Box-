@@ -92,9 +92,18 @@ config="${mod_id}.mixins.json"
 [[dependencies.${mod_id}]]
     modId="viscript_shop"
     type="optional"
-    reason="Add physical coin to convert to virtual coin"
+    reason="Add physical coin to convert to virtual coin."
     # This version range declares a minimum of the current minecraft version up to but not including the next major version
     versionRange="[1.0.6,)"
+    ordering="AFTER"
+    side="BOTH"
+# 可选依赖 - 节气
+[[dependencies.${mod_id}]]
+    modId="ecliptic-seasons"
+    type="optional"
+    reason="Add seasonal selling rules."
+    # This version range declares a minimum of the current minecraft version up to but not including the next major version
+    versionRange="[0.12,)"
     ordering="AFTER"
     side="BOTH"
 

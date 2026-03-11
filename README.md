@@ -170,7 +170,9 @@ Used for numerical range matching (such as durability, fish length, etc.):
 }
 ```
 
-## IV. Integrated Mod: ViScriptShop
+## IV. Integrated Mod
+
+## **ViScriptShop**
 
 ### 1. Crawler Coin
 - **Right-click**: Exchange for virtual currency based on the currency price displayed in the item tooltip
@@ -221,6 +223,54 @@ Used for numerical range matching (such as durability, fish length, etc.):
     }
   }
   ```
+
+## Ecliptic Seasons
+
+### Seasonal Influence System
+- **Function Description**: Determines whether the sold item is in the current season and adjusts the selling price based on seasonal status
+- **Compatibility Note**: This mode is **NOT compatible** with ViScriptShop's virtual currency (VSS) mode
+- **Core Mechanics**:
+  - In-season items: Receive selling price bonus
+  - Off-season items: Receive selling price reduction
+  - Configurable option to allow selling only in specific seasons
+
+### Seasonal Configuration Parameters
+| Parameter             | Type    | Description                                                                                                 |
+|-----------------------|---------|-------------------------------------------------------------------------------------------------------------|
+| `season`              | Array   | Sets the seasonal属性 of the item. Available values: `spring`, `summer`, `autumn`, `winter`, `all`            |
+| `seasonal_only`       | Boolean | `true`: Can only be sold during set seasons; `false`: Available year-round, but price is affected by season |
+| `add_season_bonus`    | Integer | Price bonus percentage when in-season (e.g., 30 means 30% price increase)                                   |
+| `reduce_season_bonus` | Integer | Price reduction percentage when off-season (e.g., 20 means 20% price decrease)                              |
+
+### Configuration Example
+```json
+{
+  "input": {
+    "item": "minecraft:carrot",
+    "count": 1
+  },
+  "output": {
+    "type": "ecliptic_seasons",
+    "item": "minecraft:emerald",
+    "ecliptic_seasons": {
+      "season": ["winter"],
+      "seasonal_only": false,
+      "add_season_bonus": 30,
+      "reduce_season_bonus": 20
+    }
+  }
+}
+```
+
+### Seasonal Configuration Notes
+- **season field**: Must use array format, multiple seasons can be set simultaneously
+  - Example: `["spring", "autumn"]` represents spring and autumn
+- **seasonal_only function**:
+  - `true`: Items can only be sold during set seasons, cannot be exchanged in other seasons
+  - `false`: Items can be sold year-round, but prices fluctuate based on season
+- **Price Calculation Formula**:
+  - In-season: Final price = Base price × (1 + add_season_bonus/100)
+  - Off-season: Final price = Base price × (1 - reduce_season_bonus/100)
 
 ---
 
@@ -390,7 +440,9 @@ Used for numerical range matching (such as durability, fish length, etc.):
 }
 ```
 
-## 四、联动模组：ViScriptShop
+## 四、联动模组
+
+## **ViScriptShop**
 
 ### 1. 爬爬币
 - **右键**：根据物品提示显示的货币价格兑换虚拟货币
@@ -441,6 +493,54 @@ Used for numerical range matching (such as durability, fish length, etc.):
     }
   }
   ```
+
+## 节气联动
+
+### 季节影响系统
+- **功能说明**：判断售卖的物品是否在当前季节，根据季节状态调整售价
+- **兼容性说明**：此模式**不兼容**ViScriptShop的虚拟货币（VSS）模式
+- **核心机制**：
+  - 应季物品：获得售价加成
+  - 非应季物品：受到售价减益
+  - 可配置是否仅允许在特定季节出售
+
+### 季节配置参数
+| 参数                    | 类型  | 说明                                                                        |
+|-----------------------|-----|---------------------------------------------------------------------------|
+| `season`              | 数组  | 设定物品的季节属性，可选值：`spring`(春)、`summer`(夏)、`autumn`(秋)、`winter`(冬)、`all`(所有季节) |
+| `seasonal_only`       | 布尔值 | `true`：仅限设定的季节才能出售；`false`：全年可售，但价格受季节影响                                  |
+| `add_season_bonus`    | 整数  | 应季时的价格加成百分比（如30表示售价提升30%）                                                 |
+| `reduce_season_bonus` | 整数  | 非应季时的价格减益百分比（如20表示售价降低20%）                                                |
+
+### 配置示例
+```json
+{
+  "input": {
+    "item": "minecraft:carrot",
+    "count": 1
+  },
+  "output": {
+    "type": "ecliptic_seasons",
+    "item": "minecraft:emerald",
+    "ecliptic_seasons": {
+      "season": ["winter"],
+      "seasonal_only": false,
+      "add_season_bonus": 30,
+      "reduce_season_bonus": 20
+    }
+  }
+}
+```
+
+### 季节配置说明
+- **season字段**：必须使用数组格式，可同时设置多个季节
+  - 例如：`["spring", "autumn"]` 表示春季和秋季
+- **seasonal_only功能**：
+  - `true`：物品只在设定的季节可以出售，其他季节无法兑换
+  - `false`：物品全年可出售，但价格会根据季节浮动
+- **价格计算公式**：
+  - 应季时：最终售价 = 基础价格 × (1 + add_season_bonus/100)
+  - 非应季时：最终售价 = 基础价格 × (1 - reduce_season_bonus/100)
 
 ---
 

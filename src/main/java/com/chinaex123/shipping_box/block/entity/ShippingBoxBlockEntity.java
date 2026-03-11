@@ -3,6 +3,7 @@ package com.chinaex123.shipping_box.block.entity;
 import com.chinaex123.shipping_box.event.*;
 import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
@@ -14,17 +15,19 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
+import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
 
-public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
+public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
 
     /** 存储物品列表 - 共享的公共存储 */
     private NonNullList<ItemStack> sharedItems;
@@ -35,7 +38,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     /** 上次兑换日期 */
     private long lastExchangeDay = -1L;
 
-    /** 记录每个槽位最后放置物品的玩家UUID */
+    /** 记录每个槽位最后放置物品的玩家 UUID */
     private final Map<Integer, UUID> slotOwners = new HashMap<>();
 
     /** 记录玩家放置的物品数量 */
@@ -46,6 +49,57 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         super(ModBlockEntities.SHIPPING_BOX_BE.get(), pos, state);
         // 初始化共享存储
         this.sharedItems = NonNullList.withSize(54, ItemStack.EMPTY);
+    }
+
+    /**
+     * 获取可以被插入的槽位数组
+     * 实现 WorldlyContainer 接口以控制漏斗交互
+     *
+     * @param side 物品输入的侧面
+     * @return 总是返回空数组，表示不接受任何自动输入
+     */
+    @Override
+    public int @NotNull [] getSlotsForFace(@NotNull Direction side) {
+        return new int[0]; // 不允许从任何面输入
+    }
+
+    /**
+     * 检查是否可以从指定侧面插入物品到指定槽位
+     *
+     * @param index 槽位索引
+     * @param stack 物品堆
+     * @param side 方向
+     * @return 总是返回 false，表示不允许插入
+     */
+    @Override
+    public boolean canPlaceItemThroughFace(int index, @NotNull ItemStack stack, @Nullable Direction side) {
+        return false; // 禁止从任何面插入
+    }
+
+    /**
+     * 检查是否可以从指定槽位通过指定侧面提取物品
+     *
+     * @param index 槽位索引
+     * @param stack 物品堆
+     * @param side 方向
+     * @return 总是返回 true，允许从任何面提取
+     */
+    @Override
+    public boolean canTakeItemThroughFace(int index, @NotNull ItemStack stack, @NotNull Direction side) {
+        return true; // 允许提取
+    }
+
+    /**
+     * 阻止漏斗向普通售货箱输入物品
+     * 实现 Container 接口的方法来禁止自动化输入
+     *
+     * @param index 槽位索引
+     * @param stack 要插入的物品堆
+     * @return 总是返回 false，表示不接受物品输入
+     */
+    @Override
+    public boolean canPlaceItem(int index, @NotNull ItemStack stack) {
+        return false; // 拒绝所有自动输入
     }
 
     /**

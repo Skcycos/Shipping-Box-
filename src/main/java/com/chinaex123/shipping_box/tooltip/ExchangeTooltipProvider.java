@@ -14,17 +14,20 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ExchangeTooltipProvider {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeTooltipProvider.class);
 
     /**
      * 获取物品的兑换提示信息
      *
      * @param stack 要检查的物品堆
-     * @return 兑换提示数据，如果不支持兑换则返回null
+     * @return 兑换提示数据，如果不支持兑换则返回 null
      */
     public static TooltipData getExchangeTooltip(ItemStack stack) {
         if (stack.isEmpty()) {
@@ -32,6 +35,7 @@ public class ExchangeTooltipProvider {
         }
 
         List<ExchangeRule> rules = ExchangeRecipeManager.getRules();
+
         List<Component> exchangeInfo = new ArrayList<>();
         List<Component> additionalLines = new ArrayList<>();
 
@@ -61,11 +65,49 @@ public class ExchangeTooltipProvider {
                                 additionalLines.add(resetInfo);
                             }
                         }
+
                         // 为权重模式构建额外的物品列表信息行
-                        else if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
+                        if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
                             Component weightItemsInfo = buildWeightItemsInfoLine(output);
                             if (weightItemsInfo != null) {
                                 additionalLines.add(weightItemsInfo);
+                            }
+                        }
+
+                        // 为节气联动模式构建额外的季节信息行
+                        if (output.getEclipticSeasonsProperties() != null) {
+                            Component[] seasonInfoLines = buildEclipticSeasonsInfoLines(output);
+                            if (seasonInfoLines != null) {
+                                // 销售季节
+                                MutableComponent seasonLine = Component.empty()
+                                        .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
+                                        .append(Component.translatable("tooltip.shipping_box.selling_season").withStyle(ChatFormatting.GRAY))
+                                        .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
+                                        .append(seasonInfoLines[0])
+                                        .append(Component.literal("]").withStyle(ChatFormatting.WHITE));
+                                additionalLines.add(seasonLine);
+
+                                // 应季加成（如果有）
+                                if (seasonInfoLines.length > 1 && !seasonInfoLines[1].getString().isEmpty()) {
+                                    MutableComponent bonusLine = Component.empty()
+                                            .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
+                                            .append(Component.translatable("tooltip.shipping_box.season_bonus_label").withStyle(ChatFormatting.GRAY))
+                                            .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
+                                            .append(seasonInfoLines[1])
+                                            .append(Component.literal("]").withStyle(ChatFormatting.WHITE));
+                                    additionalLines.add(bonusLine);
+                                }
+
+                                // 非应季减益（如果有）
+                                if (seasonInfoLines.length > 2 && !seasonInfoLines[2].getString().isEmpty()) {
+                                    MutableComponent penaltyLine = Component.empty()
+                                            .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
+                                            .append(Component.translatable("tooltip.shipping_box.season_penalty_label").withStyle(ChatFormatting.GRAY))
+                                            .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
+                                            .append(seasonInfoLines[2])
+                                            .append(Component.literal("]").withStyle(ChatFormatting.WHITE));
+                                    additionalLines.add(penaltyLine);
+                                }
                             }
                         }
 
@@ -80,6 +122,7 @@ public class ExchangeTooltipProvider {
                     }
                 } catch (Exception e) {
                     // 静默处理异常
+                    LOGGER.warn("[Shipping Box]处理兑换工具提示时出错: {}", e.getMessage());
                 }
             }
         }
@@ -96,7 +139,7 @@ public class ExchangeTooltipProvider {
      * - 其他模式：使用输入物品作为标识符
      *
      * @param output 输出物品对象
-     * @param rule 兑换规则对象
+     * @param rule   兑换规则对象
      * @return 对应模式的物品标识符字符串
      */
     private static String getItemIdentifier(ExchangeRule.OutputItem output, ExchangeRule rule) {
@@ -119,7 +162,7 @@ public class ExchangeTooltipProvider {
      * 包括当前动态价格和已售出数量，使用统一的颜色风格进行显示。
      *
      * @param output 输出物品对象，包含动态定价配置信息
-     * @param rule 兑换规则对象，用于确定物品标识符
+     * @param rule   兑换规则对象，用于确定物品标识符
      * @return 格式化的动态定价信息组件，如果发生异常则返回null
      */
     private static Component buildDynamicInfoLine(ExchangeRule.OutputItem output, ExchangeRule rule) {
@@ -193,26 +236,136 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建主要的兑换信息显示组件
-     * 根据不同的兑换模式（动态定价+虚拟货币、普通虚拟货币、普通物品）生成相应的tooltip显示
+     * 构建节气联动信息行组件
+     * <p>
+     * 根据节气配置生成季节、加成和减益的显示信息
      *
-     * @param input 输入物品信息
+     * @param output 输出物品对象，包含节气联动配置
+     * @return 格式化的节气信息组件数组 [销售季节，应季加成/非应季减益]，如果发生异常则返回 null
+     */
+    private static Component[] buildEclipticSeasonsInfoLines(ExchangeRule.OutputItem output) {
+        try {
+            var ecsProps = output.getEclipticSeasonsProperties();
+            if (ecsProps == null) {
+                return null;
+            }
+
+            List<String> seasons = ecsProps.getSeason();
+            if (seasons == null || seasons.isEmpty()) {
+                return null;
+            }
+
+            // 构建季节显示文本
+            Component seasonText = buildSeasonDisplayText(ecsProps);
+
+            // 构建应季加成文本
+            Component bonusText = buildBonusText(ecsProps);
+
+            // 构建非应季减益文本
+            Component penaltyText = buildPenaltyText(ecsProps);
+
+            // 返回三个独立的文本组件
+            return new Component[]{seasonText, bonusText, penaltyText};
+        } catch (Exception e) {
+            LOGGER.warn("[Shipping Box]构建季节信息失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 构建应季加成文本
+     *
+     * @param props 节气配置属性
+     * @return 格式化的加成显示组件
+     */
+    private static Component buildBonusText(ExchangeRule.EclipticSeasonsProperties props) {
+        int addBonus = props.getAdd_season_bonus();
+
+        if (addBonus > 0) {
+            return Component.translatable("tooltip.shipping_box.season_bonus_short", addBonus)
+                    .withStyle(ChatFormatting.GREEN);
+        }
+
+        return Component.empty();
+    }
+
+    /**
+     * 构建非应季减益文本
+     *
+     * @param props 节气配置属性
+     * @return 格式化的减益显示组件
+     */
+    private static Component buildPenaltyText(ExchangeRule.EclipticSeasonsProperties props) {
+        int reduceBonus = props.getReduce_season_bonus();
+
+        if (reduceBonus > 0) {
+            return Component.translatable("tooltip.shipping_box.season_penalty_short", reduceBonus)
+                    .withStyle(ChatFormatting.RED);
+        }
+
+        return Component.empty();
+    }
+
+    /**
+     * 构建季节显示文本
+     *
+     * @param props 节气配置属性
+     * @return 格式化的季节显示组件
+     */
+    private static Component buildSeasonDisplayText(ExchangeRule.EclipticSeasonsProperties props) {
+        List<String> seasons = props.getSeason();
+        if (seasons == null || seasons.isEmpty()) {
+            return Component.literal("?").withStyle(ChatFormatting.GRAY);
+        }
+
+        // 检查是否包含"all"（全季）
+        if (seasons.contains("all")) {
+            return Component.translatable("tooltip.shipping_box.season_all")
+                    .withStyle(ChatFormatting.AQUA);
+        }
+
+        // 构建季节列表
+        List<Component> seasonComponents = new ArrayList<>();
+        for (String season : seasons) {
+            String translationKey = "tooltip.shipping_box.season_" + season.toLowerCase();
+            Component seasonComponent = Component.translatable(translationKey)
+                    .withStyle(ChatFormatting.GOLD);
+            seasonComponents.add(seasonComponent);
+        }
+
+        // 用逗号连接所有季节
+        MutableComponent result = Component.empty();
+        for (int i = 0; i < seasonComponents.size(); i++) {
+            result.append(seasonComponents.get(i));
+            if (i < seasonComponents.size() - 1) {
+                result.append(Component.literal(", ").withStyle(ChatFormatting.GRAY));
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 构建主要的兑换信息显示组件
+     * 根据不同的兑换模式（动态定价 + 虚拟货币、普通虚拟货币、普通物品）生成相应的 tooltip 显示
+     *
+     * @param input  输入物品信息
      * @param output 输出物品信息
-     * @param rule 兑换规则对象
-     * @return 格式化的Component显示组件，包含完整的兑换信息
+     * @param rule   兑换规则对象
+     * @return 格式化的 Component 显示组件，包含完整的兑换信息
      */
     private static Component buildMainExchangeInfo(ExchangeRule.InputItem input, ExchangeRule.OutputItem output, ExchangeRule rule) {
         try {
             Component inputName = getLocalizedItemName(input);
 
-            // 动态定价+虚拟货币模式
+            // 动态定价 + 虚拟货币模式
             if ("dynamic_pricing".equals(output.getType()) && output.isCoin()) {
-                // 修复：使用输出物品作为标识符
+                // 使用输出物品作为标识符
                 String itemIdentifier = output.getItem();
                 int soldCount = getLatestSoldCount(itemIdentifier);
                 int dynamicValue = output.getDynamicCount(soldCount);
 
-                // 对于动态定价+虚拟货币模式，只显示"虚拟货币"而不显示具体数量
+                // 对于动态定价 + 虚拟货币模式，只显示"虚拟货币"而不显示具体数量
                 return Component.translatable("tooltip.shipping_box.exchange.format.coin_dynamic_no_count",
                                 Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
@@ -247,6 +400,16 @@ public class ExchangeTooltipProvider {
                                 Component.translatable("tooltip.shipping_box.random_item_display").withStyle(ChatFormatting.LIGHT_PURPLE))
                         .withStyle(ChatFormatting.WHITE);
             }
+            // 节气联动模式
+            else if ("ecliptic_seasons".equals(output.getType())) {
+                Component outputInfo = getSimpleOutputName(output, rule);
+                return Component.translatable("tooltip.shipping_box.exchange_format_colored",
+                                Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
+                                inputName.copy().withStyle(ChatFormatting.GOLD),
+                                Component.literal(String.valueOf(output.getCount())).withStyle(ChatFormatting.AQUA),
+                                outputInfo.copy().withStyle(ChatFormatting.LIGHT_PURPLE))
+                        .withStyle(ChatFormatting.WHITE);
+            }
             // 普通物品模式
             else {
                 Component outputInfo = getSimpleOutputName(output, rule);
@@ -271,7 +434,7 @@ public class ExchangeTooltipProvider {
      * - 其他模式：使用输入物品作为标识符
      *
      * @param output 输出物品对象
-     * @param rule 兑换规则对象
+     * @param rule   兑换规则对象
      * @return 对应模式的物品标识符字符串
      */
     private static String getItemIdentifierForReset(ExchangeRule.OutputItem output, ExchangeRule rule) {
@@ -292,7 +455,7 @@ public class ExchangeTooltipProvider {
      * 根据不同的重置模式和销售状态生成相应的重置周期显示信息
      *
      * @param output 输出物品信息，包含动态定价属性
-     * @param rule 兑换规则对象，用于获取输入物品标识符
+     * @param rule   兑换规则对象，用于获取输入物品标识符
      * @return 格式化的Component显示组件，包含重置周期信息；如果发生异常则返回null
      */
     private static Component buildResetInfoLine(ExchangeRule.OutputItem output, ExchangeRule rule) {
@@ -350,7 +513,7 @@ public class ExchangeTooltipProvider {
      * 不包含复杂的动态定价详细信息，主要用于tooltip的基础显示
      *
      * @param output 输出物品对象，包含类型、数量等信息
-     * @param rule 兑换规则对象，用于获取输入物品信息（主要用于虚拟货币模式）
+     * @param rule   兑换规则对象，用于获取输入物品信息（主要用于虚拟货币模式）
      * @return 格式化的Component显示组件，包含简化后的输出物品信息
      */
     private static Component getSimpleOutputName(ExchangeRule.OutputItem output, ExchangeRule rule) {
@@ -599,7 +762,7 @@ public class ExchangeTooltipProvider {
      * 获取带组件信息的物品名称显示
      *
      * @param itemIdentifier 物品标识符
-     * @param components 组件信息
+     * @param components     组件信息
      * @return 带组件提示的物品名称组件
      */
     private static Component getLocalizedItemNameWithComponents(String itemIdentifier, Object components) {

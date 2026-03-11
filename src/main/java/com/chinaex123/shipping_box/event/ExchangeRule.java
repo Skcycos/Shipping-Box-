@@ -2,16 +2,20 @@ package com.chinaex123.shipping_box.event;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.annotations.SerializedName;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Random;
 
 public class ExchangeRule {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeRule.class);
 
     private List<InputItem> inputs;
     private OutputItem output;
@@ -177,7 +181,7 @@ public class ExchangeRule {
 
                 return true;
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("[Shipping Box]在兑换规则中匹配物品失败: {}", e.getMessage());
                 return false;
             }
         }
@@ -203,7 +207,7 @@ public class ExchangeRule {
     public static class DynamicPricingProperties {
         private int[] threshold; // 阈值数组
         private int[] value; // 对应的价格数组
-        private int day; // 清除天数，-1表示永不清除
+        private int day; // 清除天数，-1 表示永不清除
 
         public int[] getThreshold() { return threshold; }
         public void setThreshold(int[] threshold) { this.threshold = threshold; }
@@ -214,20 +218,55 @@ public class ExchangeRule {
     }
 
     /**
+     * 节气联动配置类
+     */
+    public static class EclipticSeasonsProperties {
+        @SerializedName("season")
+        private List<String> season; // 季节列表 [spring, summer, autumn, winter, all]
+
+        @SerializedName("seasonal_only")
+        private boolean seasonal_only = false; // 仅限当前季节出售
+
+        @SerializedName("add_season_bonus")
+        private int add_season_bonus = 0; // 应季时价格加成百分比
+
+        @SerializedName("reduce_season_bonus")
+        private int reduce_season_bonus = 0; // 非应季时价格减益百分比
+
+        // 添加无参构造函数以便 Gson 反序列化
+        public EclipticSeasonsProperties() {
+        }
+
+        public List<String> getSeason() { return season; }
+        public void setSeason(List<String> season) { this.season = season; }
+        public boolean isSeasonal_only() { return seasonal_only; }
+        public void setSeasonal_only(boolean seasonal_only) { this.seasonal_only = seasonal_only; }
+        public int getAdd_season_bonus() { return add_season_bonus; }
+        public void setAdd_season_bonus(int add_season_bonus) { this.add_season_bonus = add_season_bonus; }
+        public int getReduce_season_bonus() { return reduce_season_bonus; }
+        public void setReduce_season_bonus(int reduce_season_bonus) { this.reduce_season_bonus = reduce_season_bonus; }
+    }
+
+    /**
      * 输出物品类，定义兑换规则中的输出物品规格
      */
     public static class OutputItem {
-        private String item; // 物品ID
+        private String item; // 物品 ID
         private int count = 1; //  数量
-        private Object components;  // 支持JsonObject和String
+        private Object components;  // 支持 JsonObject 和 String
         private boolean coin = false; // 虚拟货币标识符
 
         // 权重相关字段
-        private String type = "item"; // 默认类型设为"item"而不是null
+        @SerializedName("type")
+        private String type = "item"; // 默认类型设为"item"而不是 null
         private List<WeightedItem> items; // 权重物品列表
 
         // 动态定价相关字段
         private DynamicPricingProperties dynamicProperties;
+
+        // 节气联动相关字段
+        @SerializedName("ecliptic_seasons")
+        private EclipticSeasonsProperties eclipticSeasonsProperties;
 
         public String getItem() {
             return item;
@@ -283,6 +322,14 @@ public class ExchangeRule {
 
         public void setDynamicProperties(DynamicPricingProperties dynamicProperties) {
             this.dynamicProperties = dynamicProperties;
+        }
+
+        public EclipticSeasonsProperties getEclipticSeasonsProperties() {
+            return eclipticSeasonsProperties;
+        }
+
+        public void setEclipticSeasonsProperties(EclipticSeasonsProperties eclipticSeasonsProperties) {
+            this.eclipticSeasonsProperties = eclipticSeasonsProperties;
         }
 
         /**
