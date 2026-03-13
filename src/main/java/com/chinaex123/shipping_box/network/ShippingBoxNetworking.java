@@ -42,8 +42,13 @@ public class ShippingBoxNetworking {
         if (server != null) {
             SoldCountSyncPacket payload = new SoldCountSyncPacket(itemIdentifier, soldCount);
             Packet<?> packet = new ClientboundCustomPayloadPacket(payload);
-            // 使用服务器原生广播方法
-            server.getPlayerList().broadcastAll(packet);
+            // 遍历在线玩家并检查连接状态后再发送
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                if (player.connection != null && player.connection.getConnection() != null
+                        && player.connection.getConnection().isConnected()) {
+                    player.connection.send(packet);
+                }
+            }
         }
     }
 

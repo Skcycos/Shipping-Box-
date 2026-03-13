@@ -334,12 +334,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 System.arraycopy(parts, 1, params, 0, parts.length - 1);
 
                 // 创建带参数的本地化组件
-                Component[] paramComponents = new Component[params.length];
+                Object[] paramObjects = new Object[params.length];
                 for (int i = 0; i < params.length; i++) {
-                    paramComponents[i] = Component.literal(params[i]);
+                    paramObjects[i] = Component.literal(params[i]);
                 }
 
-                return Component.translatable(key, (Object) paramComponents).withStyle(ChatFormatting.RED);
+                return Component.translatable(key, paramObjects).withStyle(ChatFormatting.RED);
             }
         } catch (Exception e) {
             // 解析失败时显示原始信息

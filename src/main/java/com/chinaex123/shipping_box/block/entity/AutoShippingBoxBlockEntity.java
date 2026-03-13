@@ -12,59 +12,201 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.common.util.Lazy;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-public class AutoShippingBoxBlockEntity extends BlockEntity implements MenuProvider {
+public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity implements MenuProvider {
 
-    private final AutoShippingBoxItemHandler itemHandler = new AutoShippingBoxItemHandler(54) {
+    private NonNullList<ItemStack> items;
+    private UUID boundPlayerUUID;
+    private long lastExchangeDay = -1L;
+    private final Map<Integer, Boolean> slotIsExchanged = new HashMap<>();
+    private final Map<Integer, ItemStack> exchangedItemPrototype = new HashMap<>();
+    private int currentGeneration = 0;
+    private boolean skipResetDuringExchange = false;
+
+    /**
+     * 自定义物品处理器，用于控制物品的输入、输出和兑换状态
+     * 核心功能：
+     * 1. 只允许提取已完成兑换的物品
+     * 2. 通过物品原型验证来区分兑换产物和新放入的物品
+     * 3. 智能管理兑换状态标记，防止误判
+     */
+    private final ItemStackHandler itemHandler = new ItemStackHandler(54) {
         /**
-         * 当容器内容发生变化时调用的回调方法
-         * <p>
-         * 此方法在物品栏中某个槽位的内容发生改变时被触发，
-         * 用于标记方块实体的状态已发生变化，需要保存到磁盘。
-         *
+         * 检查指定槽位是否允许放入物品
+         * @param slot 槽位索引
+         * @param stack 要放入的物品堆
+         * @return 始终返回 true，表示所有槽位都允许放入任何物品
+         */
+        @Override
+        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            return true;
+        }
+
+        /**
+         * 从指定槽位提取物品
+         * 提取条件（必须同时满足）：
+         * 1. 槽位的兑换状态为 true（已兑换）
+         * 2. 当前物品与兑换时记录的原型物品匹配（排除新放入的物品）
+         * 
+         * @param slot 槽位索引
+         * @param amount 要提取的物品数量
+         * @param simulate 是否模拟提取（true=不实际提取，false=实际提取）
+         * @return 提取到的物品堆，如果无法提取则返回 ItemStack.EMPTY
+         */
+        @Override
+        public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+            // 检查槽位是否标记为已兑换状态
+            boolean isExchanged = slotIsExchanged.getOrDefault(slot, false);
+            
+            if (!isExchanged) {
+                return ItemStack.EMPTY;
+            }
+            
+            // 获取当前槽位的物品和兑换时记录的原型物品
+            ItemStack currentStack = getStackInSlot(slot);
+            ItemStack prototype = exchangedItemPrototype.get(slot);
+            
+            if (prototype != null && !currentStack.isEmpty()) {
+                // 验证当前物品是否与兑换产物原型匹配（类型和组件相同，不比较数量）
+                if (!ItemStack.isSameItemSameComponents(currentStack, prototype)) {
+                    // 物品不匹配，说明是新放入的物品而非兑换产物，拒绝提取
+                    return ItemStack.EMPTY;
+                }
+            } else if (prototype == null) {
+                // 没有原型记录，无法验证物品身份，拒绝提取
+                return ItemStack.EMPTY;
+            }
+            
+            // 所有验证通过，允许提取
+            return super.extractItem(slot, amount, simulate);
+        }
+
+        /**
+         * 向指定槽位插入物品
+         * 插入逻辑：
+         * - 如果槽位原本没有已兑换物品：清除兑换标记和原型记录（新物品放入）
+         * - 如果槽位原本有已兑换物品：保持标记不变（保护兑换产物不被误判）
+         * 
+         * @param slot 槽位索引
+         * @param stack 要插入的物品堆
+         * @param simulate 是否模拟插入（true=不实际插入，false=实际插入）
+         * @return 未能插入的剩余物品堆
+         */
+        @Override
+        public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+            // 执行实际的插入操作
+            ItemStack result = super.insertItem(slot, stack, simulate);
+            
+            // 当实际插入物品时（非模拟状态）
+            if (!simulate) {
+                // 检查插入前槽位是否已有已兑换的物品
+                boolean hadExchangedItem = slotIsExchanged.getOrDefault(slot, false);
+                
+                // 只有当槽位原本没有已兑换物品时，才清除兑换标记和原型记录
+                // 这样可以保护正在被提取的兑换产物不被误认为是新物品
+                if (!hadExchangedItem) {
+                    slotIsExchanged.put(slot, false);
+                    exchangedItemPrototype.remove(slot);
+                }
+                // 如果原本有已兑换物品，保持状态不变，等待管道提取
+            }
+            
+            return result;
+        }
+
+        /**
+         * 当槽位内容发生变化时调用
+         * 用于标记方块实体需要保存数据
+         * 
          * @param slot 发生变化的槽位索引
          */
         @Override
         protected void onContentsChanged(int slot) {
-            setChanged();
+            AutoShippingBoxBlockEntity.this.setChanged();
+        }
+
+        /**
+         * 直接在指定槽位设置物品堆
+         * 注意：此方法会绕过 insertItem 的逻辑，因此需要特殊处理兑换状态
+         * 
+         * @param slot 槽位索引
+         * @param stack 要设置的物品堆
+         */
+        @Override
+        public void setStackInSlot(int slot, @NotNull ItemStack stack) {
+            // 调用父类方法设置物品
+            super.setStackInSlot(slot, stack);
+            
+            // 只有在不是兑换过程中时才重置兑换状态
+            // 在兑换过程中设置物品时，需要保持兑换状态由 performExchange 方法控制
+            if (!skipResetDuringExchange) {
+                slotIsExchanged.put(slot, false);
+            }
         }
     };
 
-    // 能力提供者
-    private final Lazy<IItemHandler> itemHandlerLazy = Lazy.of(() -> itemHandler);
-
-    /** 绑定的玩家UUID */
-    private UUID boundPlayerUUID;
-
-    /** 上次兑换日期 */
-    private long lastExchangeDay = -1L;
-
-    /** 记录每个槽位是否包含兑换后的物品 */
-    private final Map<Integer, Boolean> slotIsExchanged = new HashMap<>();
-
+    /**
+     * 自动售货箱方块实体构造函数
+     * 初始化物品存储、兑换状态和同步机制
+     *
+     * @param pos 方块在游戏中的位置坐标
+     * @param state 方块的当前状态信息
+     */
     public AutoShippingBoxBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.AUTOMATED_SHIPPING_BOX.get(), pos, state);
+        this.items = NonNullList.withSize(54, ItemStack.EMPTY);
+        syncItems();
+    }
+
+    private void syncItems() {
+        for (int i = 0; i < 54; i++) {
+            items.set(i, itemHandler.getStackInSlot(i));
+        }
+    }
+
+    @Override
+    protected @NotNull NonNullList<ItemStack> getItems() {
+        syncItems();
+        return items;
+    }
+
+    @Override
+    protected void setItems(@NotNull NonNullList<ItemStack> items) {
+        this.items = items;
+        for (int i = 0; i < 54 && i < items.size(); i++) {
+            itemHandler.setStackInSlot(i, items.get(i));
+        }
+    }
+
+    @Override
+    protected @NotNull Component getDefaultName() {
+        return Component.translatable("block.shipping_box.auto_shipping_box");
+    }
+
+    @Override
+    protected @NotNull AbstractContainerMenu createMenu(int id, @NotNull Inventory playerInventory) {
+        return new AutoShippingBoxMenu(id, playerInventory, this);
+    }
+
+    public ItemStackHandler getItemHandler() {
+        return itemHandler;
+    }
+
+    public IItemHandler getCapabilityHandler() {
+        return itemHandler;
     }
 
     public UUID getBoundPlayerUUID() {
         return boundPlayerUUID;
     }
 
-    /**
-     * 强制执行物品兑换
-     * 忽略时间检查，直接触发兑换逻辑
-     * 主要用于调试和管理员操作
-     */
     public void forceExchange() {
         if (level != null && !level.isClientSide) {
             performExchange(level.getDayTime() / 24000);
@@ -74,123 +216,203 @@ public class AutoShippingBoxBlockEntity extends BlockEntity implements MenuProvi
     }
 
     /**
-     * 执行自动售货箱的物品兑换逻辑
+     * 执行物品兑换的核心方法
      * <p>
-     * 该方法负责收集自动售货箱中的物品，调用兑换管理器进行处理，
-     * 并将处理结果写回物品存储系统。
-     *
-     * @param currentDay 当前游戏日，用于记录上次兑换时间
+     * 工作流程：
+     * 1. 收集所有非空槽位的物品
+     * 2. 调用 ExchangeManager 进行兑换计算
+     * 3. 更新兑换状态和物品原型记录
+     * 4. 标记已兑换的槽位供管道提取
+     * 
+     * @param currentDay 当前的游戏日（用于判断是否到了兑换时间）
      */
     private void performExchange(long currentDay) {
-        // 收集所有非空槽位的物品
+        // ========== 第一阶段：收集待处理的物品 ==========
+        // 记录哪些槽位有物品以及它们的原始索引
+        List<Integer> slotsWithItems = new ArrayList<>();
         List<ItemStack> itemsToProcess = new ArrayList<>();
+        
         for (int i = 0; i < itemHandler.getSlots(); i++) {
             ItemStack stack = itemHandler.getStackInSlot(i);
             if (!stack.isEmpty()) {
+                slotsWithItems.add(i);
+                // 复制物品堆，避免后续操作影响原始数据
                 itemsToProcess.add(stack.copy());
             }
         }
 
+        // 如果没有物品需要处理，直接返回
         if (itemsToProcess.isEmpty()) {
             return;
         }
 
-        // 执行兑换
-        NonNullList<ItemStack> processedItems = NonNullList.withSize(54, ItemStack.EMPTY);
-        for (int i = 0; i < Math.min(itemsToProcess.size(), processedItems.size()); i++) {
+        // ========== 第二阶段：准备兑换数据结构 ==========
+        // 创建已处理物品列表（初始为空）
+        NonNullList<ItemStack> processedItems = NonNullList.withSize(itemsToProcess.size(), ItemStack.EMPTY);
+        for (int i = 0; i < itemsToProcess.size(); i++) {
             processedItems.set(i, itemsToProcess.get(i));
         }
 
+        // ========== 第三阶段：执行兑换逻辑 ==========
         try {
+            // 调用兑换管理器进行实际兑换计算
+            // 此方法会修改 processedItems 中的物品
             ExchangeManager.performExchange(processedItems, level, worldPosition, boundPlayerUUID);
         } catch (Exception e) {
-            // 静默处理异常
+            // 静默处理异常，防止兑换错误导致崩溃
         }
 
-        // 关键：将处理结果写回ItemStackHandler
-        for (int i = 0; i < processedItems.size() && i < itemHandler.getSlots(); i++) {
-            ItemStack oldStack = itemHandler.getStackInSlot(i);
+        // ========== 第四阶段：更新兑换轮次和状态 ==========
+        // 增加兑换轮次计数器，用于区分不同批次的兑换产物
+        currentGeneration++;
+        
+        // 先清空所有相关槽位的兑换状态（后续会根据实际情况重新设置）
+        for (int slot : slotsWithItems) {
+            slotIsExchanged.put(slot, false);
+        }
+
+        // 设置跳过重置标志，防止 setStackInSlot 意外清除兑换状态
+        skipResetDuringExchange = true;
+        
+        // ========== 第五阶段：将处理后的物品放回槽位 ==========
+        for (int i = 0; i < slotsWithItems.size() && i < processedItems.size(); i++) {
+            int slotIndex = slotsWithItems.get(i);
             ItemStack newStack = processedItems.get(i);
-
-            if (!ItemStack.matches(oldStack, newStack)) {
-                itemHandler.setStackInSlot(i, newStack);
+            
+            // 安全地设置物品到槽位（不会重置兑换状态）
+            itemHandler.setStackInSlot(slotIndex, newStack);
+            
+            // 判断物品是否发生了实际变化
+            ItemStack oldStack = itemsToProcess.get(i);
+            if (!ItemStack.matches(oldStack, newStack) && !newStack.isEmpty()) {
+                // 物品发生变化且不为空，标记为已兑换
+                slotIsExchanged.put(slotIndex, true);
+                // 记录兑换产物的原型，用于后续验证物品身份
+                exchangedItemPrototype.put(slotIndex, newStack.copy());
+            } else {
+                // 物品未变化或为空，清除兑换标记
+                slotIsExchanged.put(slotIndex, false);
+                exchangedItemPrototype.remove(slotIndex);
             }
         }
 
-        // 清空剩余槽位
-        for (int i = processedItems.size(); i < itemHandler.getSlots(); i++) {
-            if (!itemHandler.getStackInSlot(i).isEmpty()) {
-                itemHandler.setStackInSlot(i, ItemStack.EMPTY);
-            }
+        // ========== 第六阶段：处理被完全消耗的槽位 ==========
+        // 当 processedItems 比原始物品列表短时，说明有些物品被完全消耗了
+        for (int i = processedItems.size(); i < slotsWithItems.size(); i++) {
+            int slotIndex = slotsWithItems.get(i);
+            // 清空这些槽位
+            itemHandler.setStackInSlot(slotIndex, ItemStack.EMPTY);
+            slotIsExchanged.put(slotIndex, false);
+            exchangedItemPrototype.remove(slotIndex);
         }
 
-        // 标记所有槽位为已兑换状态
-        for (int i = 0; i < itemHandler.getSlots(); i++) {
-            if (!itemHandler.getStackInSlot(i).isEmpty()) {
-                slotIsExchanged.put(i, true);
-            }
-        }
+        // ========== 第七阶段：恢复状态并保存数据 ==========
+        // 恢复跳过重置标志，允许正常重置兑换状态
+        skipResetDuringExchange = false;
 
+        // 更新上次兑换日期
         lastExchangeDay = currentDay;
+        
+        // 标记方块实体已更改，需要保存到磁盘
         setChanged();
+        
+        // 同步内部存储与物品处理器
+        syncItems();
     }
 
     /**
-     * 将自动售货箱方块实体的额外数据保存到NBT标签中
+     * 游戏刻更新方法（服务端专用）
+     * 
+     * 主要功能：
+     * 1. 检测游戏时间的变化（以天为单位）
+     * 2. 当跨越到第二天时自动触发兑换
+     * 3. 初始化首次加载时的日期标记
+     * 
+     * 调用时机：每个游戏刻由方块实体的更新逻辑调用
+     * 运行侧：仅在服务端执行，客户端不处理兑换逻辑
+     */
+    public void tick() {
+        // 确保只在服务端执行
+        if (level != null && !level.isClientSide) {
+            // 计算当前是第几天（Minecraft 中一天 = 24000 tick）
+            long currentDay = level.getDayTime() / 24000;
+            
+            // 如果当前日期晚于上次兑换日期且已初始化过，则触发兑换
+            if (currentDay > lastExchangeDay && lastExchangeDay != -1L) {
+                // 执行每日自动兑换
+                performExchange(currentDay);
+            } else if (lastExchangeDay == -1L) {
+                // 首次加载或刚放置时，初始化兑换日期标记
+                // 避免刚放置就立即触发兑换
+                lastExchangeDay = currentDay;
+            }
+        }
+    }
+
+    /**
+     * 保存方块实体的额外数据到 NBT 标签
      * <p>
-     * 此方法负责序列化自动售货箱的所有持久化数据，
-     * 包括物品库存、兑换状态、时间记录和玩家绑定信息。
-     *
-     * @param tag NBT复合标签，用于存储序列化数据
-     * @param registries 注册表提供者，用于物品序列化
+     * 保存的数据包括：
+     * - 物品库存（54 个槽位的物品）
+     * - 上次兑换日期
+     * - 每个槽位的兑换状态
+     * - 绑定的玩家 UUID（如果有）
+     * 
+     * @param tag 要写入的 NBT 标签
+     * @param registries 注册表提供者，用于序列化物品
      */
     @Override
     protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
+        // 调用父类保存基础数据
         super.saveAdditional(tag, registries);
-
-        // 保存ItemStackHandler的数据
+        
+        // 保存物品库存数据
         tag.put("Inventory", itemHandler.serializeNBT(registries));
-
-        // 保存上次兑换日期
+        
+        // 保存上次兑换的日期标记
         tag.putLong("LastExchangeDay", lastExchangeDay);
-
-        // 保存各槽位的兑换状态标记
+        
+        // 保存每个槽位的兑换状态（哪些槽位已兑换完成）
         CompoundTag exchangedTag = new CompoundTag();
         for (Map.Entry<Integer, Boolean> entry : slotIsExchanged.entrySet()) {
             exchangedTag.putBoolean(String.valueOf(entry.getKey()), entry.getValue());
         }
         tag.put("SlotExchanged", exchangedTag);
-
-        // 保存绑定玩家的UUID（如果存在）
+        
+        // 如果绑定了玩家，保存玩家 UUID
         if (boundPlayerUUID != null) {
             tag.putString("BoundPlayer", boundPlayerUUID.toString());
         }
     }
 
     /**
-     * 从NBT标签中加载自动售货箱方块实体的额外数据
+     * 从 NBT 标签加载方块实体的数据
      * <p>
-     * 此方法负责反序列化自动售货箱的所有持久化数据，
-     * 包括物品库存、兑换状态、时间记录和玩家绑定信息。
-     *
-     * @param tag 包含序列化数据的NBT复合标签
-     * @param registries 注册表提供者，用于物品反序列化
+     * 加载的数据包括：
+     * - 物品库存
+     * - 上次兑换日期
+     * - 槽位兑换状态
+     * - 绑定的玩家 UUID
+     * 
+     * @param tag 包含数据的 NBT 标签
+     * @param registries 注册表提供者，用于反序列化物品
      */
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.@NotNull Provider registries) {
+        // 调用父类加载基础数据
         super.loadAdditional(tag, registries);
-
-        // 加载ItemStackHandler的数据
+        
+        // 加载物品库存数据
         if (tag.contains("Inventory")) {
             itemHandler.deserializeNBT(registries, tag.getCompound("Inventory"));
         }
-
+        
         // 加载上次兑换日期
         if (tag.contains("LastExchangeDay")) {
             lastExchangeDay = tag.getLong("LastExchangeDay");
         }
-
-        // 加载各槽位的兑换状态标记
+        
+        // 加载槽位兑换状态
         if (tag.contains("SlotExchanged")) {
             CompoundTag exchangedTag = tag.getCompound("SlotExchanged");
             for (String key : exchangedTag.getAllKeys()) {
@@ -199,52 +421,28 @@ public class AutoShippingBoxBlockEntity extends BlockEntity implements MenuProvi
                     boolean isExchanged = exchangedTag.getBoolean(key);
                     slotIsExchanged.put(slot, isExchanged);
                 } catch (NumberFormatException e) {
-                    // 静默处理错误
+                    // 忽略格式错误的键值，继续处理其他数据
                 }
             }
         }
-
-        // 加载绑定玩家的UUID
+        
+        // 加载绑定的玩家 UUID
         if (tag.contains("BoundPlayer")) {
-            try {
-                boundPlayerUUID = UUID.fromString(tag.getString("BoundPlayer"));
-            } catch (IllegalArgumentException e) {
-                boundPlayerUUID = null;
-            }
+            boundPlayerUUID = UUID.fromString(tag.getString("BoundPlayer"));
         }
+        
+        // 同步内部存储与物品处理器
+        syncItems();
     }
 
-    /**
-     * 清空自动售货箱的所有内容
-     * <p>
-     * 此方法将清空物品存储处理器中的所有槽位，
-     * 重置所有槽位的兑换状态标记，并标记方块实体已更改。
-     */
-    public void clearContent() {
-        // 清空所有物品槽位
-        for (int i = 0; i < itemHandler.getSlots(); i++) {
-            itemHandler.setStackInSlot(i, ItemStack.EMPTY);
-        }
-
-        // 清空兑换状态记录
-        slotIsExchanged.clear();
-
-        // 标记方块实体已更改
-        setChanged();
-    }
-
-    /**
-     * 获取自动售货箱的容器大小
-     */
+    @Override
     public int getContainerSize() {
-        return itemHandler.getSlots();
+        return 54;
     }
 
-    /**
-     * 检查自动售货箱是否为空
-     */
+    @Override
     public boolean isEmpty() {
-        for (int i = 0; i < itemHandler.getSlots(); i++) {
+        for (int i = 0; i < 54; i++) {
             if (!itemHandler.getStackInSlot(i).isEmpty()) {
                 return false;
             }
@@ -252,235 +450,82 @@ public class AutoShippingBoxBlockEntity extends BlockEntity implements MenuProvi
         return true;
     }
 
-    /**
-     * 绑定玩家到自动售货箱
-     */
+    @Override
+    public ItemStack getItem(int slot) {
+        return itemHandler.getStackInSlot(slot);
+    }
+
+    @Override
+    public ItemStack removeItem(int slot, int count) {
+        // 玩家手动取出物品时，不受兑换状态限制
+        ItemStack stack = itemHandler.getStackInSlot(slot);
+        if (stack.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack result = stack.split(count);
+        itemHandler.setStackInSlot(slot, stack);
+        items.set(slot, stack);
+
+        // 如果物品被取完，重置兑换状态
+        if (stack.isEmpty()) {
+            slotIsExchanged.put(slot, false);
+        }
+
+        return result;
+    }
+
+    @Override
+    public ItemStack removeItemNoUpdate(int slot) {
+        // 玩家手动取出物品时，不受兑换状态限制
+        ItemStack stack = itemHandler.getStackInSlot(slot);
+        itemHandler.setStackInSlot(slot, ItemStack.EMPTY);
+        items.set(slot, ItemStack.EMPTY);
+        
+        // 重置兑换状态
+        slotIsExchanged.put(slot, false);
+        
+        return stack;
+    }
+
+    @Override
+    public void setItem(int slot, ItemStack stack) {
+        itemHandler.setStackInSlot(slot, stack);
+        items.set(slot, stack);
+        // 当物品被放入时，重置兑换状态
+        slotIsExchanged.put(slot, false);
+    }
+
+    @Override
+    public boolean canPlaceItem(int index, @NotNull ItemStack stack) {
+        return true;
+    }
+
+    @Override
+    public void clearContent() {
+        for (int i = 0; i < 54; i++) {
+            itemHandler.setStackInSlot(i, ItemStack.EMPTY);
+            items.set(i, ItemStack.EMPTY);
+        }
+    }
+
+    public boolean isSlotExchanged(int slot) {
+        return slotIsExchanged.getOrDefault(slot, false);
+    }
+
+    public Set<Integer> getExchangedSlots() {
+        return slotIsExchanged.keySet();
+    }
+
     public void bindPlayer(UUID playerUUID) {
         this.boundPlayerUUID = playerUUID;
         setChanged();
     }
 
-    /**
-     * 检查玩家是否可以访问自动售货箱
-     */
     public boolean canPlayerAccess(Player player) {
-        return boundPlayerUUID == null || player.getUUID().equals(boundPlayerUUID);
-    }
-
-    /**
-     * 自动售货箱的周期性更新方法
-     */
-    public void tick() {
-        if (level == null || level.isClientSide) return;
-
-        long dayTime = level.getDayTime();
-        long timeOfDay = dayTime % 24000;
-
-        // 检查容器中是否存在物品
-        boolean hasItems = false;
-        for (int i = 0; i < itemHandler.getSlots(); i++) {
-            if (!itemHandler.getStackInSlot(i).isEmpty()) {
-                hasItems = true;
-                break;
-            }
-        }
-
-        if (!hasItems) {
-            return;
-        }
-
-        // 检测兑换时间窗口（每日0-180游戏刻）
-        if (timeOfDay >= 0 && timeOfDay <= 180) {
-            // 检查是否距离上次兑换已经过去了一天
-            long timeSinceLastExchange = dayTime - (lastExchangeDay * 24000);
-
-            // 如果距离上次兑换超过一天，或者这是第一次兑换
-            if (timeSinceLastExchange >= 24000 || lastExchangeDay == -1L) {
-                try {
-                    performExchange(dayTime / 24000);
-                    lastExchangeDay = dayTime / 24000;
-                    setChanged();
-                } catch (Exception e) {
-                    // 异常处理保持简洁
-                }
-            }
-            // 处理时间重置的特殊情况
-            else if (timeSinceLastExchange < 0) {
-                // 时间被重置到过去，强制进行兑换
-                try {
-                    performExchange(dayTime / 24000);
-                    lastExchangeDay = dayTime / 24000;
-                    setChanged();
-                } catch (Exception e) {
-                    // 异常处理保持简洁
-                }
-            }
-        }
-    }
-
-    /**
-     * 获取自动售货箱方块的显示名称
-     * <p>
-     * 此方法返回自动售货箱方块在游戏界面中显示的本地化名称。
-     *
-     * @return 自动售货箱的本地化显示名称组件
-     */
-    @Override
-    public Component getDisplayName() {
-        return Component.translatable("block.shipping_box.auto_shipping_box");
-    }
-
-    /**
-     * 创建自动售货箱的容器菜单
-     * <p>
-     * 此方法负责为自动售货箱创建对应的GUI菜单实例，
-     * 供玩家与方块实体进行交互。
-     *
-     * @param id 容器ID，用于网络同步
-     * @param inventory 玩家物品栏
-     * @param player 操作菜单的玩家实体
-     * @return 新创建的自动售货箱菜单实例
-     */
-    @Override
-    public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
-        return new AutoShippingBoxMenu(id, inventory, this);
-    }
-
-    public ItemStackHandler getItemHandler() {
-        return itemHandler;
-    }
-
-    // 提供公共访问方法供外部使用
-    public IItemHandler getCapabilityHandler() {
-        return itemHandlerLazy.get();
-    }
-
-    /**
-     * 从方块实体获取物品处理能力
-     * <p>
-     * 此静态工具方法用于安全地将通用方块实体转换为自动售货箱实体，
-     * 并返回其物品处理能力接口，便于外部系统访问物品存储功能。
-     *
-     * @param blockEntity 要转换的方块实体
-     * @return 自动售货箱的物品处理能力接口，如果不是自动售货箱则返回null
-     */
-    public static IItemHandler getItemHandlerFromBlockEntity(BlockEntity blockEntity) {
-        if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
-            return autoBox.getCapabilityHandler();
-        }
-        return null;
-    }
-
-    /**
-     * 自定义的物品处理器，控制漏斗交互行为
-     * 只允许放入物品，但只允许提取已兑换的物品
-     */
-    public class AutoShippingBoxItemHandler extends ItemStackHandler implements IItemHandlerModifiable {
-        public AutoShippingBoxItemHandler(int size) {
-            super(size);
-        }
-
-        /**
-         * 检查指定槽位是否允许放入指定物品
-         * <p>
-         * 此方法用于验证某个物品是否可以放入自动售货箱的指定槽位。
-         * 目前实现为允许放入所有类型的物品，不做任何限制。
-         *
-         * @param slot 要检查的槽位索引
-         * @param stack 要放入的物品堆栈
-         * @return 总是返回 true，表示允许放入任何物品
-         */
-        @Override
-        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-            // 允许放入所有物品
+        if (boundPlayerUUID == null) {
             return true;
         }
-
-        /**
-         * 从指定槽位提取物品
-         * <p>
-         * 此方法用于从自动售货箱的指定槽位中提取物品。
-         * 只有已兑换的物品才能被提取，未兑换的原始输入物品无法被提取。
-         * 这个机制确保了漏斗和其他管道系统只能吸走兑换完成的物品。
-         *
-         * @param slot 要提取物品的槽位索引
-         * @param amount 要提取的最大物品数量
-         * @param simulate 是否为模拟提取，true 表示仅模拟不实际移除物品，false 表示实际提取
-         * @return 提取到的物品堆栈，如果无法提取则返回空物品堆栈
-         */
-        @Override
-        public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-            // 检查是否为已兑换物品
-            if (!slotIsExchanged.getOrDefault(slot, false)) {
-                return ItemStack.EMPTY;
-            }
-
-            ItemStack stack = getStackInSlot(slot);
-
-            // 确保物品确实发生了变化（不是原始输入）
-            if (stack.isEmpty()) {
-                return ItemStack.EMPTY;
-            }
-
-            return super.extractItem(slot, amount, simulate);
-        }
-
-        /**
-         * 设置指定槽位的物品堆栈
-         * <p>
-         * 此方法用于在自动售货箱的指定槽位中放置物品。
-         * 当设置新物品时，会自动重置该槽位的兑换状态标记，
-         * 确保新放入的物品不会被误认为是已兑换的物品。
-         *
-         * @param slot 要设置的槽位索引
-         * @param stack 要放置的物品堆栈
-         */
-        @Override
-        public void setStackInSlot(int slot, @NotNull ItemStack stack) {
-            // 当设置物品时，重置兑换状态
-            slotIsExchanged.put(slot, false);
-            super.setStackInSlot(slot, stack);
-        }
-
-        /**
-         * 当容器内容发生变化时的回调方法
-         * <p>
-         * 此方法在物品栏中某个槽位的内容发生改变时被触发，
-         * 用于标记方块实体的状态已发生变化，需要保存到磁盘。
-         *
-         * @param slot 发生变化的槽位索引
-         */
-        @Override
-        protected void onContentsChanged(int slot) {
-            setChanged();
-        }
-    }
-
-    /**
-     * 检查指定槽位是否包含已兑换的物品
-     * @param slot 槽位索引
-     * @return 如果该槽位包含已兑换物品则返回 true
-     */
-    public boolean isSlotExchanged(int slot) {
-        return slotIsExchanged.getOrDefault(slot, false);
-    }
-
-    /**
-     * 获取所有已兑换的槽位索引集合
-     * @return 已兑换槽位的 Set 集合
-     */
-    public Set<Integer> getExchangedSlots() {
-        return slotIsExchanged.entrySet().stream()
-                .filter(Map.Entry::getValue)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-    }
-
-    /**
-     * 获取所有槽位的兑换状态映射
-     * @return 槽位索引到兑换状态的映射
-     */
-    public Map<Integer, Boolean> getAllSlotExchangeStatus() {
-        return new HashMap<>(slotIsExchanged);
+        return boundPlayerUUID.equals(player.getUUID());
     }
 }
