@@ -5,26 +5,31 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.List;
 
 public class EclipticSeasonsUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(EclipticSeasonsUtil.class);
 
-    private static boolean modLoaded = false;
+    // 静态常量类引用（可能为 null）
+    static final Class<?> eclipticUtilClass;
+    static final Class<?> solarTermEnumClass;
+    static final Class<?> seasonClass;
 
-    // EclipticUtil 相关反射
-    private static Class<?> eclipticUtilClass = null;
-    private static Method getSolarTermMethod = null;
-    private static Method getSeasonMethod = null;
-    private static Method getSerializedNameMethod = null;
-    private static Class<?> solarTermEnumClass = null;
+    // 静态常量方法句柄
+    private static final MethodHandle getNowSolarTermHandle;
+    private static final MethodHandle getSeasonHandle;
+    private static final MethodHandle getSerializedNameHandle;
+    private static final MethodHandle solarTermOrdinalHandle;
+    private static final MethodHandle getNowSolarDayHandle;
 
-    // CommonConfig 相关反射
-    private static Field lastingDaysOfEachTermField = null;
+    // 配置相关字段
+    private static final Class<?> commonConfigSeasonClass;
+    private static final MethodHandle lastingDaysOfEachTermHandle;
 
-    // 缓存对象，避免重复反射调用
+    // 缓存对象
     private static Object cachedSolarTerm = null;
     private static Level lastCheckedLevel = null;
     private static String cachedSeasonName = null;
@@ -32,55 +37,125 @@ public class EclipticSeasonsUtil {
     private static Integer cachedTermDuration = null;
 
     static {
-        try {
-            // 尝试加载节气模组的核心类
-            eclipticUtilClass = Class.forName("com.teamtea.eclipticseasons.api.util.EclipticUtil");
+        // 临时变量用于初始化
+        Class<?> tempEclipticUtilClass = null;
+        Class<?> tempSolarTermEnumClass = null;
+        Class<?> tempSeasonClass = null;
+        MethodHandle tempGetNowSolarTermHandle = null;
+        MethodHandle tempGetSeasonHandle = null;
+        MethodHandle tempGetSerializedNameHandle = null;
+        MethodHandle tempSolarTermOrdinalHandle = null;
+        MethodHandle tempGetNowSolarDayHandle = null;
+        Class<?> tempCommonConfigSeasonClass = null;
+        MethodHandle tempLastingDaysOfEachTermHandle = null;
 
-            // 获取 getNowSolarTerm 方法 - 这是静态方法，不需要 INSTANCE
+        // 初始化所有反射对象，如果失败则设为 null
+        try {
+            tempEclipticUtilClass = Class.forName("com.teamtea.eclipticseasons.api.util.EclipticUtil");
+
+            // 获取 getNowSolarTerm 方法句柄（静态方法）
             Class<?> levelClass = Class.forName("net.minecraft.world.level.Level");
-            getSolarTermMethod = eclipticUtilClass.getMethod("getNowSolarTerm", levelClass);
-            getSolarTermMethod.setAccessible(true);
+            
+            // 先加载 SolarTerm 类，用于方法签名
+            Class<?> solarTermClass = Class.forName("com.teamtea.eclipticseasons.api.constant.solar.SolarTerm");
+            
+            tempGetNowSolarTermHandle = MethodHandles.publicLookup()
+                    .findStatic(tempEclipticUtilClass, "getNowSolarTerm",
+                            MethodType.methodType(solarTermClass, levelClass));
 
             // 获取 SolarTerm 枚举类
-            solarTermEnumClass = Class.forName("com.teamtea.eclipticseasons.api.constant.solar.SolarTerm");
+            tempSolarTermEnumClass = solarTermClass;
 
-            // 获取 getSeason() 方法
-            getSeasonMethod = solarTermEnumClass.getMethod("getSeason");
-            getSeasonMethod.setAccessible(true);
+            // 获取 ordinal 方法句柄
+            tempSolarTermOrdinalHandle = MethodHandles.publicLookup()
+                    .findVirtual(tempSolarTermEnumClass, "ordinal",
+                            MethodType.methodType(int.class));
 
-            // 获取 Season 类的 getSerializedName() 方法
-            Class<?> seasonClass = Class.forName("com.teamtea.eclipticseasons.api.constant.solar.Season");
+            // 获取 getSeason() 方法句柄
+            // 需要加载 Season 类用于方法签名
+            Class<?> seasonCls = Class.forName("com.teamtea.eclipticseasons.api.constant.solar.Season");
+            
+            tempGetSeasonHandle = MethodHandles.publicLookup()
+                    .findVirtual(tempSolarTermEnumClass, "getSeason",
+                            MethodType.methodType(seasonCls));
 
-            getSerializedNameMethod = seasonClass.getMethod("getSerializedName");
-            getSerializedNameMethod.setAccessible(true);
+            // 获取 Season 类
+            tempSeasonClass = seasonCls;
+
+            // 获取 getSerializedName() 方法句柄
+            tempGetSerializedNameHandle = MethodHandles.publicLookup()
+                    .findVirtual(tempSeasonClass, "getSerializedName",
+                            MethodType.methodType(String.class));
 
             // 尝试加载配置类
+            Class<?> configSeasonClass = null;
+            MethodHandle termDurationHandle = null;
+
             try {
                 Class<?> commonConfigClass = Class.forName("com.teamtea.eclipticseasons.config.CommonConfig");
+                configSeasonClass = Class.forName("com.teamtea.eclipticseasons.config.CommonConfig$Season");
 
-                // Season 是静态内部类
-                Class<?> seasonClassConfig = Class.forName("com.teamtea.eclipticseasons.config.CommonConfig$Season");
+                // 获取 lastingDaysOfEachTerm 字段的 getter
+                var field = configSeasonClass.getField("lastingDaysOfEachTerm");
+                var fieldValueClass = field.getType();
 
-                // 获取 lastingDaysOfEachTerm 字段（这是 ModConfigSpec.IntValue 类型）
-                lastingDaysOfEachTermField = seasonClassConfig.getField("lastingDaysOfEachTerm");
-                lastingDaysOfEachTermField.setAccessible(true);
+                // 获取 ModConfigSpec.IntValue 的 get() 方法
+                termDurationHandle = MethodHandles.publicLookup()
+                        .findVirtual(fieldValueClass, "get",
+                                MethodType.methodType(Object.class));
+
             } catch (Exception configError) {
-                // 配置类加载失败，但核心功能仍可用
+                LOGGER.debug("[Shipping Box] 节气模组配置类加载失败，但核心功能仍可用");
             }
 
-            modLoaded = true;
+            tempCommonConfigSeasonClass = configSeasonClass;
+            tempLastingDaysOfEachTermHandle = termDurationHandle;
+
+            // 尝试加载 getNowSolarDay 方法（非必需）
+            MethodHandle solarDayHandle = null;
+            try {
+                solarDayHandle = MethodHandles.publicLookup()
+                        .findVirtual(tempEclipticUtilClass, "getNowSolarDay",
+                                MethodType.methodType(int.class, levelClass));
+            } catch (Exception e) {
+                // getNowSolarDay 可能是实例方法，需要 INSTANCE
+                try {
+                    var instanceField = tempEclipticUtilClass.getDeclaredField("INSTANCE");
+                    var instance = instanceField.get(null);
+                    solarDayHandle = MethodHandles.publicLookup()
+                            .bind(instance, "getNowSolarDay",
+                                    MethodType.methodType(int.class, levelClass));
+                } catch (Exception e2) {
+                    // 完全不可用
+                }
+            }
+            tempGetNowSolarDayHandle = solarDayHandle;
+
+            LOGGER.info("[Shipping Box] 成功加载节气模组联动！");
 
         } catch (Exception e) {
-            modLoaded = false;
-            LOGGER.error("[Shipping Box]加载节气模组联动失败: {}", e.getMessage());
+            // 所有反射初始化失败，设置为 null
+            LOGGER.info("[Shipping Box] 节气模组未安装，联动功能已禁用");
         }
+
+        // 将临时变量赋值给 final 字段
+        eclipticUtilClass = tempEclipticUtilClass;
+        solarTermEnumClass = tempSolarTermEnumClass;
+        seasonClass = tempSeasonClass;
+        getNowSolarTermHandle = tempGetNowSolarTermHandle;
+        getSeasonHandle = tempGetSeasonHandle;
+        getSerializedNameHandle = tempGetSerializedNameHandle;
+        solarTermOrdinalHandle = tempSolarTermOrdinalHandle;
+        getNowSolarDayHandle = tempGetNowSolarDayHandle;
+        commonConfigSeasonClass = tempCommonConfigSeasonClass;
+        lastingDaysOfEachTermHandle = tempLastingDaysOfEachTermHandle;
     }
 
     /**
      * 检查节气模组是否已加载
      */
     public static boolean isAvailable() {
-        return modLoaded;
+        return eclipticUtilClass != null && getNowSolarTermHandle != null;
     }
 
     /**
@@ -90,7 +165,7 @@ public class EclipticSeasonsUtil {
      */
     @Nullable
     private static Object getSolarTerm(Level level) {
-        if (!isAvailable() || level == null || getSolarTermMethod == null) {
+        if (!isAvailable() || level == null || getNowSolarTermHandle == null) {
             return null;
         }
 
@@ -100,11 +175,10 @@ public class EclipticSeasonsUtil {
         }
 
         try {
-            // 调用静态方法 EclipticUtil.getNowSolarTerm(level)
-            cachedSolarTerm = getSolarTermMethod.invoke(null, level);
+            cachedSolarTerm = getNowSolarTermHandle.invokeExact(level);
             lastCheckedLevel = level;
             return cachedSolarTerm;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             cachedSolarTerm = null;
             return null;
         }
@@ -124,21 +198,21 @@ public class EclipticSeasonsUtil {
 
         Object solarTermObj = getSolarTerm(level);
 
-        if (solarTermObj != null && getSeasonMethod != null) {
+        if (solarTermObj != null && getSeasonHandle != null && getSerializedNameHandle != null) {
             try {
                 // 调用 solarTerm.getSeason()
-                Object seasonObj = getSeasonMethod.invoke(solarTermObj);
+                Object seasonObj = getSeasonHandle.invokeExact(solarTermObj);
 
-                if (seasonObj != null && getSerializedNameMethod != null) {
+                if (seasonObj != null) {
                     // 调用 season.getSerializedName()
-                    String seasonName = (String) getSerializedNameMethod.invoke(seasonObj);
+                    String seasonName = (String) getSerializedNameHandle.invokeExact(seasonObj);
 
                     if (seasonName != null && !seasonName.equals("none")) {
                         cachedSeasonName = seasonName.toLowerCase();
                         return cachedSeasonName;
                     }
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 // 反射调用失败，返回 null
             }
         }
@@ -161,18 +235,16 @@ public class EclipticSeasonsUtil {
 
         Object solarTermObj = getSolarTerm(level);
 
-        if (solarTermObj != null && solarTermEnumClass != null) {
+        if (solarTermObj != null && solarTermOrdinalHandle != null) {
             try {
                 // 获取节气的 ordinal 值
-                Method ordinalMethod = solarTermEnumClass.getMethod("ordinal");
-                ordinalMethod.setAccessible(true);
-                int ordinal = (Integer) ordinalMethod.invoke(solarTermObj);
+                int ordinal = (int) solarTermOrdinalHandle.invokeExact(solarTermObj);
 
                 // 每 6 个节气为一个季节，每 2 个节气为一个子季节
                 // 所以子季节索引 = (ordinal % 6) / 2
                 cachedSeasonIndex = (ordinal % 6) / 2;
                 return cachedSeasonIndex;
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 // 反射调用失败，返回 -1
             }
         }
@@ -197,36 +269,36 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 获取每个节气的持续天数（从配置读取）（带缓存）
-     * @param level 世界实例（未使用，保留用于未来扩展）
-     * @return 节气持续天数，默认 7 天，失败返回 -1
+     * 获取当前世界的子季节名称
+     * @param level 世界实例
+     * @return 子季节名称（Early/Mid/Late 或类似），如果无法获取则返回 null
      */
+    @Nullable
     public static int getSolarTermDuration(Level level) {
         // 如果已缓存，直接返回
         if (cachedTermDuration != null) {
             return cachedTermDuration;
         }
 
-        if (!isAvailable() || lastingDaysOfEachTermField == null) {
+        if (!isAvailable() || commonConfigSeasonClass == null || lastingDaysOfEachTermHandle == null) {
             return 7; // 默认值
         }
 
         try {
-            // 获取 CommonConfig.Season.lastingDaysOfEachTerm 的值（这是 ModConfigSpec.IntValue）
-            Object intValueObj = lastingDaysOfEachTermField.get(null);
-
+            // 获取 CommonConfig.Season.lastingDaysOfEachTerm 字段的访问句柄
+            var field = commonConfigSeasonClass.getField("lastingDaysOfEachTerm");
+            Object intValueObj = field.get(null);
+            
             if (intValueObj != null) {
                 // 调用 get() 方法获取实际的整数值
-                Method getMethod = intValueObj.getClass().getMethod("get");
-                getMethod.setAccessible(true);
-                Object valueObj = getMethod.invoke(intValueObj);
+                Object valueObj = lastingDaysOfEachTermHandle.invokeExact(intValueObj);
 
-                if (valueObj instanceof Integer) {
-                    cachedTermDuration = (Integer) valueObj;
+                if (valueObj instanceof Integer i) {
+                    cachedTermDuration = i;
                     return cachedTermDuration;
                 }
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             // 获取失败返回默认值
         }
 
@@ -249,21 +321,12 @@ public class EclipticSeasonsUtil {
      * @return 当前季节的日期（1 到季节总天数），失败返回 -1
      */
     public static int getCurrentSeasonDate(Level level) {
-        if (!isAvailable() || level == null) {
+        if (!isAvailable() || level == null || getNowSolarDayHandle == null) {
             return -1;
         }
 
         try {
-            // 使用缓存的类引用，避免重复的 Class.forName()
-            Method getNowSolarDayMethod = eclipticUtilClass.getMethod("getNowSolarDay", Level.class);
-            getNowSolarDayMethod.setAccessible(true);
-
-            // 获取 INSTANCE
-            Field instanceField = eclipticUtilClass.getDeclaredField("INSTANCE");
-            instanceField.setAccessible(true);
-            Object instance = instanceField.get(null);
-
-            int seasonDay = (Integer) getNowSolarDayMethod.invoke(instance, level);
+            int seasonDay = (int) getNowSolarDayHandle.invokeExact(level);
 
             int termDuration = getSolarTermDuration(level);
             int seasonDuration = termDuration * 6; // 42 天
@@ -272,7 +335,7 @@ public class EclipticSeasonsUtil {
             int seasonDate = (seasonDay % seasonDuration) + 1;
 
             return Math.max(1, Math.min(seasonDate, seasonDuration));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             // 获取失败返回 -1
         }
 
