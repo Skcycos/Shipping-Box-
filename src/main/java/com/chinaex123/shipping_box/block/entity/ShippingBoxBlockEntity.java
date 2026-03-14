@@ -32,8 +32,8 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     /** 存储物品列表 - 共享的公共存储 */
     private NonNullList<ItemStack> sharedItems;
 
-    /** 玩家独立存储管理器 */
-    private final PlayerStorageManager playerStorageManager = PlayerStorageManager.getInstance();
+    /** 玩家独立存储管理器 - 每个售货箱实例独立 */
+    private final PlayerStorageManager playerStorageManager;
 
     /** 上次兑换日期 */
     private long lastExchangeDay = -1L;
@@ -46,9 +46,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
 
     // 在构造函数中初始化
     public ShippingBoxBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.SHIPPING_BOX_BE.get(), pos, state);
+        super(ModBlockEntities.SHIPPING_BOX.get(), pos, state);
         // 初始化共享存储
         this.sharedItems = NonNullList.withSize(54, ItemStack.EMPTY);
+        // 每个售货箱有自己独立的存储管理器
+        this.playerStorageManager = new PlayerStorageManager();
     }
 
     /**
@@ -659,6 +661,25 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         }
 
         // 加载玩家独立存储
-        playerStorageManager.loadFromNBT(tag, registries);
+        //playerStorageManager.loadFromNBT(tag, registries);
+    }
+
+    /**
+     * 当方块实体被移除时调用
+     * 清空该售货箱相关的玩家存储数据，防止存档间数据污染
+     */
+    @Override
+    public void setRemoved() {
+        super.setRemoved();
+        
+        // 如果是服务端且方块实体存在，清空相关数据
+        if (level != null && !level.isClientSide) {
+            // 清空所有玩家的存储（因为这个售货箱要被移除了）
+            playerStorageManager.clearAllStorages();
+            
+            // 清空本地映射
+            slotOwners.clear();
+            playerItemCounts.clear();
+        }
     }
 }

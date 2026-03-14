@@ -20,21 +20,8 @@ public class PlayerStorageManager {
     /** 默认存储大小 */
     private static final int DEFAULT_STORAGE_SIZE = 54;
 
-    /** 单例实例 */
-    private static PlayerStorageManager INSTANCE;
-
-    /** 私有构造函数防止外部实例化 */
-    private PlayerStorageManager() {}
-
-    /**
-     * 获取全局存储管理器实例（单例模式）
-     */
-    public static PlayerStorageManager getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new PlayerStorageManager();
-        }
-        return INSTANCE;
-    }
+    /** 私有构造函数 */
+    public PlayerStorageManager() {}
 
     /**
      * 获取指定玩家的物品存储列表
