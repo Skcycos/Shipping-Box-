@@ -1,9 +1,14 @@
 package com.chinaex123.shipping_box.event;
 
+import com.chinaex123.shipping_box.api.ShippingBoxAPI;
 import com.chinaex123.shipping_box.attribute.ModAttributes;
+import com.chinaex123.shipping_box.config.ServerConfig;
+import com.chinaex123.shipping_box.event.strategy.ExchangeStrategy;
+import com.chinaex123.shipping_box.event.strategy.ExchangeStrategyFactory;
 import com.chinaex123.shipping_box.modCompat.EclipticSeasons.EclipticSeasonsUtil;
 import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
-import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
+import com.chinaex123.shipping_box.network.PacketExchangeEffects;
+import com.chinaex123.shipping_box.network.PacketShowSuccessMessage;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,6 +21,7 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ExchangeManager {
 
@@ -31,9 +37,11 @@ public class ExchangeManager {
             return;
         }
 
+        List<ItemStack> initialItems = new ArrayList<>(); // 记录初始物品用于日志
         List<ItemStack> currentItems = new ArrayList<>();
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
+                initialItems.add(stack.copy()); // 保存初始物品的副本
                 currentItems.add(stack.copy());
             }
         }
@@ -46,6 +54,7 @@ public class ExchangeManager {
         boolean exchanged;
         int totalVirtualCurrency = 0;
         boolean hasValidExchange = false;
+        ExchangeRule lastMatchedRule = null; // 保存最后匹配的兑换规则用于日志
 
         // 执行兑换逻辑
         do {
@@ -53,6 +62,8 @@ public class ExchangeManager {
             ExchangeRule rule = ExchangeRecipeManager.findMatchingRule(currentItems);
 
             if (rule != null) {
+                lastMatchedRule = rule; // 保存规则引用
+                
                 // 检查如果是虚拟货币兑换但模组未加载，则完全跳过处理
                 if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
                     return;
@@ -76,109 +87,11 @@ public class ExchangeManager {
                         currentItems = ExchangeRecipeManager.consumeInputs(rule, currentItems);
                     }
 
-                    // 处理输出 - 重新排列条件判断顺序
-                    if (rule.getOutputItem().isCoin() &&
-                            "dynamic_pricing".equals(rule.getOutputItem().getType()) &&
-                            rule.getOutputItem().getDynamicProperties() != null) {
-
-                        // 动态定价 + 虚拟货币模式
-                        // 修复：使用输入物品作为标识符
-                        String itemIdentifier = rule.getInputs().getFirst().getItem();
-
-                        // 获取重置天数配置
-                        int resetDay = rule.getOutputItem().getDynamicProperties().getDay();
-
-                        // 获取当前累计售出数量（使用带重置天数的版本）
-                        int currentSoldCount = DynamicPricingManager.getSoldCount(itemIdentifier, resetDay);
-
-                        // 逐个物品计算虚拟货币数量（累计阈值机制）
-                        int totalVirtualCurrencyCount = 0;
-                        int itemsToProcess = maxExchanges; // 虚拟货币模式下每次兑换就是 1 个单位
-
-                        for (int i = 0; i < itemsToProcess; i++) {
-                            // 为每个单位单独计算基于当前累计数量的单价
-                            int dynamicCount = rule.getOutputItem().getDynamicCount(currentSoldCount + i);
-                            totalVirtualCurrencyCount += dynamicCount;
-                        }
-
-                        // 更新累计售出数量（增加这一批的数量）
-                        DynamicPricingManager.addSoldCount(itemIdentifier, itemsToProcess, resetDay);
-
-                        // 应用所有加成（属性 + 节气）
-                        int enhancedCount = applyAllBonuses(totalVirtualCurrencyCount, rule, level, boundPlayerUUID);
-
-                        totalVirtualCurrency += enhancedCount;
-
-                    } else if (rule.getOutputItem().isCoin()) {
-                        // 普通虚拟货币模式：使用固定数量
-                        int baseCount = rule.getOutputItem().getCount() * maxExchanges;
-
-                        // 应用所有加成（属性 + 节气）
-                        int enhancedCount = applyAllBonuses(baseCount, rule, level, boundPlayerUUID);
-
-                        totalVirtualCurrency += enhancedCount;
-
-                    } else if ("dynamic_pricing".equals(rule.getOutputItem().getType()) &&
-                            rule.getOutputItem().getDynamicProperties() != null) {
-                        // 动态定价模式处理 - 逐个物品计算以支持跨阈值
-                        String itemIdentifier = rule.getOutputItem().getItem();
-
-                        // 获取重置天数配置
-                        int resetDay = rule.getOutputItem().getDynamicProperties().getDay();
-
-                        // 获取当前累计售出数量（使用带重置天数的版本）
-                        int currentSoldCount = DynamicPricingManager.getSoldCount(itemIdentifier, resetDay);
-
-                        // 逐个物品计算输出数量
-                        int totalOutputCount = 0;
-                        int itemsToProcess = rule.getOutputItem().getCount() * maxExchanges;
-
-                        for (int i = 0; i < itemsToProcess; i++) {
-                            // 为每个物品单独计算基于当前累计数量的单价
-                            int dynamicCount = rule.getOutputItem().getDynamicCount(currentSoldCount + i);
-                            totalOutputCount += dynamicCount;
-                        }
-
-                        // 更新累计售出数量（增加这一批的数量）
-                        DynamicPricingManager.addSoldCount(itemIdentifier, itemsToProcess, resetDay);
-
-                        // 生成输出物品
-                        ItemStack output = rule.getOutputItem().getResultStack().copy();
-                        if (!output.isEmpty()) {
-                            // 应用所有加成（属性 + 节气）
-                            int enhancedCount = applyAllBonuses(totalOutputCount, rule, level, boundPlayerUUID);
-
-                            output.setCount(enhancedCount);
-                            results.add(output);
-                        }
-                    } else if ("weight".equals(rule.getOutputItem().getType()) &&
-                            rule.getOutputItem().getItems() != null &&
-                            !rule.getOutputItem().getItems().isEmpty()) {
-                        // 权重模式：为每次兑换独立随机选择一个物品
-                        for (int i = 0; i < maxExchanges; i++) {
-                            ItemStack weightedOutput = rule.getOutputItem().getRandomWeightedItem();
-                            if (!weightedOutput.isEmpty()) {
-                                // 对权重选出的物品应用所有加成（属性 + 节气）
-                                int baseCount = weightedOutput.getCount();
-                                int enhancedCount = applyAllBonuses(baseCount, rule, level, boundPlayerUUID);
-
-                                weightedOutput.setCount(enhancedCount);
-                                results.add(weightedOutput);
-                            }
-                        }
-                    } else {
-                        // 普通物品模式 - 处理 type 为 null 或 "item" 的情况
-                        ItemStack output = rule.getOutputItem().getResultStack().copy();
-                        if (!output.isEmpty()) {
-                            int baseCount = rule.getOutputItem().getCount() * maxExchanges;
-
-                            // 应用所有加成（属性 + 节气）
-                            int enhancedCount = applyAllBonuses(baseCount, rule, level, boundPlayerUUID);
-
-                            output.setCount(enhancedCount);
-                            results.add(output);
-                        }
-                    }
+                    // 执行兑换策略
+                    ExchangeStrategy strategy = ExchangeStrategyFactory.getStrategy(rule);
+                    AtomicInteger currencyWrapper = new AtomicInteger(totalVirtualCurrency);
+                    strategy.execute(rule, maxExchanges, level, boundPlayerUUID, results, currencyWrapper);
+                    totalVirtualCurrency = currencyWrapper.get();
 
                     exchanged = true;
                     hasValidExchange = true;
@@ -198,8 +111,31 @@ public class ExchangeManager {
             }
         }
 
-        // 只有当确实有有效兑换发生时才处理物品和播放音效
+        // 如果有有效兑换发生
         if (hasValidExchange) {
+
+            // 计算实际消耗的物品
+            List<ItemStack> consumedItems = calculateConsumedItems(initialItems, currentItems);
+
+            // 在应用结果前触发事件
+            if (ShippingBoxAPI.onExchange(
+                    null, // 如果是售货箱则传入 box，否则传 null
+                    level,
+                    createNonNullList(consumedItems),
+                    createNonNullList(results),
+                    totalVirtualCurrency,
+                    lastMatchedRule)) {
+                // 事件被取消，还原物品并返回
+                for (int i = 0; i < items.size(); i++) {
+                    if (i < consumedItems.size()) {
+                        items.set(i, consumedItems.get(i).copy());
+                    } else {
+                        items.set(i, ItemStack.EMPTY);
+                    }
+                }
+                return;
+            }
+
             // 添加剩余物品
             results.addAll(currentItems);
 
@@ -265,10 +201,26 @@ public class ExchangeManager {
             if (boundPlayerUUID != null) {
                 ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
                 if (player != null) {
-                    // 发送成功提示消息包
-                    ShippingBoxNetworking.ShowSuccessMessage successPacket = new ShippingBoxNetworking.ShowSuccessMessage();
-                    PacketDistributor.sendToPlayer(player, successPacket);
+                    // 使用新的网络包系统发送成功提示
+                    PacketDistributor.sendToPlayer(player, new PacketShowSuccessMessage());
+                    
+                    // 只有启用特效时才发送特效数据包
+                    if (ServerConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
+                        PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(totalVirtualCurrency));
+                    }
                 }
+            }
+
+            // 记录交易日志（如果启用）
+            if (ServerConfig.ENABLE_TRANSACTION_LOGGING.get()) {
+                String playerName = "Unknown";
+                if (boundPlayerUUID != null) {
+                    ServerPlayer logPlayer = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
+                    if (logPlayer != null) {
+                        playerName = logPlayer.getName().getString();
+                    }
+                }
+                TransactionLogger.logTransaction(playerName, consumedItems, results, totalVirtualCurrency, level, lastMatchedRule);
             }
         }
     }
@@ -292,7 +244,7 @@ public class ExchangeManager {
      * @param playerUUID 玩家唯一标识符
      * @return 应用属性加成后的最终物品数量（最少为 0）
      */
-    public static int applySellingPriceBoost(int baseCount, Level level, UUID playerUUID) {
+    public static int applySellingPriceBoost(int baseCount, ExchangeRule rule, Level level, UUID playerUUID) {
         if (level == null || playerUUID == null) {
             return baseCount;
         }
@@ -300,101 +252,65 @@ public class ExchangeManager {
         ServerPlayer player = level.getServer() != null ?
                 level.getServer().getPlayerList().getPlayer(playerUUID) : null;
         if (player == null) {
-            return baseCount; // 玩家不在线或服务器不可用，返回基础数量
+            return baseCount;
         }
 
+        int enhancedCount = baseCount;
+
         try {
-            // 获取该玩家的出售价格属性加成
+            // 应用玩家属性加成
             double boost = player.getAttributeValue(ModAttributes.SELLING_PRICE_BOOST);
 
-            if (boost == 0.0) {
-                return baseCount; // 无加成，直接返回
+            if (boost != 0.0) {
+                // 应用加成：基础数量 × (1 + 加成系数)
+                double enhancedAmount = enhancedCount * (1.0 + boost);
+
+                // 处理负数情况：如果结果小于 0，返回 0
+                if (enhancedAmount < 0) {
+                    enhancedCount = 0;
+                } else {
+                    // 智能取整：小于等于 5 向下取整，大于 5 向上取整
+                    if (enhancedAmount <= 5.0) {
+                        enhancedCount = (int) Math.floor(enhancedAmount);
+                    } else {
+                        enhancedCount = (int) Math.ceil(enhancedAmount);
+                    }
+                }
             }
 
-            // 应用加成：基础数量 × (1 + 加成系数)
-            double enhancedAmount = baseCount * (1.0 + boost);
+            // 如果有兑换规则，检查是否需要应用节气加成/减益
+            if (rule != null && rule.getOutputItem() != null &&
+                    rule.getOutputItem().getEclipticSeasonsProperties() != null) {
 
-            // 处理负数情况：如果结果小于 0，返回 0
-            if (enhancedAmount < 0) {
-                return 0;
+                var ecsProps = rule.getOutputItem().getEclipticSeasonsProperties();
+
+                // 检查节气模组是否可用
+                if (EclipticSeasonsUtil.isAvailable()) {
+                    // 获取当前季节并检查是否在目标季节列表中
+                    boolean isInSeason = EclipticSeasonsUtil.isInSeasons(level, ecsProps.getSeason());
+
+                    if (isInSeason) {
+                        // 应季：应用加成（价格更高）
+                        int bonus = ecsProps.getAdd_season_bonus();
+                        if (bonus > 0) {
+                            double seasonEnhancedAmount = enhancedCount * (1.0 + (bonus / 100.0));
+                            enhancedCount = (int) Math.ceil(seasonEnhancedAmount);
+                        }
+                    } else {
+                        // 非应季：应用减益（价格更低）
+                        int penalty = ecsProps.getReduce_season_bonus();
+                        if (penalty > 0) {
+                            double reducedAmount = enhancedCount * (1.0 - (penalty / 100.0));
+                            enhancedCount = Math.max(0, (int) Math.floor(reducedAmount));
+                        }
+                    }
+                }
             }
 
-            // 智能取整：小于等于 5 向下取整，大于 5 向上取整
-            int result;
-            if (enhancedAmount <= 5.0) {
-                result = (int) Math.floor(enhancedAmount);
-            } else {
-                result = (int) Math.ceil(enhancedAmount);
-            }
-
-            return result;
+            return enhancedCount;
         } catch (Exception e) {
             return baseCount;
         }
-    }
-
-    /**
-     * 应用节气价格加成/减益
-     * <p>
-     * 根据节气模组配置，检查当前季节是否在目标季节列表中，
-     * 如果是则应用加成（价格更高），否则应用减益（价格更低）。
-     *
-     * @param baseCount 基础物品数量
-     * @param rule 兑换规则
-     * @param level 游戏世界实例
-     * @return 应用节气加成后的最终物品数量（最少为 0）
-     */
-    public static int applyEclipticSeasonsBonus(int baseCount, ExchangeRule rule, Level level) {
-        if (rule == null || rule.getOutputItem() == null || rule.getOutputItem().getEclipticSeasonsProperties() == null) {
-            return baseCount;
-        }
-
-        var ecsProps = rule.getOutputItem().getEclipticSeasonsProperties();
-
-        // 检查节气模组是否可用
-        if (!EclipticSeasonsUtil.isAvailable()) {
-            return baseCount;
-        }
-
-        // 获取当前季节并检查是否在目标季节列表中
-        boolean isInSeason = EclipticSeasonsUtil.isInSeasons(level, ecsProps.getSeason());
-
-        if (isInSeason) {
-            // 应季：应用加成（价格更高）
-            int bonus = ecsProps.getAdd_season_bonus();
-            if (bonus > 0) {
-                double enhancedAmount = baseCount * (1.0 + (bonus / 100.0));
-                return (int) Math.ceil(enhancedAmount);
-            }
-        } else {
-            // 非应季：应用减益（价格更低）
-            int penalty = ecsProps.getReduce_season_bonus();
-            if (penalty > 0) {
-                double reducedAmount = baseCount * (1.0 - (penalty / 100.0));
-                return Math.max(0, (int) Math.floor(reducedAmount));
-            }
-        }
-
-        return baseCount;
-    }
-
-    /**
-     * 应用所有加成（属性 + 节气）
-     * <p>
-     * 依次应用玩家属性加成和节气加成到基础数量。
-     * 采用智能取整策略：小数量向下取整保证平衡，大数量向上取整激励玩家。
-     * 支持负数属性（减少售价），最少为 0 个物品。
-     *
-     * @param baseCount 基础物品数量
-     * @param rule 兑换规则
-     * @param level 游戏世界实例
-     * @param playerUUID 玩家唯一标识符
-     * @return 应用所有加成后的最终物品数量（最少为 0）
-     */
-    public static int applyAllBonuses(int baseCount, ExchangeRule rule, Level level, UUID playerUUID) {
-        int enhancedCount = applySellingPriceBoost(baseCount, level, playerUUID);
-        enhancedCount = applyEclipticSeasonsBonus(enhancedCount, rule, level);
-        return enhancedCount;
     }
 
     /**
@@ -425,5 +341,71 @@ public class ExchangeManager {
         }
 
         return maxExchanges;
+    }
+
+    /**
+     * 计算实际消耗的物品
+     */
+    private static List<ItemStack> calculateConsumedItems(List<ItemStack> initialItems, List<ItemStack> remainingItems) {
+        List<ItemStack> consumed = new ArrayList<>();
+
+        // 创建剩余物品的深拷贝列表，用于模拟扣除过程
+        List<ItemStack> remainingCopy = new ArrayList<>();
+        for (ItemStack stack : remainingItems) {
+            remainingCopy.add(stack.copy());
+        }
+
+        for (ItemStack initStack : initialItems) {
+            ItemStack stackToProcess = initStack.copy();
+            int originalCount = stackToProcess.getCount();
+            int currentRemaining = 0; // 初始为 0，表示还未找到剩余
+
+            // 在剩余物品中寻找匹配项并扣除
+            for (ItemStack remStack : remainingCopy) {
+                if (ItemStack.isSameItemSameComponents(stackToProcess, remStack)) {
+                    // 累加剩余数量
+                    currentRemaining += remStack.getCount();
+
+                    // 如果已经找到所有剩余，提前退出
+                    if (currentRemaining >= originalCount) break;
+                }
+            }
+
+            // 消耗量 = 原始数量 - 剩余数量
+            int consumedCount = originalCount - currentRemaining;
+
+            if (consumedCount > 0) {
+                ItemStack consumedStack = stackToProcess.copy();
+                consumedStack.setCount(consumedCount);
+                consumed.add(consumedStack);
+            }
+        }
+
+        // 合并相同的消耗物品
+        List<ItemStack> mergedConsumed = new ArrayList<>();
+        for (ItemStack stack : consumed) {
+            boolean merged = false;
+            for (ItemStack existing : mergedConsumed) {
+                if (ItemStack.isSameItemSameComponents(existing, stack)) {
+                    existing.grow(stack.getCount());
+                    merged = true;
+                    break;
+                }
+            }
+            if (!merged) {
+                mergedConsumed.add(stack);
+            }
+        }
+
+        return mergedConsumed;
+    }
+
+    /**
+     * 辅助方法：将 List 转换为 NonNullList
+     */
+    private static NonNullList<ItemStack> createNonNullList(List<ItemStack> list) {
+        NonNullList<ItemStack> result = NonNullList.create();
+        result.addAll(list);
+        return result;
     }
 }

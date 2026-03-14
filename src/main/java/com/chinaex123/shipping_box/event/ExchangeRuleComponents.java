@@ -14,56 +14,43 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.core.Holder;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.core.RegistryAccess;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class ExchangeRuleComponents {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeRuleComponents.class.getName());
 
     // 缓存附魔注册表，避免重复查找
     private static Registry<Enchantment> enchantmentRegistry = null;
 
-    // 静态初始化块 - 类加载时尝试初始化
-    static {
-        try {
-            ResourceLocation key = Registries.ENCHANTMENT.location();
-            Registry<?> registry = BuiltInRegistries.REGISTRY.get(key);
-
-            if (registry == null) {
-                // 备选键名
-                registry = BuiltInRegistries.REGISTRY.get(ResourceLocation.tryParse("enchantment"));
-            }
-
-            if (registry != null) {
-                @SuppressWarnings("unchecked")
-                Registry<Enchantment> typedRegistry = (Registry<Enchantment>) registry;
-                enchantmentRegistry = typedRegistry;
-            }
-        } catch (Exception e) {
-            // 初始化失败时静默处理
-        }
-    }
-
-    /**
-     * 初始化附魔注册表
-     * 在 onServerStarting 事件中调用
-     *
-     * @param registryAccess 注册表访问对象
-     */
-    public static void initEnchantmentRegistry(RegistryAccess registryAccess) {
-        try {
-            enchantmentRegistry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
-        } catch (Exception e) {
-            // 初始化失败时静默处理
-        }
-    }
-
     /**
      * 辅助方法：安全地获取附魔注册表
+     * 优先使用已初始化的注册表，如果没有则尝试从当前服务器获取
      */
     private static Registry<Enchantment> getEnchantmentRegistry() {
-        return enchantmentRegistry;
+        // 如果已有注册表，直接返回
+        if (enchantmentRegistry != null) {
+            return enchantmentRegistry;
+        }
+        
+        // 尝试从当前运行的服务器获取
+        try {
+            var server = ServerLifecycleHooks.getCurrentServer();
+            if (server != null) {
+                RegistryAccess registryAccess = server.registryAccess();
+                enchantmentRegistry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+                return enchantmentRegistry;
+            }
+        } catch (Exception e) {
+            LOGGER.warn("[Shipping Box] 无法从服务器获取附魔注册表：{}", e.getMessage());
+        }
+        
+        return null;
     }
 
     /**
@@ -578,10 +565,16 @@ public class ExchangeRuleComponents {
      * @param stack 目标物品堆
      * @param jsonObject JSON格式的组件配置对象
      */
-    public static void applyComponents(ItemStack stack, JsonObject jsonObject) {
+    public static void applyComponents(ItemStack stack, Object jsonObject) {
         try {
-            // 直接处理JSON对象
-            applyComponentsFromJsonObject(stack, jsonObject);
+            // 处理不同类型的输入
+            if (jsonObject instanceof JsonObject jsonObj) {
+                // 直接处理 JSON 对象
+                applyComponentsFromJsonObject(stack, jsonObj);
+            } else if (jsonObject instanceof Map<?, ?> map) {
+                // 如果是 Map 类型（Gson 反序列化的结果），转换为 JsonObject
+                convertMapToJsonAndApply(stack, map);
+            }
         } catch (Exception e) {
             // 应用失败时静默处理
         }
@@ -728,10 +721,10 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从JSON应用存储的附魔组件
+     * 从 JSON 应用存储的附魔组件
      *
      * @param stack 目标物品堆
-     * @param jsonElement 附魔配置的JSON元素
+     * @param jsonElement 附魔配置的 JSON 元素
      */
     private static void applyStoredEnchantmentsFromJson(ItemStack stack, com.google.gson.JsonElement jsonElement) {
         try {
@@ -740,17 +733,20 @@ public class ExchangeRuleComponents {
             }
 
             var enchantmentsObj = jsonElement.getAsJsonObject();
+            
             if (!enchantmentsObj.has("levels") || !enchantmentsObj.get("levels").isJsonObject()) {
                 return;
             }
 
             var levelsObj = enchantmentsObj.getAsJsonObject("levels");
+            
             var mutableEnchants = new net.minecraft.world.item.enchantment.ItemEnchantments.Mutable(
                     net.minecraft.world.item.enchantment.ItemEnchantments.EMPTY
             );
 
             // 获取附魔注册表
             Registry<Enchantment> enchantmentRegistry = getEnchantmentRegistry();
+            
             if (enchantmentRegistry == null) {
                 return;
             }
@@ -774,7 +770,7 @@ public class ExchangeRuleComponents {
             stack.set(DataComponents.STORED_ENCHANTMENTS, finalEnchants);
 
         } catch (Exception e) {
-            // 应用失败时静默处理
+            LOGGER.error("[Shipping Box] 应用存储附魔失败：{}", e.getMessage());
         }
     }
 
@@ -935,6 +931,25 @@ public class ExchangeRuleComponents {
             }
         } catch (Exception e) {
             // 设置失败时静默处理
+        }
+    }
+
+    /**
+     * 将 Map 转换为 JSON 并应用
+     */
+    @SuppressWarnings("unchecked")
+    private static void convertMapToJsonAndApply(ItemStack stack, Map<?, ?> map) {
+        try {
+            // 使用 Gson 将 Map 转换为 JsonObject
+            Gson gson = new Gson();
+            String jsonString = gson.toJson(map);
+            
+            JsonObject jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
+            
+            applyComponentsFromJsonObject(stack, jsonObject);
+            
+        } catch (Exception e) {
+            // 应用失败时静默处理
         }
     }
 }

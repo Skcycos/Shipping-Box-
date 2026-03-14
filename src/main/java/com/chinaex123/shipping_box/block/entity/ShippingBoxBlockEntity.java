@@ -373,30 +373,14 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         if (!hasItems) return;
 
         // 检测兑换时间窗口
-        if (timeOfDay >= 0 && timeOfDay <= 180) {
-            // 检查是否距离上次兑换已经过去了一天
-            long timeSinceLastExchange = dayTime - (lastExchangeDay * 24000);
-
-            // 如果距离上次兑换超过一天，或者这是第一次兑换
-            if (timeSinceLastExchange >= 24000 || lastExchangeDay == -1L) {
-                try {
-                    performExchange(dayTime / 24000);
-                    lastExchangeDay = dayTime / 24000;
-                    setChanged();
-                } catch (Exception e) {
-                    // 异常处理保持简洁
-                }
-            }
-            // 处理时间重置的特殊情况
-            else if (timeSinceLastExchange < 0) {
-                // 时间被重置到过去，强制进行兑换
-                try {
-                    performExchange(dayTime / 24000);
-                    lastExchangeDay = dayTime / 24000;
-                    setChanged();
-                } catch (Exception e) {
-                    // 异常处理保持简洁
-                }
+        if (TimeScheduler.shouldExchange(level, lastExchangeDay)) {
+            try {
+                long currentDay = level.getDayTime() / 24000;
+                performExchange(currentDay);
+                lastExchangeDay = currentDay;
+                setChanged();
+            } catch (Exception e) {
+                // 异常处理保持简洁
             }
         }
     }

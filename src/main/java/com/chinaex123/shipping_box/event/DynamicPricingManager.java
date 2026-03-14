@@ -1,8 +1,9 @@
 package com.chinaex123.shipping_box.event;
 
-import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
+import com.chinaex123.shipping_box.network.PacketSoldCountSync;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.HashMap;
@@ -76,7 +77,7 @@ public class DynamicPricingManager {
             data.setDirty();
 
             // 同步到所有客户端
-            ShippingBoxNetworking.sendSoldCountSync(itemIdentifier, newCount);
+            PacketDistributor.sendToAllPlayers(new PacketSoldCountSync(itemIdentifier, newCount));
         }
     }
 
@@ -128,7 +129,7 @@ public class DynamicPricingManager {
                 String ruleItemIdentifier;
                 if (output.isCoin()) {
                     // 虚拟货币模式使用输入物品作为标识符
-                    ruleItemIdentifier = rule.getInputs().get(0).getItem();
+                    ruleItemIdentifier = rule.getInputs().getFirst().getItem();
                 } else {
                     // 普通动态定价模式使用输出物品作为标识符
                     ruleItemIdentifier = output.getItem();
@@ -342,7 +343,7 @@ public class DynamicPricingManager {
             data.setDirty();
 
             // 同步到所有客户端
-            ShippingBoxNetworking.sendSoldCountSync(itemIdentifier, data.getCount(itemIdentifier));
+            PacketDistributor.sendToAllPlayers(new PacketSoldCountSync(itemIdentifier, data.getCount(itemIdentifier)));
         }
     }
 }

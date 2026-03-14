@@ -16,6 +16,7 @@ public class ModAttributes {
     public static final DeferredRegister<Attribute> ATTRIBUTES =
             DeferredRegister.create(Registries.ATTRIBUTE, ShippingBox.MOD_ID);
 
+    // 出售价格加成
     public static final Holder<Attribute> SELLING_PRICE_BOOST = ATTRIBUTES.register(
             "selling_price_boost",
             () -> new PercentageAttribute(

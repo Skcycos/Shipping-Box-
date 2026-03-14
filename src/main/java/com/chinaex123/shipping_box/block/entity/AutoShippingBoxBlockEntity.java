@@ -134,7 +134,6 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
 
         /**
          * 直接在指定槽位设置物品堆
-         * 注意：此方法会绕过 insertItem 的逻辑，因此需要特殊处理兑换状态
          * 
          * @param slot 槽位索引
          * @param stack 要设置的物品堆
@@ -322,12 +321,12 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
 
     /**
      * 游戏刻更新方法（服务端专用）
-     * 
+     * <p>
      * 主要功能：
      * 1. 检测游戏时间的变化（以天为单位）
      * 2. 当跨越到第二天时自动触发兑换
      * 3. 初始化首次加载时的日期标记
-     * 
+     * <p>
      * 调用时机：每个游戏刻由方块实体的更新逻辑调用
      * 运行侧：仅在服务端执行，客户端不处理兑换逻辑
      */
