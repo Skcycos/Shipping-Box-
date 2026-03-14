@@ -183,7 +183,13 @@ Used for numerical range matching (such as durability, fish length, etc.):
 }
 ```
 
-## IV. Integrated Mod
+## IV. Commands
+- `shipping_box force_exchange`: Allows the player to point at a shipping box and immediately trigger its shipping logic, ignoring time restrictions.
+- `shipping_box rules count`: Counts and displays the number of rules by category
+- `shipping_box rules list [page]`: View all exchange rules page by page
+
+
+## V. Integrated Mod
 
 ## **ViScriptShop**
 
@@ -466,7 +472,12 @@ Used for numerical range matching (such as durability, fish length, etc.):
 }
 ```
 
-## 四、联动模组
+## 四、命令
+- shipping_box force_exchange：允许玩家指向售货箱并立即触发其出货逻辑，忽略时间限制。
+- shipping_box rules count：统计并显示规则数量分类
+- shipping_box rules list [page]：分页查看所有兑换规则
+
+## 五、联动模组
 
 ## **ViScriptShop**
 

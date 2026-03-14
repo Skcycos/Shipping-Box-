@@ -385,7 +385,7 @@ public class ExchangeTooltipProvider {
             else if ("dynamic_pricing".equals(output.getType()) && output.getDynamicProperties() != null) {
                 // 动态定价模式：只显示输入→输出物品名称，不显示固定数量
                 Component outputName = getLocalizedItemName(output.getItem());
-                return Component.translatable("tooltip.shipping_box.exchange_format_no_count",
+                return Component.translatable("tooltip.shipping_box.exchange.format.no_count",
                                 Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
                                 outputName.copy().withStyle(ChatFormatting.LIGHT_PURPLE))
@@ -394,7 +394,7 @@ public class ExchangeTooltipProvider {
             // 权重模式
             else if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
                 // 权重模式：显示"随机物品"
-                return Component.translatable("tooltip.shipping_box.exchange_format_weight",
+                return Component.translatable("tooltip.shipping_box.exchange.format.weight",
                                 Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
                                 Component.translatable("tooltip.shipping_box.random_item_display").withStyle(ChatFormatting.LIGHT_PURPLE))
@@ -403,7 +403,7 @@ public class ExchangeTooltipProvider {
             // 节气联动模式
             else if ("ecliptic_seasons".equals(output.getType())) {
                 Component outputInfo = getSimpleOutputName(output, rule);
-                return Component.translatable("tooltip.shipping_box.exchange_format_colored",
+                return Component.translatable("tooltip.shipping_box.exchange.format.colored",
                                 Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
                                 Component.literal(String.valueOf(output.getCount())).withStyle(ChatFormatting.AQUA),
@@ -413,7 +413,7 @@ public class ExchangeTooltipProvider {
             // 普通物品模式
             else {
                 Component outputInfo = getSimpleOutputName(output, rule);
-                return Component.translatable("tooltip.shipping_box.exchange_format_colored",
+                return Component.translatable("tooltip.shipping_box.exchange.format.colored",
                                 Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
                                 Component.literal(String.valueOf(output.getCount())).withStyle(ChatFormatting.AQUA),
