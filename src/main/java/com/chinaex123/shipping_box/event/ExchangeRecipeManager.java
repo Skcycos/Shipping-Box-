@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -154,7 +155,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                     return "invalid_input_item";
                 }
                 if (input.getItem() != null && !input.getItem().isEmpty()) {
-                    if (!BuiltInRegistries.ITEM.containsKey(ResourceLocation.tryParse(input.getItem()))) {
+                    if (!BuiltInRegistries.ITEM.containsKey(Objects.requireNonNull(ResourceLocation.tryParse(input.getItem())))) {
                         return "unknown_item|" + input.getItem();
                     }
                 }
