@@ -227,32 +227,28 @@
         font-size: 13px;
         outline: none;
       }
-      .inputWithIcon {
+      .input-row {
         display: flex;
-        align-items: center;
         gap: 10px;
+        align-items: center;
       }
-      .inputWithIcon .input {
-        flex: 1 1 auto;
-        min-width: 0;
-      }
-      .iconPreview {
+      .input-row .input { flex: 1; }
+      .iconbox {
         width: 24px;
         height: 24px;
         border-radius: 8px;
         border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(255,255,255,0.05);
+        background: rgba(255, 255, 255, 0.06);
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        flex: 0 0 auto;
+        flex: 0 0 24px;
       }
-      .iconPreview img {
+      .iconbox img {
         width: 24px;
         height: 24px;
-        image-rendering: pixelated;
-        display: none;
+        display: block;
       }
       .textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
       .help {
@@ -367,8 +363,11 @@
         selectedId: null,
         filter: "",
         file: initialFile,
-        registry: { items: [], tags: [] }
+        registry: { items: [], tags: [] },
+        registryItemsSet: new Set()
       };
+
+      const TRANSPARENT_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5WvKsAAAAASUVORK5CYII=";
 
       function toast(message, kind = "ok") {
         const el = $("toast");
@@ -654,45 +653,45 @@
           .replaceAll('"', "&quot;");
       }
 
-      function isValidResourceLocation(text) {
-        const s = String(text || "").trim();
-        if (!s) return false;
-        return /^[a-z0-9_.-]+:[a-z0-9/._-]+$/.test(s);
+      function isValidNamespaceId(value) {
+        return /^[a-z0-9_.-]+:[a-z0-9_./-]+$/.test(String(value || "").trim());
       }
 
-      function createIconPreview() {
-        const wrap = document.createElement("div");
-        wrap.className = "iconPreview";
+      function iconUrl(id) {
+        return "/api/icon?token=" + encodeURIComponent(token) + "&id=" + encodeURIComponent(id);
+      }
+
+      function createIconBox() {
+        const box = document.createElement("div");
+        box.className = "iconbox";
         const img = document.createElement("img");
         img.alt = "";
         img.decoding = "async";
-        img.loading = "lazy";
-        img.onerror = () => {
-          img.style.display = "none";
-          img.removeAttribute("src");
-        };
-        img.onload = () => {
-          img.style.display = "block";
-        };
-        wrap.appendChild(img);
-        return { wrap, img };
+        img.src = TRANSPARENT_IMG;
+        img.onerror = () => { img.src = TRANSPARENT_IMG; };
+        box.appendChild(img);
+        return { box, img };
       }
 
-      function bindItemIconPreview(inputEl, imgEl) {
-        let timer = 0;
-        const update = () => {
-          const v = String(inputEl.value || "").trim();
-          if (!isValidResourceLocation(v)) {
-            imgEl.style.display = "none";
-            imgEl.removeAttribute("src");
-            return;
-          }
-          imgEl.style.display = "none";
-          imgEl.src = "/api/icon?token=" + encodeURIComponent(token) + "&item=" + encodeURIComponent(v);
-        };
-        inputEl.addEventListener("input", () => {
+      function updateIconForValue(img, value) {
+        const v = String(value || "").trim();
+        if (!isValidNamespaceId(v)) {
+          img.src = TRANSPARENT_IMG;
+          return;
+        }
+        if (!state.registryItemsSet || !state.registryItemsSet.has(v)) {
+          img.src = iconUrl("minecraft:barrier");
+          return;
+        }
+        img.src = iconUrl(v);
+      }
+
+      function bindDebouncedIcon(input, img) {
+        let timer = null;
+        const update = () => updateIconForValue(img, input.value);
+        input.addEventListener("input", () => {
           if (timer) clearTimeout(timer);
-          timer = setTimeout(update, 120);
+          timer = setTimeout(update, 300);
         });
         update();
       }
@@ -778,12 +777,14 @@
           valueInput.setAttribute("list", inp.kind === "tag" ? "dlTags" : "dlItems");
           valueInput.oninput = (e) => { inp.value = e.target.value; renderList(); };
           const valueRow = document.createElement("div");
-          valueRow.className = "inputWithIcon";
-          valueRow.appendChild(valueInput);
+          valueRow.className = "input-row";
           if (inp.kind === "item") {
-            const { wrap, img } = createIconPreview();
-            valueRow.appendChild(wrap);
-            bindItemIconPreview(valueInput, img);
+            const { box, img } = createIconBox();
+            valueRow.appendChild(box);
+            valueRow.appendChild(valueInput);
+            bindDebouncedIcon(valueInput, img);
+          } else {
+            valueRow.appendChild(valueInput);
           }
           valueField.appendChild(valueRow);
           root.appendChild(valueField);
@@ -890,7 +891,7 @@
         }
 
         if (o.mode === "item") {
-          const item = fieldText("item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems", true);
+          const item = fieldText("item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
           item.classList.add("half");
           root.appendChild(item);
           const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
@@ -918,7 +919,7 @@
           root.appendChild(coinToggle);
 
           if (!o.coin) {
-            const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems", true);
+            const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
             root.appendChild(item);
           }
 
@@ -956,7 +957,7 @@
           root.appendChild(row);
 
           o.items.forEach((w, idx) => {
-            const item = fieldText("候选 item（命名空间ID）", w.item, "minecraft:diamond", (v) => { w.item = v; renderList(); }, "dlItems", true);
+            const item = fieldText("候选 item（命名空间ID）", w.item, "minecraft:diamond", (v) => { w.item = v; renderList(); }, "dlItems");
             item.classList.add("half");
             root.appendChild(item);
             const count = fieldNumber("数量", w.count, 1, 1, (v) => { w.count = v; });
@@ -994,7 +995,7 @@
         }
 
         if (o.mode === "ecliptic_seasons") {
-          const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems", true);
+          const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
           item.classList.add("half");
           root.appendChild(item);
           const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
@@ -1032,7 +1033,7 @@
         }
       }
 
-      function fieldText(label, value, placeholder, onChange, listId, withIconPreview) {
+      function fieldText(label, value, placeholder, onChange, listId) {
         const field = document.createElement("div");
         field.className = "field";
         field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
@@ -1042,13 +1043,13 @@
         input.value = value || "";
         if (listId) input.setAttribute("list", listId);
         input.oninput = (e) => onChange(e.target.value);
-        if (withIconPreview) {
+        if (listId === "dlItems") {
           const row = document.createElement("div");
-          row.className = "inputWithIcon";
+          row.className = "input-row";
+          const { box, img } = createIconBox();
+          row.appendChild(box);
           row.appendChild(input);
-          const { wrap, img } = createIconPreview();
-          row.appendChild(wrap);
-          bindItemIconPreview(input, img);
+          bindDebouncedIcon(input, img);
           field.appendChild(row);
         } else {
           field.appendChild(input);
@@ -1105,6 +1106,7 @@
         const json = await res.json();
         state.registry.items = Array.isArray(json.items) ? json.items : [];
         state.registry.tags = Array.isArray(json.tags) ? json.tags : [];
+        state.registryItemsSet = new Set(state.registry.items.map((x) => String(x)));
         syncDatalists();
       }
 

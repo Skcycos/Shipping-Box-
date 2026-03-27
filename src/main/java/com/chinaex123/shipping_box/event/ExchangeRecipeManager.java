@@ -18,7 +18,6 @@ import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.fml.ModList;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -137,14 +136,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             }
         } catch (Exception e) {
             errors.add(String.format("error.shipping_box.resource_load_error|%s|%s",
-                    "config/shipping_box/exchange_rules", e.getMessage()));
+                    getExternalRulesDir().toString(), e.getMessage()));
         }
     }
 
     private Path getExternalRulesDir() {
-        if (ModList.get().isLoaded("kubejs")) {
-            return FMLPaths.GAMEDIR.get().resolve("kubejs/data/shipping_box/exchange_rules");
-        }
         return FMLPaths.CONFIGDIR.get().resolve("shipping_box/exchange_rules");
     }
 

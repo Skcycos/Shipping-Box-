@@ -12,8 +12,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.server.packs.resources.ResourceManager;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.io.BufferedInputStream;
@@ -33,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +41,10 @@ import java.net.Socket;
 public final class WebEditorLocalServer {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final Map<String, byte[]> ICON_CACHE = new ConcurrentHashMap<>();
+    private static final byte[] TRANSPARENT_PNG = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5WvKsAAAAASUVORK5CYII="
+    );
 
     private static volatile ServerSocket serverSocket;
     private static volatile Thread acceptThread;
@@ -314,70 +317,100 @@ public final class WebEditorLocalServer {
     }
 
     private static void handleIcon(OutputStream out, URI uri) throws IOException {
-        String itemId = parseQuery(uri).getOrDefault("item", "");
-        itemId = itemId == null ? "" : itemId.trim();
-        if (itemId.isEmpty()) {
-            writeText(out, 400, "Missing item");
+        String id = parseQuery(uri).get("id");
+        if (id == null || id.isBlank()) {
+            writeText(out, 400, "Missing id");
             return;
         }
 
-        ResourceLocation itemLoc = ResourceLocation.tryParse(itemId);
-        if (itemLoc == null) {
-            writeText(out, 400, "Invalid item");
-            return;
-        }
-        if (!BuiltInRegistries.ITEM.containsKey(itemLoc)) {
-            writeText(out, 404, "Not Found");
-            return;
-        }
-
-        ResourceManager resourceManager = getClientResourceManager();
-        if (resourceManager == null) {
-            writeText(out, 503, "Resource manager unavailable");
-            return;
-        }
-
-        String ns = itemLoc.getNamespace();
-        String path = itemLoc.getPath();
-        ResourceLocation itemTexture = ResourceLocation.fromNamespaceAndPath(ns, "textures/item/" + path + ".png");
-        ResourceLocation blockTexture = ResourceLocation.fromNamespaceAndPath(ns, "textures/block/" + path + ".png");
-
-        byte[] bytes = readPng(resourceManager, itemTexture);
+        String key = id.trim();
+        byte[] bytes = ICON_CACHE.get(key);
         if (bytes == null) {
-            bytes = readPng(resourceManager, blockTexture);
+            bytes = resolveIconBytes(key);
+            ICON_CACHE.put(key, bytes);
         }
-        if (bytes == null) {
-            writeText(out, 404, "Not Found");
-            return;
-        }
-        writeBytes(out, 200, "image/png", bytes);
+
+        writeBytes(out, 200, "image/png", bytes, "public, max-age=86400");
     }
 
-    private static byte[] readPng(ResourceManager resourceManager, ResourceLocation location) {
+    private static byte[] resolveIconBytes(String id) {
+        ResourceLocation itemId = ResourceLocation.tryParse(id);
+        if (itemId == null || !BuiltInRegistries.ITEM.containsKey(itemId)) {
+            itemId = ResourceLocation.fromNamespaceAndPath("minecraft", "barrier");
+        }
+
+        ResourceLocation key = itemId;
+        String ns = key.getNamespace();
+        String path = key.getPath();
+
+        byte[] bytes = tryReadPng("assets/" + ns + "/textures/item/" + path + ".png");
+        if (bytes != null) return bytes;
+
+        bytes = tryReadPng("assets/" + ns + "/textures/block/" + path + ".png");
+        if (bytes != null) return bytes;
+
+        bytes = tryResolveFromModel(ns, path);
+        if (bytes != null) return bytes;
+
+        if (!"minecraft".equals(ns) || !"barrier".equals(path)) {
+            return resolveIconBytes("minecraft:barrier");
+        }
+        return TRANSPARENT_PNG;
+    }
+
+    private static byte[] tryResolveFromModel(String namespace, String path) {
+        String modelPath = "assets/" + namespace + "/models/item/" + path + ".json";
+        byte[] modelBytes = tryReadBytes(modelPath);
+        if (modelBytes == null) {
+            return null;
+        }
+
         try {
-            var opt = resourceManager.getResource(location);
-            if (opt.isEmpty()) {
+            String json = new String(modelBytes, StandardCharsets.UTF_8);
+            JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+            if (!obj.has("textures") || !obj.get("textures").isJsonObject()) {
                 return null;
             }
-            Resource res = opt.get();
-            try (InputStream in = res.open()) {
-                return readAllBytes(in);
+            JsonObject textures = obj.getAsJsonObject("textures");
+            if (!textures.has("layer0")) {
+                return null;
             }
+            String layer0 = textures.get("layer0").getAsString();
+            if (layer0 == null || layer0.isBlank()) {
+                return null;
+            }
+
+            String texNamespace = namespace;
+            String texPath = layer0;
+            int idx = layer0.indexOf(':');
+            if (idx > 0) {
+                texNamespace = layer0.substring(0, idx);
+                texPath = layer0.substring(idx + 1);
+            }
+            if (texPath.startsWith("textures/")) {
+                texPath = texPath.substring("textures/".length());
+            }
+            return tryReadPng("assets/" + texNamespace + "/textures/" + texPath + ".png");
         } catch (Exception e) {
             return null;
         }
     }
 
-    private static ResourceManager getClientResourceManager() {
-        try {
-            Class<?> mcClass = Class.forName("net.minecraft.client.Minecraft");
-            Object mc = mcClass.getMethod("getInstance").invoke(null);
-            Object rm = mc.getClass().getMethod("getResourceManager").invoke(mc);
-            if (rm instanceof ResourceManager resourceManager) {
-                return resourceManager;
-            }
+    private static byte[] tryReadPng(String resourcePath) {
+        byte[] bytes = tryReadBytes(resourcePath);
+        if (bytes == null || bytes.length == 0) {
             return null;
-        } catch (Throwable e) {
+        }
+        return bytes;
+    }
+
+    private static byte[] tryReadBytes(String resourcePath) {
+        try (InputStream in = WebEditorLocalServer.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                return null;
+            }
+            return readAllBytes(in);
+        } catch (IOException e) {
             return null;
         }
     }
@@ -469,6 +502,10 @@ public final class WebEditorLocalServer {
     }
 
     private static void writeBytes(OutputStream out, int status, String contentType, byte[] body) throws IOException {
+        writeBytes(out, status, contentType, body, "no-store");
+    }
+
+    private static void writeBytes(OutputStream out, int status, String contentType, byte[] body, String cacheControl) throws IOException {
         String reason = switch (status) {
             case 200 -> "OK";
             case 400 -> "Bad Request";
@@ -484,7 +521,7 @@ public final class WebEditorLocalServer {
         String headers =
                 "HTTP/1.1 " + status + " " + reason + "\r\n" +
                         "Content-Type: " + contentType + "\r\n" +
-                        "Cache-Control: no-store\r\n" +
+                        "Cache-Control: " + (cacheControl == null || cacheControl.isBlank() ? "no-store" : cacheControl) + "\r\n" +
                         "Access-Control-Allow-Origin: *\r\n" +
                         "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n" +
                         "Access-Control-Allow-Headers: Content-Type\r\n" +
