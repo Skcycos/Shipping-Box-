@@ -244,6 +244,7 @@
       }
       .item:hover { background: var(--item-bg-hover); border-color: var(--border); }
       .item.active { background: rgba(10, 132, 255, 0.16); border-color: rgba(10, 132, 255, 0.42); }
+      .item.drag-over { background: rgba(10, 132, 255, 0.12); border-color: rgba(10, 132, 255, 0.55); }
       .item-top {
         display: flex;
         align-items: center;
@@ -519,6 +520,7 @@
           presetsLabel: "组件助手（Presets）",
           presetsHelp: "点击快速注入常用 components（会与现有内容合并）。",
           presetsApplied: (name) => "已注入组件 · " + name,
+          presetsRemoved: (name) => "已移除组件 · " + name,
           presets: {
             tide: {
               name: "Tide（鱼类长度）",
@@ -626,6 +628,7 @@
           presetsLabel: "Components presets",
           presetsHelp: "Click to inject common components (merged into existing JSON).",
           presetsApplied: (name) => "Injected · " + name,
+          presetsRemoved: (name) => "Removed · " + name,
           presets: {
             tide: {
               name: "Tide (Fish length)",
@@ -806,6 +809,16 @@
         return JSON.stringify(merged, null, 2);
       }
 
+      function removeComponentKeys(currentText, keys) {
+        const base = componentsObjectFromText(currentText) || {};
+        for (const k of (Array.isArray(keys) ? keys : [])) {
+          delete base[k];
+        }
+        const left = Object.keys(base);
+        if (left.length === 0) return "";
+        return JSON.stringify(base, null, 2);
+      }
+
       function removeComponentKey(currentText, key) {
         const base = componentsObjectFromText(currentText) || {};
         delete base[key];
@@ -853,7 +866,7 @@
         return field;
       }
 
-      function renderPresetsField(currentComponentsText, onApply) {
+      function renderPresetsField(getText, onApply) {
         const field = document.createElement("div");
         field.className = "field";
         field.innerHTML = `<div class="label">${escapeHtml(t("presetsLabel"))}</div><div class="help">${escapeHtml(t("presetsHelp"))}</div>`;
@@ -866,13 +879,18 @@
         ];
 
         for (const p of presets) {
+          const inject = (p.inject && typeof p.inject === "object") ? p.inject : {};
+          const injectKeys = Object.keys(inject);
+          const obj = componentsObjectFromText(getText()) || {};
+          const active = injectKeys.length > 0 && injectKeys.every((k) => k in obj);
           const btn = document.createElement("div");
-          btn.className = "chip";
+          btn.className = "chip" + (active ? " active" : "");
           btn.textContent = p.name;
           btn.onclick = () => {
-            const next = mergeComponentTemplate(currentComponentsText, p.inject || {});
+            const current = getText();
+            const next = active ? removeComponentKeys(current, injectKeys) : mergeComponentTemplate(current, inject);
             onApply(next);
-            toast(t("presetsApplied", p.name), "ok");
+            toast(active ? t("presetsRemoved", p.name) : t("presetsApplied", p.name), "ok");
           };
           row.appendChild(btn);
         }
@@ -881,6 +899,7 @@
         const qualityBlock = document.createElement("div");
         qualityBlock.className = "field";
         qualityBlock.innerHTML = `<div class="label">${escapeHtml(t("qualityLabel"))}</div><div class="help">${escapeHtml(t("qualityHelp"))}</div>`;
+        const qualityActive = getQualityFoodFromComponentsText(getText());
         qualityBlock.appendChild(chipGroup(
           [
             { label: t("qualityNormal"), value: "normal" },
@@ -888,9 +907,9 @@
             { label: t("qualityGold"), value: "gold" },
             { label: t("qualityDiamond"), value: "diamond" }
           ],
-          getQualityFoodFromComponentsText(currentComponentsText),
+          qualityActive,
           (v) => {
-            const next = setQualityFoodInComponentsText(currentComponentsText, v);
+            const next = setQualityFoodInComponentsText(getText(), v);
             onApply(next);
             const name = t("qualityLabel") + " - " + (
               v === "iron" ? t("qualityIron") :
@@ -1065,21 +1084,115 @@
 
         $("ruleCount").textContent = String(rules.length);
 
+        const getRuleIconId = (r) => {
+          const o = r.output || {};
+          if (o.mode === "item" && o.item) return String(o.item);
+          if (o.mode === "ecliptic_seasons" && o.item) return String(o.item);
+          if (o.mode === "dynamic_pricing" && !o.coin && o.item) return String(o.item);
+          const inItem = (r.inputs || []).find((i) => i && i.kind === "item" && i.value);
+          if (inItem) return String(inItem.value).replace(/^#/, "");
+          return "";
+        };
+
+        const moveRuleBefore = (dragId, targetId) => {
+          if (!dragId || !targetId || dragId === targetId) return;
+          const from = state.rules.findIndex(x => x.id === dragId);
+          const to = state.rules.findIndex(x => x.id === targetId);
+          if (from < 0 || to < 0) return;
+          const [item] = state.rules.splice(from, 1);
+          const insertAt = from < to ? to - 1 : to;
+          state.rules.splice(insertAt, 0, item);
+          scheduleRenderList();
+        };
+
         for (const r of rules) {
           const el = document.createElement("div");
           el.className = "item" + (r.id === state.selectedId ? " active" : "");
           el.onclick = () => setSelected(r.id);
+          el.draggable = true;
+          el.addEventListener("dragstart", (e) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", r.id);
+            el.classList.add("dragging");
+          });
+          el.addEventListener("dragend", () => {
+            el.classList.remove("dragging");
+          });
+          el.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            el.classList.add("drag-over");
+          });
+          el.addEventListener("dragleave", () => {
+            el.classList.remove("drag-over");
+          });
+          el.addEventListener("drop", (e) => {
+            e.preventDefault();
+            el.classList.remove("drag-over");
+            const dragId = e.dataTransfer.getData("text/plain");
+            moveRuleBefore(dragId, r.id);
+          });
 
-          const title = summarizeRule(r);
-          const badgeText = r.output && r.output.mode ? modeLabel(r.output.mode) : t("badgeRule");
+          const top = document.createElement("div");
+          top.className = "item-top";
 
-          el.innerHTML = `
-            <div class="item-top">
-              <div class="item-title">${escapeHtml(title)}</div>
-              <div class="badge">${escapeHtml(badgeText)}</div>
-            </div>
-            <div class="item-sub">${escapeHtml(t("itemSub", r.inputs.length))}</div>
-          `;
+          const left = document.createElement("div");
+          left.style.display = "flex";
+          left.style.alignItems = "center";
+          left.style.gap = "8px";
+
+          const { box, img } = createIconBox();
+          const iconId = getRuleIconId(r);
+          if (iconId) updateIconForValue(img, iconId); else img.src = TRANSPARENT_IMG;
+          left.appendChild(box);
+
+          const titleDiv = document.createElement("div");
+          titleDiv.className = "item-title";
+          titleDiv.textContent = summarizeRule(r);
+          left.appendChild(titleDiv);
+
+          const badge = document.createElement("div");
+          badge.className = "badge";
+          badge.textContent = r.output && r.output.mode ? modeLabel(r.output.mode) : t("badgeRule");
+
+          top.appendChild(left);
+          top.appendChild(badge);
+
+          const sub = document.createElement("div");
+          sub.className = "item-sub";
+          sub.textContent = t("itemSub", r.inputs.length);
+
+          const actions = document.createElement("div");
+          actions.className = "row";
+          const dup = document.createElement("div");
+          dup.className = "chip";
+          dup.textContent = t("btnDuplicate");
+          dup.onclick = (ev) => {
+            ev.stopPropagation();
+            const copy = JSON.parse(JSON.stringify(r));
+            copy.id = "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2);
+            const idx = state.rules.findIndex(x => x.id === r.id);
+            state.rules.splice(idx + 1, 0, copy);
+            state.selectedId = copy.id;
+            scheduleRenderList();
+            renderEditor();
+          };
+          const del = document.createElement("div");
+          del.className = "chip";
+          del.textContent = t("btnDelete");
+          del.onclick = (ev) => {
+            ev.stopPropagation();
+            const idx = state.rules.findIndex(x => x.id === r.id);
+            if (idx >= 0) state.rules.splice(idx, 1);
+            state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
+            scheduleRenderList();
+            renderEditor();
+          };
+          actions.appendChild(dup);
+          actions.appendChild(del);
+
+          el.appendChild(top);
+          el.appendChild(sub);
+          el.appendChild(actions);
           list.appendChild(el);
         }
       }
@@ -1252,7 +1365,7 @@
           comp.value = inp.componentsText || "";
           comp.oninput = (e) => { inp.componentsText = e.target.value; };
           compField.appendChild(comp);
-          const presetsField = renderPresetsField(inp.componentsText, (next) => { inp.componentsText = next; render(); });
+          const presetsField = renderPresetsField(() => inp.componentsText, (next) => { inp.componentsText = next; render(); });
           compField.appendChild(presetsField);
 
           const removeRow = document.createElement("div");
@@ -1307,6 +1420,7 @@
         jsonField.className = "field";
         jsonField.innerHTML = `<div class="label">${escapeHtml(t("jsonPreview"))}</div><div class="help">${escapeHtml(t("jsonHelp"))}</div>`;
         const preview = document.createElement("textarea");
+        preview.id = "jsonPreviewBox";
         preview.className = "textarea";
         preview.readOnly = true;
         preview.value = JSON.stringify(toJsonRule(r), null, 2);
@@ -1320,7 +1434,7 @@
       function renderOutputDetails(root, r) {
         const o = r.output || {};
         if (o.mode === "coin") {
-          const count = fieldNumber(t("coinCount"), o.count, 0, 0, (v) => { o.count = v; renderList(); renderEditor(); });
+          const count = fieldNumberSmooth(t("coinCount"), o.count, 0, 0, (v) => { o.count = v; });
           root.appendChild(count);
           return;
         }
@@ -1334,7 +1448,7 @@
           root.appendChild(count);
           const comp = fieldTextarea(t("labelComponents"), o.componentsText, t("placeholderComponentsExampleOutput"), (v) => { o.componentsText = v; });
           root.appendChild(comp);
-          const presets = renderPresetsField(o.componentsText, (next) => { o.componentsText = next; render(); });
+          const presets = renderPresetsField(() => o.componentsText, (next) => { o.componentsText = next; render(); });
           root.appendChild(presets);
           return;
         }
@@ -1400,7 +1514,7 @@
             root.appendChild(weight);
             const comp = fieldTextarea(t("labelComponents"), w.componentsText, "", (v) => { w.componentsText = v; });
             root.appendChild(comp);
-            const presets = renderPresetsField(w.componentsText, (next) => { w.componentsText = next; render(); });
+            const presets = renderPresetsField(() => w.componentsText, (next) => { w.componentsText = next; render(); });
             root.appendChild(presets);
 
             const remove = document.createElement("div");
@@ -1452,7 +1566,7 @@
 
           const comp = fieldTextarea(t("labelComponents"), o.componentsText, "", (v) => { o.componentsText = v; });
           root.appendChild(comp);
-          const presets = renderPresetsField(o.componentsText, (next) => { o.componentsText = next; render(); });
+          const presets = renderPresetsField(() => o.componentsText, (next) => { o.componentsText = next; render(); });
           root.appendChild(presets);
           return;
         }
@@ -1493,6 +1607,60 @@
         if (typeof min === "number") input.min = String(min);
         input.value = String(Number.isFinite(Number(value)) ? value : def);
         input.oninput = (e) => onChange(Math.trunc(Number(e.target.value || def)));
+        field.appendChild(input);
+        return field;
+      }
+
+      let renderListTimer = null;
+      function scheduleRenderList() {
+        if (renderListTimer) clearTimeout(renderListTimer);
+        renderListTimer = setTimeout(() => {
+          renderList();
+          renderListTimer = null;
+        }, 120);
+      }
+
+      function updateJsonPreviewForSelected() {
+        const r = selectedRule();
+        const el = document.getElementById("jsonPreviewBox");
+        if (!r || !el) return;
+        el.value = JSON.stringify(toJsonRule(r), null, 2);
+      }
+
+      function fieldNumberSmooth(label, value, def, min, setValue) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
+        const input = document.createElement("input");
+        input.className = "input";
+        input.type = "number";
+        input.step = "1";
+        if (typeof min === "number") input.min = String(min);
+        input.value = String(Number.isFinite(Number(value)) ? value : def);
+        input.addEventListener("input", (e) => {
+          const raw = e.target.value;
+          const n = raw === "" ? def : Number(raw);
+          if (!Number.isFinite(n)) return;
+          setValue(Math.trunc(n));
+          updateJsonPreviewForSelected();
+          scheduleRenderList();
+        });
+        input.addEventListener("blur", (e) => {
+          const raw = e.target.value;
+          const n = raw === "" ? def : Number(raw);
+          if (!Number.isFinite(n)) {
+            input.value = String(def);
+            setValue(Math.trunc(def));
+            updateJsonPreviewForSelected();
+            scheduleRenderList();
+            return;
+          }
+          const fixed = Math.trunc(n);
+          input.value = String(fixed);
+          setValue(fixed);
+          updateJsonPreviewForSelected();
+          scheduleRenderList();
+        });
         field.appendChild(input);
         return field;
       }
@@ -1626,6 +1794,20 @@
         state.filter = e.target.value || "";
         renderList();
       });
+
+      document.addEventListener("dragover", (e) => {
+        if (!e.target.closest("#list")) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+
+      document.addEventListener("drop", (e) => {
+        if (!e.target.closest("#list")) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
 
       $("btnRefresh").onclick = () => refresh().catch((e) => toast(String(e.message || e), "bad"));
       $("btnOpenFile").onclick = () => {
