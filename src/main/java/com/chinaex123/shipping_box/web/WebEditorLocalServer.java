@@ -6,7 +6,6 @@ import com.chinaex123.shipping_box.network.PacketEditorReloadRequest;
 import com.chinaex123.shipping_box.network.PacketEditorSaveRules;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
@@ -65,7 +64,7 @@ public final class WebEditorLocalServer {
             try {
                 created = new ServerSocket();
                 created.setReuseAddress(true);
-                created.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), port));
+                created.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), port));
                 break;
             } catch (IOException e) {
                 if (created != null) {
@@ -73,6 +72,15 @@ public final class WebEditorLocalServer {
                         created.close();
                     } catch (IOException ignored) {}
                 }
+                created = null;
+                port++;
+            } catch (Exception e) {
+                if (created != null) {
+                    try {
+                        created.close();
+                    } catch (IOException ignored) {}
+                }
+                created = null;
                 port++;
             }
         }
@@ -212,6 +220,11 @@ public final class WebEditorLocalServer {
                 uri = URI.create(req.pathWithQuery);
             } catch (Exception e) {
                 writeText(out, 400, "Bad Request");
+                return;
+            }
+
+            if ("OPTIONS".equals(req.method)) {
+                writeBytes(out, 204, "text/plain; charset=utf-8", new byte[0]);
                 return;
             }
 
@@ -366,6 +379,10 @@ public final class WebEditorLocalServer {
                 "HTTP/1.1 " + status + " " + reason + "\r\n" +
                         "Content-Type: " + contentType + "\r\n" +
                         "Cache-Control: no-store\r\n" +
+                        "Access-Control-Allow-Origin: *\r\n" +
+                        "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n" +
+                        "Access-Control-Allow-Headers: Content-Type\r\n" +
+                        "Access-Control-Max-Age: 86400\r\n" +
                         "Connection: close\r\n" +
                         "Content-Length: " + bytes.length + "\r\n" +
                         "\r\n";
@@ -387,6 +404,7 @@ public final class WebEditorLocalServer {
         String pathWithQuery = parts[1].trim();
 
         int contentLength = 0;
+        boolean hasContentLength = false;
         while (true) {
             String line = readLine(in);
             if (line == null) {
@@ -402,41 +420,64 @@ public final class WebEditorLocalServer {
                 if ("Content-Length".equalsIgnoreCase(key)) {
                     try {
                         contentLength = Integer.parseInt(value);
+                        hasContentLength = true;
                     } catch (NumberFormatException ignored) {}
                 }
             }
         }
 
         byte[] body = null;
-        if ("POST".equals(method) && contentLength > 0) {
-            body = in.readNBytes(contentLength);
+        if (("POST".equals(method) || "PUT".equals(method) || "PATCH".equals(method)) && hasContentLength) {
+            if (contentLength < 0) {
+                return null;
+            }
+            body = readFixedBytes(in, contentLength);
+            if (body.length != contentLength) {
+                return null;
+            }
         }
         return new Request(method, pathWithQuery, body);
     }
 
     private static String readLine(InputStream in) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream(128);
-        int prev = -1;
         while (true) {
             int b = in.read();
             if (b == -1) {
+                if (baos.size() == 0) {
+                    return null;
+                }
                 break;
             }
-            if (prev == '\r' && b == '\n') {
+            if (b == '\n') {
                 break;
             }
-            if (prev != -1) {
-                baos.write(prev);
+            if (b != '\r') {
+                baos.write(b);
             }
-            prev = b;
-        }
-        if (prev != -1 && prev != '\r') {
-            baos.write(prev);
-        }
-        if (baos.size() == 0 && prev == -1) {
-            return null;
         }
         return baos.toString(StandardCharsets.ISO_8859_1);
+    }
+
+    private static byte[] readFixedBytes(InputStream in, int length) throws IOException {
+        if (length <= 0) {
+            return new byte[0];
+        }
+        byte[] buf = new byte[length];
+        int off = 0;
+        while (off < length) {
+            int read = in.read(buf, off, length - off);
+            if (read == -1) {
+                break;
+            }
+            off += read;
+        }
+        if (off == length) {
+            return buf;
+        }
+        byte[] partial = new byte[off];
+        System.arraycopy(buf, 0, partial, 0, off);
+        return partial;
     }
 
     private record Request(String method, String pathWithQuery, byte[] bodyBytes) {}
