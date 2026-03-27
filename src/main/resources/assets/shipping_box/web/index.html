@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shipping Box · 兑换规则编辑器</title>
+    <style>
+      :root {
+        --bg: #0b0c0f;
+        --panel: rgba(255, 255, 255, 0.06);
+        --panel-2: rgba(255, 255, 255, 0.08);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.62);
+        --muted-2: rgba(255, 255, 255, 0.46);
+        --accent: #0a84ff;
+        --danger: #ff453a;
+        --ok: #30d158;
+        --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: var(--font);
+        color: var(--text);
+        background:
+          radial-gradient(1200px 600px at 20% -10%, rgba(10, 132, 255, 0.22), transparent 60%),
+          radial-gradient(900px 700px at 100% 0%, rgba(48, 209, 88, 0.12), transparent 55%),
+          radial-gradient(700px 600px at 0% 100%, rgba(255, 69, 58, 0.10), transparent 60%),
+          var(--bg);
+      }
+      .app {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 28px 18px 32px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 220px;
+      }
+      .brand-title {
+        font-size: 15px;
+        letter-spacing: 0.2px;
+        font-weight: 650;
+      }
+      .brand-sub {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .file {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 9px 12px;
+        border-radius: 999px;
+        font-size: 12.5px;
+        outline: none;
+        width: 260px;
+      }
+      .file::placeholder { color: rgba(255,255,255,0.35); }
+      .btn {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 9px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 12.5px;
+        line-height: 1;
+        transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+        user-select: none;
+      }
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.10);
+        transform: translateY(-1px);
+      }
+      .btn.primary {
+        border-color: rgba(10, 132, 255, 0.55);
+        background: rgba(10, 132, 255, 0.18);
+      }
+      .btn.danger {
+        border-color: rgba(255, 69, 58, 0.55);
+        background: rgba(255, 69, 58, 0.14);
+      }
+      .btn.ghost {
+        background: transparent;
+      }
+      .main {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .panel {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+        overflow: hidden;
+      }
+      .panel-header {
+        padding: 14px 14px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .panel-title {
+        font-size: 13px;
+        font-weight: 650;
+        color: var(--text);
+      }
+      .panel-body {
+        padding: 12px 14px 14px;
+      }
+      .search {
+        width: 100%;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 999px;
+        font-size: 12.5px;
+        outline: none;
+      }
+      .search::placeholder { color: rgba(255,255,255,0.35); }
+      .list {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: calc(100vh - 220px);
+        overflow: auto;
+        padding-right: 6px;
+      }
+      .list::-webkit-scrollbar { width: 10px; }
+      .list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+      .item {
+        padding: 12px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background 120ms ease, border-color 120ms ease;
+      }
+      .item:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.16); }
+      .item.active { background: rgba(10, 132, 255, 0.16); border-color: rgba(10, 132, 255, 0.42); }
+      .item-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .item-title {
+        font-weight: 650;
+        font-size: 12.5px;
+        letter-spacing: 0.15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 260px;
+      }
+      .badge {
+        font-size: 11px;
+        color: rgba(255,255,255,0.78);
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(255,255,255,0.06);
+        padding: 4px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .item-sub {
+        margin-top: 6px;
+        font-size: 11.5px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+      }
+      .field {
+        grid-column: span 12;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .field.half { grid-column: span 6; }
+      .field.third { grid-column: span 4; }
+      .label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .input, .select, .textarea {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        outline: none;
+      }
+      .textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
+      .help {
+        font-size: 11.5px;
+        color: var(--muted-2);
+      }
+      .sep {
+        height: 1px;
+        background: rgba(255,255,255,0.10);
+        margin: 12px 0;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .mini {
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .chip {
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.06);
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .chip.active {
+        border-color: rgba(10, 132, 255, 0.55);
+        background: rgba(10, 132, 255, 0.18);
+      }
+      .toast {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(20, 20, 24, 0.88);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.9);
+        display: none;
+        max-width: 360px;
+      }
+      .toast.show { display: block; }
+      .toast.ok { border-color: rgba(48,209,88,0.40); }
+      .toast.bad { border-color: rgba(255,69,58,0.45); }
+      @media (max-width: 980px) {
+        .main { grid-template-columns: 1fr; }
+        .list { max-height: 280px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-title">Shipping Box · 兑换规则编辑器</div>
+          <div class="brand-sub" id="subTitle">本地编辑 · </div>
+        </div>
+        <div class="actions">
+          <input class="file" id="filePath" placeholder="规则文件：editor.json（可带子目录）" />
+          <button class="btn" id="btnOpenFile">打开</button>
+          <button class="btn ghost" id="btnReloadFromGame">从游戏重载</button>
+          <button class="btn" id="btnRefresh">刷新</button>
+          <button class="btn" id="btnNew">新建</button>
+          <button class="btn" id="btnDuplicate">复制</button>
+          <button class="btn danger" id="btnDelete">删除</button>
+          <button class="btn primary" id="btnSave">保存</button>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">规则列表</div>
+            <div class="mini" id="ruleCount">0</div>
+          </div>
+          <div class="panel-body">
+            <input class="search" id="search" placeholder="搜索：物品ID / 标签 / 类型" />
+            <div class="list" id="list"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title" id="editorTitle">编辑</div>
+            <div class="mini" id="editorMeta"></div>
+          </div>
+          <div class="panel-body" id="editor"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const token = new URLSearchParams(location.search).get("token") || "";
+      const initialFile = new URLSearchParams(location.search).get("file") || "editor.json";
+      const $ = (id) => document.getElementById(id);
+
+      const state = {
+        rules: [],
+        selectedId: null,
+        filter: "",
+        file: initialFile
+      };
+
+      function toast(message, kind = "ok") {
+        const el = $("toast");
+        el.className = "toast show " + (kind === "bad" ? "bad" : "ok");
+        el.textContent = message;
+        setTimeout(() => {
+          el.className = "toast";
+        }, 2600);
+      }
+
+      function summarizeRule(r) {
+        const inParts = (r.inputs || []).map((i) => {
+          const prefix = i.kind === "tag" ? "#" : "";
+          const name = (i.value || "").trim();
+          const count = Number(i.count || 1);
+          return prefix + name + (count !== 1 ? "×" + count : "");
+        }).filter(Boolean);
+
+        const o = r.output || {};
+        let outText = "";
+        if (o.mode === "coin") outText = "coin×" + Number(o.count || 0);
+        else if (o.mode === "item") outText = (o.item || "").trim() + "×" + Number(o.count || 1);
+        else if (o.mode === "dynamic_pricing") outText = "dynamic_pricing" + (o.coin ? " (coin)" : "");
+        else if (o.mode === "weight") outText = "weight (" + (o.items || []).length + ")";
+        else if (o.mode === "ecliptic_seasons") outText = "ecliptic_seasons";
+        else outText = "output";
+
+        return (inParts.join(" + ") || "空") + " → " + outText;
+      }
+
+      function parseMaybeJson(text) {
+        const t = (text || "").trim();
+        if (!t) return null;
+        if (t.startsWith("{") || t.startsWith("[")) {
+          try { return JSON.parse(t); } catch (_) { return t; }
+        }
+        return t;
+      }
+
+      function parseIntList(text) {
+        const parts = String(text || "")
+          .split(/[\s,]+/g)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const nums = [];
+        for (const p of parts) {
+          const n = Number(p);
+          if (!Number.isFinite(n)) continue;
+          nums.push(Math.trunc(n));
+        }
+        return nums;
+      }
+
+      function fromJsonRule(rule, idx) {
+        const id = "r_" + (Date.now().toString(36)) + "_" + idx + "_" + Math.random().toString(16).slice(2);
+        const inputRaw = rule.input;
+        const inputsArr = Array.isArray(inputRaw) ? inputRaw : (inputRaw ? [inputRaw] : []);
+        const inputs = inputsArr.map((i) => ({
+          kind: i.tag ? "tag" : "item",
+          value: (i.tag || i.item || "").replace(/^#/, ""),
+          count: Number(i.count || 1),
+          componentsText: (typeof i.components === "object") ? JSON.stringify(i.components, null, 2) : (i.components || "")
+        }));
+
+        const out = rule.output || {};
+        let output = { mode: "item", item: "", count: 1, componentsText: "" };
+        if (out.type === "dynamic_pricing") {
+          output = {
+            mode: "dynamic_pricing",
+            coin: Boolean(out.coin),
+            item: out.item || "",
+            day: out.dynamic_properties && Number.isFinite(Number(out.dynamic_properties.day)) ? Number(out.dynamic_properties.day) : 0,
+            thresholdText: out.dynamic_properties && Array.isArray(out.dynamic_properties.threshold) ? out.dynamic_properties.threshold.join(", ") : "",
+            valueText: out.dynamic_properties && Array.isArray(out.dynamic_properties.value) ? out.dynamic_properties.value.join(", ") : ""
+          };
+        } else if (out.type === "weight") {
+          output = {
+            mode: "weight",
+            items: (out.items || []).map((w) => ({
+              item: w.item || "",
+              count: Number(w.count || 1),
+              weight: Number(w.weight || 1),
+              componentsText: (typeof w.components === "object") ? JSON.stringify(w.components, null, 2) : (w.components || "")
+            }))
+          };
+        } else if (out.type === "ecliptic_seasons") {
+          const ecs = out.ecliptic_seasons || {};
+          output = {
+            mode: "ecliptic_seasons",
+            item: out.item || "",
+            count: Number(out.count || 1),
+            componentsText: (typeof out.components === "object") ? JSON.stringify(out.components, null, 2) : (out.components || ""),
+            seasonalOnly: Boolean(ecs.seasonal_only),
+            seasonText: Array.isArray(ecs.season) ? ecs.season.join(", ") : "",
+            addBonus: Number.isFinite(Number(ecs.add_season_bonus)) ? Number(ecs.add_season_bonus) : 0,
+            reduceBonus: Number.isFinite(Number(ecs.reduce_season_bonus)) ? Number(ecs.reduce_season_bonus) : 0
+          };
+        } else if (out.coin) {
+          output = { mode: "coin", count: Number(out.count || 0) };
+        } else {
+          output = {
+            mode: "item",
+            item: out.item || "",
+            count: Number(out.count || 1),
+            componentsText: (typeof out.components === "object") ? JSON.stringify(out.components, null, 2) : (out.components || "")
+          };
+        }
+
+        return { id, inputs, output };
+      }
+
+      function toJsonRule(model) {
+        const input = (model.inputs || []).map((i) => {
+          const obj = { count: Math.max(1, Math.trunc(Number(i.count || 1))) };
+          const value = (i.value || "").trim();
+          if (i.kind === "tag") obj.tag = value.startsWith("#") ? value : ("#" + value);
+          else obj.item = value;
+          const comp = parseMaybeJson(i.componentsText);
+          if (comp !== null && comp !== "") obj.components = comp;
+          return obj;
+        });
+
+        const o = model.output || {};
+        let output = {};
+        if (o.mode === "coin") {
+          output = { coin: true, count: Math.max(0, Math.trunc(Number(o.count || 0))) };
+        } else if (o.mode === "dynamic_pricing") {
+          output = {
+            type: "dynamic_pricing",
+            dynamic_properties: {
+              threshold: parseIntList(o.thresholdText),
+              value: parseIntList(o.valueText),
+              day: Math.trunc(Number(o.day || 0))
+            }
+          };
+          if (o.coin) output.coin = true;
+          else output.item = (o.item || "").trim();
+        } else if (o.mode === "weight") {
+          output = {
+            type: "weight",
+            items: (o.items || []).map((w) => {
+              const itemObj = {
+                item: (w.item || "").trim(),
+                count: Math.max(1, Math.trunc(Number(w.count || 1))),
+                weight: Math.max(1, Math.trunc(Number(w.weight || 1)))
+              };
+              const comp = parseMaybeJson(w.componentsText);
+              if (comp !== null && comp !== "") itemObj.components = comp;
+              return itemObj;
+            })
+          };
+        } else if (o.mode === "ecliptic_seasons") {
+          output = {
+            type: "ecliptic_seasons",
+            item: (o.item || "").trim(),
+            count: Math.max(1, Math.trunc(Number(o.count || 1))),
+            ecliptic_seasons: {
+              season: String(o.seasonText || "").split(/[\s,]+/g).map((s) => s.trim()).filter(Boolean),
+              seasonal_only: Boolean(o.seasonalOnly),
+              add_season_bonus: Math.trunc(Number(o.addBonus || 0)),
+              reduce_season_bonus: Math.trunc(Number(o.reduceBonus || 0))
+            }
+          };
+          const comp = parseMaybeJson(o.componentsText);
+          if (comp !== null && comp !== "") output.components = comp;
+        } else {
+          output = {
+            item: (o.item || "").trim(),
+            count: Math.max(1, Math.trunc(Number(o.count || 1)))
+          };
+          const comp = parseMaybeJson(o.componentsText);
+          if (comp !== null && comp !== "") output.components = comp;
+        }
+
+        return { input, output };
+      }
+
+      function selectedRule() {
+        return state.rules.find((r) => r.id === state.selectedId) || null;
+      }
+
+      function setSelected(id) {
+        state.selectedId = id;
+        render();
+      }
+
+      function renderList() {
+        const list = $("list");
+        list.innerHTML = "";
+        const q = state.filter.trim().toLowerCase();
+        const rules = state.rules.filter((r) => {
+          if (!q) return true;
+          const text = summarizeRule(r).toLowerCase();
+          const type = (r.output && r.output.mode) ? String(r.output.mode) : "";
+          return text.includes(q) || type.includes(q);
+        });
+
+        $("ruleCount").textContent = String(rules.length);
+
+        for (const r of rules) {
+          const el = document.createElement("div");
+          el.className = "item" + (r.id === state.selectedId ? " active" : "");
+          el.onclick = () => setSelected(r.id);
+
+          const title = summarizeRule(r);
+          const badgeText = r.output && r.output.mode ? r.output.mode : "rule";
+
+          el.innerHTML = `
+            <div class="item-top">
+              <div class="item-title">${escapeHtml(title)}</div>
+              <div class="badge">${escapeHtml(badgeText)}</div>
+            </div>
+            <div class="item-sub">输入 ${r.inputs.length} 项 · 点击编辑</div>
+          `;
+          list.appendChild(el);
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function chipGroup(options, active, onChange) {
+        const row = document.createElement("div");
+        row.className = "row";
+        for (const opt of options) {
+          const c = document.createElement("div");
+          c.className = "chip" + (opt.value === active ? " active" : "");
+          c.textContent = opt.label;
+          c.onclick = () => onChange(opt.value);
+          row.appendChild(c);
+        }
+        return row;
+      }
+
+      function renderEditor() {
+        const editor = $("editor");
+        const r = selectedRule();
+        if (!r) {
+          editor.innerHTML = `
+            <div class="help">选择左侧规则，或点击“新建”开始。</div>
+          `;
+          $("editorTitle").textContent = "编辑";
+          $("editorMeta").textContent = "";
+          return;
+        }
+
+        $("editorTitle").textContent = "编辑规则";
+        $("editorMeta").textContent = "输入 " + r.inputs.length + " 项 · 输出 " + (r.output && r.output.mode ? r.output.mode : "");
+
+        const root = document.createElement("div");
+        root.className = "grid";
+
+        const inputsHeader = document.createElement("div");
+        inputsHeader.className = "field";
+        inputsHeader.innerHTML = `<div class="label">输入</div><div class="help">支持 item 或 tag（#minecraft:logs）。components 可填 JSON 或字符串。</div>`;
+        root.appendChild(inputsHeader);
+
+        const inputBtns = document.createElement("div");
+        inputBtns.className = "field";
+        const row = document.createElement("div");
+        row.className = "row";
+        const addItem = document.createElement("button");
+        addItem.className = "btn";
+        addItem.textContent = "添加输入";
+        addItem.onclick = () => {
+          r.inputs.push({ kind: "item", value: "", count: 1, componentsText: "" });
+          render();
+        };
+        const clearInputs = document.createElement("button");
+        clearInputs.className = "btn ghost";
+        clearInputs.textContent = "清空输入";
+        clearInputs.onclick = () => {
+          r.inputs = [];
+          render();
+        };
+        row.appendChild(addItem);
+        row.appendChild(clearInputs);
+        inputBtns.appendChild(row);
+        root.appendChild(inputBtns);
+
+        r.inputs.forEach((inp, idx) => {
+          const kindField = document.createElement("div");
+          kindField.className = "field third";
+          kindField.innerHTML = `<div class="label">类型</div>`;
+          kindField.appendChild(chipGroup(
+            [{ label: "item", value: "item" }, { label: "tag", value: "tag" }],
+            inp.kind,
+            (v) => { inp.kind = v; render(); }
+          ));
+          root.appendChild(kindField);
+
+          const valueField = document.createElement("div");
+          valueField.className = "field";
+          valueField.style.gridColumn = "span 6";
+          valueField.innerHTML = `<div class="label">${inp.kind === "tag" ? "tag" : "item"}（命名空间ID）</div>`;
+          const valueInput = document.createElement("input");
+          valueInput.className = "input";
+          valueInput.placeholder = inp.kind === "tag" ? "minecraft:logs" : "minecraft:diamond";
+          valueInput.value = inp.value || "";
+          valueInput.oninput = (e) => { inp.value = e.target.value; renderList(); };
+          valueField.appendChild(valueInput);
+          root.appendChild(valueField);
+
+          const countField = document.createElement("div");
+          countField.className = "field third";
+          countField.innerHTML = `<div class="label">数量</div>`;
+          const countInput = document.createElement("input");
+          countInput.className = "input";
+          countInput.type = "number";
+          countInput.min = "1";
+          countInput.step = "1";
+          countInput.value = String(inp.count || 1);
+          countInput.oninput = (e) => { inp.count = Number(e.target.value || 1); renderList(); };
+          countField.appendChild(countInput);
+          root.appendChild(countField);
+
+          const compField = document.createElement("div");
+          compField.className = "field";
+          compField.innerHTML = `<div class="label">components（可选）</div>`;
+          const comp = document.createElement("textarea");
+          comp.className = "textarea";
+          comp.placeholder = `{"minecraft:enchantments":{"levels":{"minecraft:sharpness":5}}}`;
+          comp.value = inp.componentsText || "";
+          comp.oninput = (e) => { inp.componentsText = e.target.value; };
+          compField.appendChild(comp);
+
+          const removeRow = document.createElement("div");
+          removeRow.className = "row";
+          const removeBtn = document.createElement("button");
+          removeBtn.className = "btn danger";
+          removeBtn.textContent = "移除该输入";
+          removeBtn.onclick = () => {
+            r.inputs.splice(idx, 1);
+            render();
+          };
+          removeRow.appendChild(removeBtn);
+          compField.appendChild(removeRow);
+          root.appendChild(compField);
+
+          const sep = document.createElement("div");
+          sep.className = "sep";
+          sep.style.gridColumn = "span 12";
+          root.appendChild(sep);
+        });
+
+        const outHeader = document.createElement("div");
+        outHeader.className = "field";
+        outHeader.innerHTML = `<div class="label">输出</div><div class="help">选择一种输出模式：item / coin / dynamic_pricing / weight / ecliptic_seasons</div>`;
+        root.appendChild(outHeader);
+
+        const outModeField = document.createElement("div");
+        outModeField.className = "field";
+        outModeField.appendChild(chipGroup(
+          [
+            { label: "item", value: "item" },
+            { label: "coin", value: "coin" },
+            { label: "dynamic_pricing", value: "dynamic_pricing" },
+            { label: "weight", value: "weight" },
+            { label: "ecliptic_seasons", value: "ecliptic_seasons" }
+          ],
+          r.output.mode,
+          (v) => {
+            if (v === "item") r.output = { mode: "item", item: "", count: 1, componentsText: "" };
+            else if (v === "coin") r.output = { mode: "coin", count: 0 };
+            else if (v === "dynamic_pricing") r.output = { mode: "dynamic_pricing", coin: false, item: "", day: 0, thresholdText: "", valueText: "" };
+            else if (v === "weight") r.output = { mode: "weight", items: [{ item: "", count: 1, weight: 1, componentsText: "" }] };
+            else r.output = { mode: "ecliptic_seasons", item: "", count: 1, componentsText: "", seasonalOnly: false, seasonText: "spring, summer, autumn, winter", addBonus: 0, reduceBonus: 0 };
+            render();
+          }
+        ));
+        root.appendChild(outModeField);
+
+        renderOutputDetails(root, r);
+
+        const jsonField = document.createElement("div");
+        jsonField.className = "field";
+        jsonField.innerHTML = `<div class="label">JSON 预览</div><div class="help">保存时会写入 editor.json，并可通过“从游戏重载”立即生效。</div>`;
+        const preview = document.createElement("textarea");
+        preview.className = "textarea";
+        preview.readOnly = true;
+        preview.value = JSON.stringify(toJsonRule(r), null, 2);
+        jsonField.appendChild(preview);
+        root.appendChild(jsonField);
+
+        editor.innerHTML = "";
+        editor.appendChild(root);
+      }
+
+      function renderOutputDetails(root, r) {
+        const o = r.output || {};
+        if (o.mode === "coin") {
+          const count = fieldNumber("coin 数量", o.count, 0, 0, (v) => { o.count = v; renderList(); renderEditor(); });
+          root.appendChild(count);
+          return;
+        }
+
+        if (o.mode === "item") {
+          const item = fieldText("item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); });
+          item.classList.add("half");
+          root.appendChild(item);
+          const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
+          count.classList.add("half");
+          root.appendChild(count);
+          const comp = fieldTextarea("components（可选）", o.componentsText, `{"minecraft:custom_name":"\\\"My Item\\\""}`, (v) => { o.componentsText = v; });
+          root.appendChild(comp);
+          return;
+        }
+
+        if (o.mode === "dynamic_pricing") {
+          const coinToggle = document.createElement("div");
+          coinToggle.className = "field";
+          coinToggle.innerHTML = `<div class="label">输出为虚拟货币 coin</div>`;
+          coinToggle.appendChild(chipGroup(
+            [{ label: "否", value: "no" }, { label: "是", value: "yes" }],
+            o.coin ? "yes" : "no",
+            (v) => { o.coin = (v === "yes"); render(); }
+          ));
+          root.appendChild(coinToggle);
+
+          if (!o.coin) {
+            const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); });
+            root.appendChild(item);
+          }
+
+          const day = fieldNumber("重置天数 day（-1 永不重置，0 每日，>0 周期）", o.day, 0, -1, (v) => { o.day = v; });
+          root.appendChild(day);
+
+          const th = fieldTextarea("threshold（阈值数组）", o.thresholdText, "0, 100, 250, 500", (v) => { o.thresholdText = v; });
+          root.appendChild(th);
+          const val = fieldTextarea("value（价值数组）", o.valueText, "8, 6, 4, 2", (v) => { o.valueText = v; });
+          root.appendChild(val);
+          return;
+        }
+
+        if (o.mode === "weight") {
+          const header = document.createElement("div");
+          header.className = "field";
+          header.innerHTML = `<div class="label">权重物品列表</div><div class="help">weight 越大，被抽中的概率越高。</div>`;
+          root.appendChild(header);
+
+          const row = document.createElement("div");
+          row.className = "field";
+          const buttons = document.createElement("div");
+          buttons.className = "row";
+          const add = document.createElement("button");
+          add.className = "btn";
+          add.textContent = "添加候选";
+          add.onclick = () => { o.items.push({ item: "", count: 1, weight: 1, componentsText: "" }); render(); };
+          const clear = document.createElement("button");
+          clear.className = "btn ghost";
+          clear.textContent = "清空候选";
+          clear.onclick = () => { o.items = []; render(); };
+          buttons.appendChild(add);
+          buttons.appendChild(clear);
+          row.appendChild(buttons);
+          root.appendChild(row);
+
+          o.items.forEach((w, idx) => {
+            const item = fieldText("候选 item（命名空间ID）", w.item, "minecraft:diamond", (v) => { w.item = v; renderList(); });
+            item.classList.add("half");
+            root.appendChild(item);
+            const count = fieldNumber("数量", w.count, 1, 1, (v) => { w.count = v; });
+            count.classList.add("third");
+            root.appendChild(count);
+            const weight = fieldNumber("权重", w.weight, 1, 1, (v) => { w.weight = v; });
+            weight.classList.add("third");
+            root.appendChild(weight);
+            const comp = fieldTextarea("components（可选）", w.componentsText, "", (v) => { w.componentsText = v; });
+            root.appendChild(comp);
+
+            const remove = document.createElement("div");
+            remove.className = "field";
+            const rr = document.createElement("div");
+            rr.className = "row";
+            const btn = document.createElement("button");
+            btn.className = "btn danger";
+            btn.textContent = "移除该候选";
+            btn.onclick = () => { o.items.splice(idx, 1); render(); };
+            rr.appendChild(btn);
+            remove.appendChild(rr);
+            root.appendChild(remove);
+
+            const sep = document.createElement("div");
+            sep.className = "sep";
+            sep.style.gridColumn = "span 12";
+            root.appendChild(sep);
+          });
+          return;
+        }
+
+        if (o.mode === "ecliptic_seasons") {
+          const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); });
+          item.classList.add("half");
+          root.appendChild(item);
+          const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
+          count.classList.add("half");
+          root.appendChild(count);
+
+          const seasons = fieldText("season（逗号分隔：spring/summer/autumn/winter/all）", o.seasonText, "spring, summer, autumn, winter", (v) => { o.seasonText = v; });
+          root.appendChild(seasons);
+
+          const seasonalOnly = document.createElement("div");
+          seasonalOnly.className = "field";
+          seasonalOnly.innerHTML = `<div class="label">seasonal_only（仅在指定季节可出售）</div>`;
+          seasonalOnly.appendChild(chipGroup(
+            [{ label: "否", value: "no" }, { label: "是", value: "yes" }],
+            o.seasonalOnly ? "yes" : "no",
+            (v) => { o.seasonalOnly = (v === "yes"); }
+          ));
+          root.appendChild(seasonalOnly);
+
+          const addBonus = fieldNumber("add_season_bonus（应季加成百分比）", o.addBonus, 0, 0, (v) => { o.addBonus = v; });
+          addBonus.classList.add("half");
+          root.appendChild(addBonus);
+          const reduceBonus = fieldNumber("reduce_season_bonus（非应季减益百分比）", o.reduceBonus, 0, 0, (v) => { o.reduceBonus = v; });
+          reduceBonus.classList.add("half");
+          root.appendChild(reduceBonus);
+
+          const comp = fieldTextarea("components（可选）", o.componentsText, "", (v) => { o.componentsText = v; });
+          root.appendChild(comp);
+          return;
+        }
+      }
+
+      function fieldText(label, value, placeholder, onChange) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
+        const input = document.createElement("input");
+        input.className = "input";
+        input.placeholder = placeholder || "";
+        input.value = value || "";
+        input.oninput = (e) => onChange(e.target.value);
+        field.appendChild(input);
+        return field;
+      }
+
+      function fieldNumber(label, value, def, min, onChange) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
+        const input = document.createElement("input");
+        input.className = "input";
+        input.type = "number";
+        input.step = "1";
+        if (typeof min === "number") input.min = String(min);
+        input.value = String(Number.isFinite(Number(value)) ? value : def);
+        input.oninput = (e) => onChange(Math.trunc(Number(e.target.value || def)));
+        field.appendChild(input);
+        return field;
+      }
+
+      function fieldTextarea(label, value, placeholder, onChange) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
+        const input = document.createElement("textarea");
+        input.className = "textarea";
+        input.placeholder = placeholder || "";
+        input.value = value || "";
+        input.oninput = (e) => onChange(e.target.value);
+        field.appendChild(input);
+        return field;
+      }
+
+      function render() {
+        renderList();
+        renderEditor();
+      }
+
+      function setSubtitle() {
+        $("subTitle").textContent = "本地编辑 · " + "config/shipping_box/exchange_rules/" + (state.file || "editor.json");
+      }
+
+      async function apiLoadFile(file) {
+        const res = await fetch("/api/load?token=" + encodeURIComponent(token) + "&file=" + encodeURIComponent(file), { method: "GET" });
+        if (!res.ok) throw new Error("GET /api/load failed: " + res.status);
+        return await res.json();
+      }
+
+      async function apiSaveRules(payload) {
+        const res = await fetch("/api/save?token=" + encodeURIComponent(token) + "&file=" + encodeURIComponent(state.file || "editor.json"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("POST /api/save failed: " + res.status);
+        return await res.json();
+      }
+
+      async function apiReloadGame() {
+        const res = await fetch("/api/reload?token=" + encodeURIComponent(token), { method: "POST" });
+        if (!res.ok) throw new Error("POST /api/reload failed: " + res.status);
+        return await res.json();
+      }
+
+      async function refresh() {
+        setSubtitle();
+        const json = await apiLoadFile(state.file || "editor.json");
+        if (json && json.ok === false) {
+          toast(String(json.error || "加载失败"), "bad");
+          state.rules = [];
+          state.selectedId = null;
+          render();
+          return;
+        }
+        const raw = Array.isArray(json.rules) ? json.rules : [];
+        state.rules = raw.map((r, idx) => fromJsonRule(r, idx));
+        if (!state.selectedId && state.rules.length) state.selectedId = state.rules[0].id;
+        render();
+        toast("已加载 " + state.rules.length + " 条规则 · " + (state.file || "editor.json"), "ok");
+      }
+
+      $("search").addEventListener("input", (e) => {
+        state.filter = e.target.value || "";
+        renderList();
+      });
+
+      $("btnRefresh").onclick = () => refresh().catch((e) => toast(String(e.message || e), "bad"));
+      $("btnOpenFile").onclick = () => {
+        const v = ($("filePath").value || "").trim();
+        state.file = v || "editor.json";
+        state.selectedId = null;
+        refresh().catch((e) => toast(String(e.message || e), "bad"));
+      };
+      $("btnNew").onclick = () => {
+        const r = { id: "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2), inputs: [{ kind: "item", value: "", count: 1, componentsText: "" }], output: { mode: "item", item: "", count: 1, componentsText: "" } };
+        state.rules.unshift(r);
+        state.selectedId = r.id;
+        render();
+      };
+      $("btnDuplicate").onclick = () => {
+        const r = selectedRule();
+        if (!r) return;
+        const copy = JSON.parse(JSON.stringify(r));
+        copy.id = "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2);
+        state.rules.unshift(copy);
+        state.selectedId = copy.id;
+        render();
+      };
+      $("btnDelete").onclick = () => {
+        const r = selectedRule();
+        if (!r) return;
+        if (!confirm("确认删除当前规则？")) return;
+        const idx = state.rules.findIndex((x) => x.id === r.id);
+        if (idx >= 0) state.rules.splice(idx, 1);
+        state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
+        render();
+      };
+
+      $("btnSave").onclick = async () => {
+        try {
+          const payload = { rules: state.rules.map(toJsonRule) };
+          const res = await apiSaveRules(payload);
+          if (res && res.ok) {
+            toast("已保存 · " + (res.savedPath || state.file), "ok");
+          } else {
+            toast(String((res && res.error) || "保存失败"), "bad");
+          }
+        } catch (e) {
+          toast(String(e.message || e), "bad");
+        }
+      };
+
+      $("btnReloadFromGame").onclick = async () => {
+        try {
+          await apiReloadGame();
+          toast("已触发 /reload（稍等片刻）", "ok");
+        } catch (e) {
+          toast(String(e.message || e), "bad");
+        }
+      };
+
+      if (!token) {
+        toast("缺少 token，无法访问 API。请从游戏内命令打开。", "bad");
+      } else {
+        $("filePath").value = state.file || "editor.json";
+        setSubtitle();
+        refresh().catch((e) => toast(String(e.message || e), "bad"));
+      }
+    </script>
+  </body>
+</html>

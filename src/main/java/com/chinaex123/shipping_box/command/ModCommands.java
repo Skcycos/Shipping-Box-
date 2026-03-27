@@ -3,6 +3,7 @@ package com.chinaex123.shipping_box.command;
 import com.chinaex123.shipping_box.command.CommandLogic.CountRulesCommand;
 import com.chinaex123.shipping_box.command.CommandLogic.ForceExchangeCommand;
 import com.chinaex123.shipping_box.command.CommandLogic.ListRulesCommand;
+import com.chinaex123.shipping_box.command.CommandLogic.OpenWebEditorCommand;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.commands.CommandSourceStack;
@@ -28,6 +29,9 @@ public class ModCommands {
                         .then(Commands.literal("list")
                                 .then(Commands.argument("page", IntegerArgumentType.integer(1))
                                         .executes(ListRulesCommand::execute))
-                                .executes(ListRulesCommand::execute))));
+                                .executes(ListRulesCommand::execute)))
+
+                .then(Commands.literal("web")
+                        .executes(OpenWebEditorCommand::execute)));
     }
 }
