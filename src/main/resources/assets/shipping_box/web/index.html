@@ -3,10 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Shipping Box · 兑换规则编辑器</title>
+    <title></title>
     <style>
       :root {
         --bg: #0b0c0f;
+        --bg-g1: rgba(10, 132, 255, 0.22);
+        --bg-g2: rgba(48, 209, 88, 0.12);
+        --bg-g3: rgba(255, 69, 58, 0.10);
+
         --panel: rgba(255, 255, 255, 0.06);
         --panel-2: rgba(255, 255, 255, 0.08);
         --border: rgba(255, 255, 255, 0.12);
@@ -20,18 +24,74 @@
         --radius: 16px;
         --radius-sm: 12px;
         --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        --topbar-bg1: rgba(255,255,255,0.08);
+        --topbar-bg2: rgba(255,255,255,0.05);
+        --hover: rgba(255, 255, 255, 0.10);
+        --item-bg: rgba(255, 255, 255, 0.04);
+        --item-bg-hover: rgba(255, 255, 255, 0.07);
+        --badge-bg: rgba(255,255,255,0.06);
+        --placeholder: rgba(255,255,255,0.35);
+        --input-bg: rgba(255, 255, 255, 0.06);
+        --chip-bg: rgba(255,255,255,0.06);
+        --chip-border: rgba(255,255,255,0.14);
+        --icon-bg: rgba(255, 255, 255, 0.06);
+        --icon-border: rgba(255,255,255,0.14);
+        --sep: rgba(255,255,255,0.10);
+        --scrollbar-thumb: rgba(255,255,255,0.12);
+        --toast-bg: rgba(20, 20, 24, 0.88);
+        --toast-text: rgba(255,255,255,0.9);
+        --toast-border: rgba(255,255,255,0.14);
       }
+
+      :root[data-theme="light"] {
+        --bg: #f5f6f8;
+        --bg-g1: rgba(10, 132, 255, 0.14);
+        --bg-g2: rgba(48, 209, 88, 0.10);
+        --bg-g3: rgba(255, 69, 58, 0.08);
+
+        --panel: rgba(255, 255, 255, 0.56);
+        --panel-2: rgba(255, 255, 255, 0.66);
+        --border: rgba(0, 0, 0, 0.10);
+        --text: rgba(0, 0, 0, 0.88);
+        --muted: rgba(0, 0, 0, 0.60);
+        --muted-2: rgba(0, 0, 0, 0.44);
+        --accent: #0a84ff;
+        --danger: #d70015;
+        --ok: #1f8a3b;
+        --shadow: 0 18px 55px rgba(0, 0, 0, 0.12);
+        --topbar-bg1: rgba(255,255,255,0.74);
+        --topbar-bg2: rgba(255,255,255,0.56);
+        --hover: rgba(0, 0, 0, 0.06);
+        --item-bg: rgba(255, 255, 255, 0.54);
+        --item-bg-hover: rgba(255, 255, 255, 0.70);
+        --badge-bg: rgba(255,255,255,0.56);
+        --placeholder: rgba(0,0,0,0.35);
+        --input-bg: rgba(255, 255, 255, 0.74);
+        --chip-bg: rgba(255,255,255,0.60);
+        --chip-border: rgba(0,0,0,0.10);
+        --icon-bg: rgba(255, 255, 255, 0.70);
+        --icon-border: rgba(0,0,0,0.10);
+        --sep: rgba(0,0,0,0.08);
+        --scrollbar-thumb: rgba(0,0,0,0.16);
+        --toast-bg: rgba(255, 255, 255, 0.78);
+        --toast-text: rgba(0,0,0,0.86);
+        --toast-border: rgba(0,0,0,0.10);
+      }
+
       * { box-sizing: border-box; }
-      html, body { height: 100%; }
+      html, body { min-height: 100vh; }
       body {
         margin: 0;
         font-family: var(--font);
         color: var(--text);
         background:
-          radial-gradient(1200px 600px at 20% -10%, rgba(10, 132, 255, 0.22), transparent 60%),
-          radial-gradient(900px 700px at 100% 0%, rgba(48, 209, 88, 0.12), transparent 55%),
-          radial-gradient(700px 600px at 0% 100%, rgba(255, 69, 58, 0.10), transparent 60%),
+          radial-gradient(1200px 600px at 20% -10%, var(--bg-g1), transparent 60%),
+          radial-gradient(900px 700px at 100% 0%, var(--bg-g2), transparent 55%),
+          radial-gradient(700px 600px at 0% 100%, var(--bg-g3), transparent 60%),
           var(--bg);
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        transition: background 0.3s ease, color 0.3s ease;
       }
       .app {
         max-width: 1240px;
@@ -45,10 +105,11 @@
         gap: 12px;
         padding: 14px 16px;
         border: 1px solid var(--border);
-        background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
+        background: linear-gradient(180deg, var(--topbar-bg1), var(--topbar-bg2));
         border-radius: var(--radius);
         box-shadow: var(--shadow);
         backdrop-filter: blur(16px);
+        transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
       }
       .brand {
         display: flex;
@@ -64,6 +125,7 @@
       .brand-sub {
         font-size: 12px;
         color: var(--muted);
+        transition: color 0.3s ease;
       }
       .actions {
         display: flex;
@@ -73,29 +135,37 @@
       }
       .file {
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--panel);
         color: var(--text);
         padding: 9px 12px;
         border-radius: 999px;
         font-size: 12.5px;
         outline: none;
         width: 260px;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
-      .file::placeholder { color: rgba(255,255,255,0.35); }
+      .file::placeholder { color: var(--placeholder); }
       .btn {
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--panel);
         color: var(--text);
         padding: 9px 12px;
         border-radius: 999px;
         cursor: pointer;
         font-size: 12.5px;
         line-height: 1;
-        transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+        transition: transform 120ms ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
         user-select: none;
       }
+      .btn.icon {
+        width: 38px;
+        padding: 9px 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
       .btn:hover {
-        background: rgba(255, 255, 255, 0.10);
+        background: var(--hover);
         transform: translateY(-1px);
       }
       .btn.primary {
@@ -117,11 +187,12 @@
       }
       .panel {
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--panel);
         border-radius: var(--radius);
         box-shadow: var(--shadow);
         backdrop-filter: blur(16px);
         overflow: hidden;
+        transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
       }
       .panel-header {
         padding: 14px 14px 12px;
@@ -130,6 +201,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
+        transition: border-color 0.3s ease;
       }
       .panel-title {
         font-size: 13px;
@@ -142,14 +214,15 @@
       .search {
         width: 100%;
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--panel);
         color: var(--text);
         padding: 10px 12px;
         border-radius: 999px;
         font-size: 12.5px;
         outline: none;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
-      .search::placeholder { color: rgba(255,255,255,0.35); }
+      .search::placeholder { color: var(--placeholder); }
       .list {
         margin-top: 12px;
         display: flex;
@@ -160,16 +233,16 @@
         padding-right: 6px;
       }
       .list::-webkit-scrollbar { width: 10px; }
-      .list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+      .list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; transition: background 0.3s ease; }
       .item {
         padding: 12px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.10);
-        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        background: var(--item-bg);
         border-radius: var(--radius-sm);
         cursor: pointer;
-        transition: background 120ms ease, border-color 120ms ease;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
-      .item:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.16); }
+      .item:hover { background: var(--item-bg-hover); border-color: var(--border); }
       .item.active { background: rgba(10, 132, 255, 0.16); border-color: rgba(10, 132, 255, 0.42); }
       .item-top {
         display: flex;
@@ -188,18 +261,20 @@
       }
       .badge {
         font-size: 11px;
-        color: rgba(255,255,255,0.78);
-        border: 1px solid rgba(255,255,255,0.16);
-        background: rgba(255,255,255,0.06);
+        color: var(--muted);
+        border: 1px solid var(--border);
+        background: var(--badge-bg);
         padding: 4px 8px;
         border-radius: 999px;
         white-space: nowrap;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
       .item-sub {
         margin-top: 6px;
         font-size: 11.5px;
         color: var(--muted);
         line-height: 1.35;
+        transition: color 0.3s ease;
       }
       .grid {
         display: grid;
@@ -217,15 +292,17 @@
       .label {
         font-size: 12px;
         color: var(--muted);
+        transition: color 0.3s ease;
       }
       .input, .select, .textarea {
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--input-bg);
         color: var(--text);
         padding: 10px 12px;
         border-radius: 12px;
         font-size: 13px;
         outline: none;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
       .input-row {
         display: flex;
@@ -237,13 +314,14 @@
         width: 24px;
         height: 24px;
         border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--icon-border);
+        background: var(--icon-bg);
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
         flex: 0 0 24px;
+        transition: background 0.3s ease, border-color 0.3s ease;
       }
       .iconbox img {
         width: 24px;
@@ -254,11 +332,13 @@
       .help {
         font-size: 11.5px;
         color: var(--muted-2);
+        transition: color 0.3s ease;
       }
       .sep {
         height: 1px;
-        background: rgba(255,255,255,0.10);
+        background: var(--sep);
         margin: 12px 0;
+        transition: background 0.3s ease;
       }
       .row {
         display: flex;
@@ -269,15 +349,17 @@
       .mini {
         font-size: 11.5px;
         color: var(--muted);
+        transition: color 0.3s ease;
       }
       .chip {
-        border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--chip-border);
+        background: var(--chip-bg);
         padding: 7px 10px;
         border-radius: 999px;
         font-size: 12px;
         cursor: pointer;
         user-select: none;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
       .chip.active {
         border-color: rgba(10, 132, 255, 0.55);
@@ -289,14 +371,15 @@
         bottom: 18px;
         padding: 12px 14px;
         border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(20, 20, 24, 0.88);
+        border: 1px solid var(--toast-border);
+        background: var(--toast-bg);
         backdrop-filter: blur(18px);
         box-shadow: var(--shadow);
         font-size: 12.5px;
-        color: rgba(255,255,255,0.9);
+        color: var(--toast-text);
         display: none;
         max-width: 360px;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
       .toast.show { display: block; }
       .toast.ok { border-color: rgba(48,209,88,0.40); }
@@ -311,36 +394,38 @@
     <div class="app">
       <div class="topbar">
         <div class="brand">
-          <div class="brand-title">Shipping Box · 兑换规则编辑器</div>
-          <div class="brand-sub" id="subTitle">本地编辑 · </div>
+          <div class="brand-title" id="brandTitle"></div>
+          <div class="brand-sub" id="subTitle"></div>
         </div>
         <div class="actions">
-          <input class="file" id="filePath" placeholder="规则文件：editor.json（可带子目录）" />
-          <button class="btn" id="btnOpenFile">打开</button>
-          <button class="btn ghost" id="btnReloadFromGame">从游戏重载</button>
-          <button class="btn" id="btnRefresh">刷新</button>
-          <button class="btn" id="btnNew">新建</button>
-          <button class="btn" id="btnDuplicate">复制</button>
-          <button class="btn danger" id="btnDelete">删除</button>
-          <button class="btn primary" id="btnSave">保存</button>
+          <button class="btn ghost icon" id="btnTheme"></button>
+          <button class="btn ghost" id="btnLang"></button>
+          <input class="file" id="filePath" placeholder="" />
+          <button class="btn" id="btnOpenFile"></button>
+          <button class="btn ghost" id="btnReloadFromGame"></button>
+          <button class="btn" id="btnRefresh"></button>
+          <button class="btn" id="btnNew"></button>
+          <button class="btn" id="btnDuplicate"></button>
+          <button class="btn danger" id="btnDelete"></button>
+          <button class="btn primary" id="btnSave"></button>
         </div>
       </div>
 
       <div class="main">
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title">规则列表</div>
+            <div class="panel-title" id="rulesPanelTitle"></div>
             <div class="mini" id="ruleCount">0</div>
           </div>
           <div class="panel-body">
-            <input class="search" id="search" placeholder="搜索：物品ID / 标签 / 类型" />
+            <input class="search" id="search" placeholder="" />
             <div class="list" id="list"></div>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title" id="editorTitle">编辑</div>
+            <div class="panel-title" id="editorTitle"></div>
             <div class="mini" id="editorMeta"></div>
           </div>
           <div class="panel-body" id="editor"></div>
@@ -364,10 +449,291 @@
         filter: "",
         file: initialFile,
         registry: { items: [], tags: [] },
-        registryItemsSet: new Set()
+        registryItemsSet: new Set(),
+        lang: "zh-CN",
+        theme: "system"
       };
 
       const TRANSPARENT_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5WvKsAAAAASUVORK5CYII=";
+      const STORAGE_LANG = "shipping_box_web_lang";
+      const STORAGE_THEME = "shipping_box_web_theme";
+
+      const I18N = {
+        "zh-CN": {
+          appTitle: "Shipping Box · 兑换规则编辑器",
+          subTitle: (file) => "本地编辑 · " + file,
+          subTitleFallback: (file) => "本地编辑 · kubejs/data/shipping_box/exchange_rules（如无KubeJS则 config/shipping_box/exchange_rules）/" + file,
+          btnThemeLight: "☀︎",
+          btnThemeDark: "☾",
+          btnLang: "EN",
+          filePlaceholder: "规则文件：editor.json（可带子目录）",
+          btnOpenFile: "打开",
+          btnReload: "从游戏重载",
+          btnRefresh: "刷新",
+          btnNew: "新建",
+          btnDuplicate: "复制",
+          btnDelete: "删除",
+          btnSave: "保存",
+          rulesList: "规则列表",
+          searchPlaceholder: "搜索：物品ID / 标签 / 类型",
+          editor: "编辑",
+          editorRule: "编辑规则",
+          editorMeta: (inputs, mode) => "输入 " + inputs + " 项 · 输出 " + mode,
+          itemSub: (count) => "输入 " + count + " 项 · 点击编辑",
+          helpEmpty: "选择左侧规则，或点击“新建”开始。",
+          inputsLabel: "输入",
+          inputsHelp: "支持 item 或 tag（#minecraft:logs）。components 可填 JSON 或字符串。",
+          addInput: "添加输入",
+          clearInputs: "清空输入",
+          removeInput: "移除该输入",
+          outputLabel: "输出",
+          outputHelp: "选择一种输出模式：item / coin / dynamic_pricing / weight / ecliptic_seasons",
+          jsonPreview: "JSON 预览",
+          jsonHelp: "保存时会写入当前文件，并可通过“从游戏重载”立即生效。",
+          labelType: "类型",
+          labelItemId: "item（命名空间ID）",
+          labelTagId: "tag（命名空间ID）",
+          labelCount: "数量",
+          labelComponents: "components（可选）",
+          placeholderItemId: "minecraft:diamond",
+          placeholderTagId: "#minecraft:logs",
+          placeholderComponentsExampleInput: `{"minecraft:enchantments":{"levels":{"minecraft:sharpness":5}}}`,
+          placeholderComponentsExampleOutput: `{"minecraft:custom_name":"\\\"My Item\\\""}`,
+          placeholderThresholdExample: "0, 100, 250, 500",
+          placeholderValueExample: "8, 6, 4, 2",
+          placeholderSeasonExample: "spring, summer, autumn, winter",
+          kindItem: "item",
+          kindTag: "tag",
+          modeItem: "item",
+          modeCoin: "coin",
+          modeDynamicPricing: "dynamic_pricing",
+          modeWeight: "weight",
+          modeEclipticSeasons: "ecliptic_seasons",
+          badgeRule: "规则",
+          summaryEmpty: "空",
+          summaryCoin: (n) => "coin×" + n,
+          summaryDynamicPricing: (isCoin) => "dynamic_pricing" + (isCoin ? " (coin)" : ""),
+          summaryWeight: (n) => "weight (" + n + ")",
+          summarySeasons: "ecliptic_seasons",
+          summaryOutput: "output",
+          presetsLabel: "组件助手（Presets）",
+          presetsHelp: "点击快速注入常用 components（会与现有内容合并）。",
+          presetsApplied: (name) => "已注入组件 · " + name,
+          presets: {
+            tide: {
+              name: "Tide（鱼类长度）",
+              inject: { "tide:fish_length": "[40.0, 50.0)" }
+            },
+            brewing: {
+              name: "Brewing（酿酒等级）",
+              inject: { "kaleidoscope_tavern:brew_level": 7 }
+            }
+          },
+          coinCount: "coin 数量",
+          outputCoin: "输出为虚拟货币 coin",
+          yes: "是",
+          no: "否",
+          outputItemLabel: "输出 item（命名空间ID）",
+          candidateItemLabel: "候选 item（命名空间ID）",
+          weightLabel: "权重",
+          weightedList: "权重物品列表",
+          weightedHelp: "weight 越大，被抽中的概率越高。",
+          addCandidate: "添加候选",
+          clearCandidates: "清空候选",
+          removeCandidate: "移除该候选",
+          seasonLabel: "season（逗号分隔：spring/summer/autumn/winter/all）",
+          seasonalOnlyLabel: "seasonal_only（仅在指定季节可出售）",
+          addBonusLabel: "add_season_bonus（应季加成百分比）",
+          reduceBonusLabel: "reduce_season_bonus（非应季减益百分比）",
+          dynamicDayLabel: "重置天数 day（-1 永不重置，0 每日，>0 周期）",
+          dynamicThresholdLabel: "threshold（阈值数组）",
+          dynamicValueLabel: "value（价值数组）",
+          qualityLabel: "品质（Quality Food）",
+          qualityHelp: "普通 / 铁 / 金 / 钻石（会写入 quality_food:quality 组件）",
+          qualityNormal: "普通",
+          qualityIron: "铁",
+          qualityGold: "金",
+          qualityDiamond: "钻石",
+          loadFailed: "加载失败",
+          loaded: (n, file) => "已加载 " + n + " 条规则 · " + file,
+          confirmDelete: "确认删除当前规则？",
+          saved: (path) => "已保存 · " + path,
+          saveFailed: "保存失败",
+          reloadQueued: "已触发 /reload（稍等片刻）",
+          missingToken: "缺少 token，无法访问 API。请从游戏内命令打开。",
+          apiLoadFailed: (status) => "加载失败（HTTP " + status + "）",
+          apiRegistryFailed: (status) => "获取注册表失败（HTTP " + status + "）",
+          apiSaveFailed: (status) => "保存失败（HTTP " + status + "）",
+          apiReloadFailed: (status) => "重载失败（HTTP " + status + "）"
+        },
+        "en-US": {
+          appTitle: "Shipping Box · Exchange Rules Editor",
+          subTitle: (file) => "Local edit · " + file,
+          subTitleFallback: (file) => "Local edit · kubejs/data/shipping_box/exchange_rules (fallback: config/shipping_box/exchange_rules)/" + file,
+          btnThemeLight: "☀︎",
+          btnThemeDark: "☾",
+          btnLang: "中文",
+          filePlaceholder: "Rules file: editor.json (subdirs ok)",
+          btnOpenFile: "Open",
+          btnReload: "Reload from game",
+          btnRefresh: "Refresh",
+          btnNew: "New",
+          btnDuplicate: "Duplicate",
+          btnDelete: "Delete",
+          btnSave: "Save",
+          rulesList: "Rules",
+          searchPlaceholder: "Search: item id / tag / type",
+          editor: "Editor",
+          editorRule: "Edit rule",
+          editorMeta: (inputs, mode) => "Inputs " + inputs + " · Output " + mode,
+          itemSub: (count) => "Inputs: " + count + " · Click to edit",
+          helpEmpty: "Select a rule on the left, or click “New” to start.",
+          inputsLabel: "Inputs",
+          inputsHelp: "Supports item or tag (#minecraft:logs). components can be JSON or a string.",
+          addInput: "Add input",
+          clearInputs: "Clear inputs",
+          removeInput: "Remove input",
+          outputLabel: "Output",
+          outputHelp: "Choose an output mode: item / coin / dynamic_pricing / weight / ecliptic_seasons",
+          jsonPreview: "JSON preview",
+          jsonHelp: "Save writes to the current file and “Reload from game” applies it.",
+          labelType: "Type",
+          labelItemId: "item (namespaced id)",
+          labelTagId: "tag (namespaced id)",
+          labelCount: "Count",
+          labelComponents: "components (optional)",
+          placeholderItemId: "minecraft:diamond",
+          placeholderTagId: "#minecraft:logs",
+          placeholderComponentsExampleInput: `{"minecraft:enchantments":{"levels":{"minecraft:sharpness":5}}}`,
+          placeholderComponentsExampleOutput: `{"minecraft:custom_name":"\\\"My Item\\\""}`,
+          placeholderThresholdExample: "0, 100, 250, 500",
+          placeholderValueExample: "8, 6, 4, 2",
+          placeholderSeasonExample: "spring, summer, autumn, winter",
+          kindItem: "item",
+          kindTag: "tag",
+          modeItem: "item",
+          modeCoin: "coin",
+          modeDynamicPricing: "dynamic_pricing",
+          modeWeight: "weight",
+          modeEclipticSeasons: "ecliptic_seasons",
+          badgeRule: "rule",
+          summaryEmpty: "Empty",
+          summaryCoin: (n) => "coin×" + n,
+          summaryDynamicPricing: (isCoin) => "dynamic_pricing" + (isCoin ? " (coin)" : ""),
+          summaryWeight: (n) => "weight (" + n + ")",
+          summarySeasons: "ecliptic_seasons",
+          summaryOutput: "output",
+          presetsLabel: "Components presets",
+          presetsHelp: "Click to inject common components (merged into existing JSON).",
+          presetsApplied: (name) => "Injected · " + name,
+          presets: {
+            tide: {
+              name: "Tide (Fish length)",
+              inject: { "tide:fish_length": "[40.0, 50.0)" }
+            },
+            brewing: {
+              name: "Brewing (Brew level)",
+              inject: { "kaleidoscope_tavern:brew_level": 7 }
+            }
+          },
+          coinCount: "coin amount",
+          outputCoin: "Output as virtual coin",
+          yes: "Yes",
+          no: "No",
+          outputItemLabel: "Output item (namespaced id)",
+          candidateItemLabel: "Candidate item (namespaced id)",
+          weightLabel: "Weight",
+          weightedList: "Weighted items",
+          weightedHelp: "Higher weight means higher probability.",
+          addCandidate: "Add candidate",
+          clearCandidates: "Clear candidates",
+          removeCandidate: "Remove candidate",
+          seasonLabel: "season (comma separated: spring/summer/autumn/winter/all)",
+          seasonalOnlyLabel: "seasonal_only (sell only in specified seasons)",
+          addBonusLabel: "add_season_bonus (in-season bonus %)",
+          reduceBonusLabel: "reduce_season_bonus (off-season penalty %)",
+          dynamicDayLabel: "day (-1 never, 0 daily, >0 period)",
+          dynamicThresholdLabel: "threshold (array)",
+          dynamicValueLabel: "value (array)",
+          qualityLabel: "Quality (Quality Food)",
+          qualityHelp: "Normal / Iron / Gold / Diamond (writes quality_food:quality)",
+          qualityNormal: "Normal",
+          qualityIron: "Iron",
+          qualityGold: "Gold",
+          qualityDiamond: "Diamond",
+          loadFailed: "Load failed",
+          loaded: (n, file) => "Loaded " + n + " rules · " + file,
+          confirmDelete: "Delete this rule?",
+          saved: (path) => "Saved · " + path,
+          saveFailed: "Save failed",
+          reloadQueued: "Reload queued (wait a moment)",
+          missingToken: "Missing token. Please open from the in-game command.",
+          apiLoadFailed: (status) => "Load failed (HTTP " + status + ")",
+          apiRegistryFailed: (status) => "Registry fetch failed (HTTP " + status + ")",
+          apiSaveFailed: (status) => "Save failed (HTTP " + status + ")",
+          apiReloadFailed: (status) => "Reload failed (HTTP " + status + ")"
+        }
+      };
+
+      function currentLang() {
+        return I18N[state.lang] ? state.lang : "en-US";
+      }
+
+      function t(key, ...args) {
+        const dict = I18N[currentLang()];
+        const path = String(key || "").split(".").filter(Boolean);
+        let v = dict;
+        for (const part of path) {
+          if (v && typeof v === "object" && part in v) v = v[part];
+          else { v = undefined; break; }
+        }
+        if (typeof v === "function") return v(...args);
+        return v || "";
+      }
+
+      function detectDefaultLang() {
+        const stored = localStorage.getItem(STORAGE_LANG);
+        if (stored === "zh-CN" || stored === "en-US") return stored;
+        const nav = (navigator.language || "").toLowerCase();
+        if (nav.startsWith("zh")) return "zh-CN";
+        return "en-US";
+      }
+
+      function detectDefaultThemePref() {
+        const stored = localStorage.getItem(STORAGE_THEME);
+        if (stored === "light" || stored === "dark" || stored === "system") return stored;
+        return "system";
+      }
+
+      function getSystemTheme() {
+        return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+
+      function applyTheme() {
+        const pref = state.theme || "system";
+        const actual = pref === "system" ? getSystemTheme() : pref;
+        document.documentElement.dataset.theme = actual;
+        const btn = $("btnTheme");
+        if (btn) btn.textContent = actual === "light" ? t("btnThemeDark") : t("btnThemeLight");
+      }
+
+      function applyI18nStatic() {
+        document.documentElement.lang = currentLang();
+        document.title = t("appTitle");
+        $("brandTitle").textContent = t("appTitle");
+        $("btnLang").textContent = t("btnLang");
+        $("filePath").placeholder = t("filePlaceholder");
+        $("btnOpenFile").textContent = t("btnOpenFile");
+        $("btnReloadFromGame").textContent = t("btnReload");
+        $("btnRefresh").textContent = t("btnRefresh");
+        $("btnNew").textContent = t("btnNew");
+        $("btnDuplicate").textContent = t("btnDuplicate");
+        $("btnDelete").textContent = t("btnDelete");
+        $("btnSave").textContent = t("btnSave");
+        $("rulesPanelTitle").textContent = t("rulesList");
+        $("search").placeholder = t("searchPlaceholder");
+        if (!$("editorMeta").textContent) $("editorTitle").textContent = t("editor");
+      }
 
       function toast(message, kind = "ok") {
         const el = $("toast");
@@ -376,6 +742,16 @@
         setTimeout(() => {
           el.className = "toast";
         }, 2600);
+      }
+
+      function modeLabel(mode) {
+        const m = String(mode || "");
+        if (m === "item") return t("modeItem");
+        if (m === "coin") return t("modeCoin");
+        if (m === "dynamic_pricing") return t("modeDynamicPricing");
+        if (m === "weight") return t("modeWeight");
+        if (m === "ecliptic_seasons") return t("modeEclipticSeasons");
+        return m || t("badgeRule");
       }
 
       function summarizeRule(r) {
@@ -388,14 +764,14 @@
 
         const o = r.output || {};
         let outText = "";
-        if (o.mode === "coin") outText = "coin×" + Number(o.count || 0);
+        if (o.mode === "coin") outText = t("summaryCoin", Number(o.count || 0));
         else if (o.mode === "item") outText = (o.item || "").trim() + "×" + Number(o.count || 1);
-        else if (o.mode === "dynamic_pricing") outText = "dynamic_pricing" + (o.coin ? " (coin)" : "");
-        else if (o.mode === "weight") outText = "weight (" + (o.items || []).length + ")";
-        else if (o.mode === "ecliptic_seasons") outText = "ecliptic_seasons";
-        else outText = "output";
+        else if (o.mode === "dynamic_pricing") outText = t("summaryDynamicPricing", Boolean(o.coin));
+        else if (o.mode === "weight") outText = t("summaryWeight", (o.items || []).length);
+        else if (o.mode === "ecliptic_seasons") outText = t("summarySeasons");
+        else outText = t("summaryOutput");
 
-        return (inParts.join(" + ") || "空") + " → " + outText;
+        return (inParts.join(" + ") || t("summaryEmpty")) + " → " + outText;
       }
 
       function parseMaybeJson(text) {
@@ -406,13 +782,6 @@
         }
         return t;
       }
-
-      const QUALITY_FOOD_OPTIONS = [
-        { label: "普通", value: "normal" },
-        { label: "铁", value: "iron" },
-        { label: "金", value: "gold" },
-        { label: "钻石", value: "diamond" }
-      ];
 
       function qualityFoodComponent(value) {
         if (value === "diamond") return { level: 3, type: "quality_food:diamond" };
@@ -429,6 +798,22 @@
         return null;
       }
 
+      function mergeComponentTemplate(currentText, newJson) {
+        const base = componentsObjectFromText(currentText) || {};
+        const merged = Object.assign({}, base, (newJson && typeof newJson === "object" ? newJson : {}));
+        const keys = Object.keys(merged);
+        if (keys.length === 0) return "";
+        return JSON.stringify(merged, null, 2);
+      }
+
+      function removeComponentKey(currentText, key) {
+        const base = componentsObjectFromText(currentText) || {};
+        delete base[key];
+        const keys = Object.keys(base);
+        if (keys.length === 0) return "";
+        return JSON.stringify(base, null, 2);
+      }
+
       function getQualityFoodFromComponentsText(text) {
         const obj = componentsObjectFromText(text);
         if (!obj) return "normal";
@@ -442,27 +827,81 @@
       }
 
       function setQualityFoodInComponentsText(text, quality) {
-        const obj = componentsObjectFromText(text) || {};
         if (quality === "normal") {
-          delete obj["quality_food:quality"];
+          return removeComponentKey(text, "quality_food:quality");
         } else {
           const q = qualityFoodComponent(quality);
-          if (q) obj["quality_food:quality"] = q;
+          if (q) return mergeComponentTemplate(text, { "quality_food:quality": q });
         }
-        const keys = Object.keys(obj);
-        if (keys.length === 0) return "";
-        return JSON.stringify(obj, null, 2);
+        return String(text || "");
       }
 
       function renderQualityFoodField(currentComponentsText, onSelect) {
         const field = document.createElement("div");
         field.className = "field";
-        field.innerHTML = `<div class="label">品质（Quality Food）</div><div class="help">普通 / 铁 / 金 / 钻石（会写入 quality_food:quality 组件）</div>`;
+        field.innerHTML = `<div class="label">${escapeHtml(t("qualityLabel"))}</div><div class="help">${escapeHtml(t("qualityHelp"))}</div>`;
         field.appendChild(chipGroup(
-          QUALITY_FOOD_OPTIONS,
+          [
+            { label: t("qualityNormal"), value: "normal" },
+            { label: t("qualityIron"), value: "iron" },
+            { label: t("qualityGold"), value: "gold" },
+            { label: t("qualityDiamond"), value: "diamond" }
+          ],
           getQualityFoodFromComponentsText(currentComponentsText),
           onSelect
         ));
+        return field;
+      }
+
+      function renderPresetsField(currentComponentsText, onApply) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(t("presetsLabel"))}</div><div class="help">${escapeHtml(t("presetsHelp"))}</div>`;
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const presets = [
+          { key: "tide", name: t("presets.tide.name"), inject: I18N[currentLang()]?.presets?.tide?.inject },
+          { key: "brewing", name: t("presets.brewing.name"), inject: I18N[currentLang()]?.presets?.brewing?.inject }
+        ];
+
+        for (const p of presets) {
+          const btn = document.createElement("div");
+          btn.className = "chip";
+          btn.textContent = p.name;
+          btn.onclick = () => {
+            const next = mergeComponentTemplate(currentComponentsText, p.inject || {});
+            onApply(next);
+            toast(t("presetsApplied", p.name), "ok");
+          };
+          row.appendChild(btn);
+        }
+        field.appendChild(row);
+
+        const qualityBlock = document.createElement("div");
+        qualityBlock.className = "field";
+        qualityBlock.innerHTML = `<div class="label">${escapeHtml(t("qualityLabel"))}</div><div class="help">${escapeHtml(t("qualityHelp"))}</div>`;
+        qualityBlock.appendChild(chipGroup(
+          [
+            { label: t("qualityNormal"), value: "normal" },
+            { label: t("qualityIron"), value: "iron" },
+            { label: t("qualityGold"), value: "gold" },
+            { label: t("qualityDiamond"), value: "diamond" }
+          ],
+          getQualityFoodFromComponentsText(currentComponentsText),
+          (v) => {
+            const next = setQualityFoodInComponentsText(currentComponentsText, v);
+            onApply(next);
+            const name = t("qualityLabel") + " - " + (
+              v === "iron" ? t("qualityIron") :
+              v === "gold" ? t("qualityGold") :
+              v === "diamond" ? t("qualityDiamond") :
+              t("qualityNormal")
+            );
+            toast(t("presetsApplied", name), "ok");
+          }
+        ));
+        field.appendChild(qualityBlock);
         return field;
       }
 
@@ -632,14 +1071,14 @@
           el.onclick = () => setSelected(r.id);
 
           const title = summarizeRule(r);
-          const badgeText = r.output && r.output.mode ? r.output.mode : "rule";
+          const badgeText = r.output && r.output.mode ? modeLabel(r.output.mode) : t("badgeRule");
 
           el.innerHTML = `
             <div class="item-top">
               <div class="item-title">${escapeHtml(title)}</div>
               <div class="badge">${escapeHtml(badgeText)}</div>
             </div>
-            <div class="item-sub">输入 ${r.inputs.length} 项 · 点击编辑</div>
+            <div class="item-sub">${escapeHtml(t("itemSub", r.inputs.length))}</div>
           `;
           list.appendChild(el);
         }
@@ -714,22 +1153,22 @@
         const r = selectedRule();
         if (!r) {
           editor.innerHTML = `
-            <div class="help">选择左侧规则，或点击“新建”开始。</div>
+            <div class="help">${escapeHtml(t("helpEmpty"))}</div>
           `;
-          $("editorTitle").textContent = "编辑";
+          $("editorTitle").textContent = t("editor");
           $("editorMeta").textContent = "";
           return;
         }
 
-        $("editorTitle").textContent = "编辑规则";
-        $("editorMeta").textContent = "输入 " + r.inputs.length + " 项 · 输出 " + (r.output && r.output.mode ? r.output.mode : "");
+        $("editorTitle").textContent = t("editorRule");
+        $("editorMeta").textContent = t("editorMeta", r.inputs.length, modeLabel(r.output && r.output.mode ? r.output.mode : ""));
 
         const root = document.createElement("div");
         root.className = "grid";
 
         const inputsHeader = document.createElement("div");
         inputsHeader.className = "field";
-        inputsHeader.innerHTML = `<div class="label">输入</div><div class="help">支持 item 或 tag（#minecraft:logs）。components 可填 JSON 或字符串。</div>`;
+        inputsHeader.innerHTML = `<div class="label">${escapeHtml(t("inputsLabel"))}</div><div class="help">${escapeHtml(t("inputsHelp"))}</div>`;
         root.appendChild(inputsHeader);
 
         const inputBtns = document.createElement("div");
@@ -738,14 +1177,14 @@
         row.className = "row";
         const addItem = document.createElement("button");
         addItem.className = "btn";
-        addItem.textContent = "添加输入";
+        addItem.textContent = t("addInput");
         addItem.onclick = () => {
           r.inputs.push({ kind: "item", value: "", count: 1, componentsText: "" });
           render();
         };
         const clearInputs = document.createElement("button");
         clearInputs.className = "btn ghost";
-        clearInputs.textContent = "清空输入";
+        clearInputs.textContent = t("clearInputs");
         clearInputs.onclick = () => {
           r.inputs = [];
           render();
@@ -758,9 +1197,9 @@
         r.inputs.forEach((inp, idx) => {
           const kindField = document.createElement("div");
           kindField.className = "field third";
-          kindField.innerHTML = `<div class="label">类型</div>`;
+          kindField.innerHTML = `<div class="label">${escapeHtml(t("labelType"))}</div>`;
           kindField.appendChild(chipGroup(
-            [{ label: "item", value: "item" }, { label: "tag", value: "tag" }],
+            [{ label: t("kindItem"), value: "item" }, { label: t("kindTag"), value: "tag" }],
             inp.kind,
             (v) => { inp.kind = v; render(); }
           ));
@@ -769,10 +1208,10 @@
           const valueField = document.createElement("div");
           valueField.className = "field";
           valueField.style.gridColumn = "span 6";
-          valueField.innerHTML = `<div class="label">${inp.kind === "tag" ? "tag" : "item"}（命名空间ID）</div>`;
+          valueField.innerHTML = `<div class="label">${escapeHtml(inp.kind === "tag" ? t("labelTagId") : t("labelItemId"))}</div>`;
           const valueInput = document.createElement("input");
           valueInput.className = "input";
-          valueInput.placeholder = inp.kind === "tag" ? "#minecraft:logs" : "minecraft:diamond";
+          valueInput.placeholder = inp.kind === "tag" ? t("placeholderTagId") : t("placeholderItemId");
           valueInput.value = inp.value || "";
           valueInput.setAttribute("list", inp.kind === "tag" ? "dlTags" : "dlItems");
           valueInput.oninput = (e) => { inp.value = e.target.value; renderList(); };
@@ -791,7 +1230,7 @@
 
           const countField = document.createElement("div");
           countField.className = "field third";
-          countField.innerHTML = `<div class="label">数量</div>`;
+          countField.innerHTML = `<div class="label">${escapeHtml(t("labelCount"))}</div>`;
           const countInput = document.createElement("input");
           countInput.className = "input";
           countInput.type = "number";
@@ -802,29 +1241,25 @@
           countField.appendChild(countInput);
           root.appendChild(countField);
 
-          if (inp.kind === "item") {
-            const qField = renderQualityFoodField(inp.componentsText, (v) => {
-              inp.componentsText = setQualityFoodInComponentsText(inp.componentsText, v);
-              render();
-            });
-            root.appendChild(qField);
-          }
+        // Quality moved into presets panel below
 
           const compField = document.createElement("div");
           compField.className = "field";
-          compField.innerHTML = `<div class="label">components（可选）</div>`;
+          compField.innerHTML = `<div class="label">${escapeHtml(t("labelComponents"))}</div>`;
           const comp = document.createElement("textarea");
           comp.className = "textarea";
-          comp.placeholder = `{"minecraft:enchantments":{"levels":{"minecraft:sharpness":5}}}`;
+          comp.placeholder = t("placeholderComponentsExampleInput");
           comp.value = inp.componentsText || "";
           comp.oninput = (e) => { inp.componentsText = e.target.value; };
           compField.appendChild(comp);
+          const presetsField = renderPresetsField(inp.componentsText, (next) => { inp.componentsText = next; render(); });
+          compField.appendChild(presetsField);
 
           const removeRow = document.createElement("div");
           removeRow.className = "row";
           const removeBtn = document.createElement("button");
           removeBtn.className = "btn danger";
-          removeBtn.textContent = "移除该输入";
+          removeBtn.textContent = t("removeInput");
           removeBtn.onclick = () => {
             r.inputs.splice(idx, 1);
             render();
@@ -841,18 +1276,18 @@
 
         const outHeader = document.createElement("div");
         outHeader.className = "field";
-        outHeader.innerHTML = `<div class="label">输出</div><div class="help">选择一种输出模式：item / coin / dynamic_pricing / weight / ecliptic_seasons</div>`;
+        outHeader.innerHTML = `<div class="label">${escapeHtml(t("outputLabel"))}</div><div class="help">${escapeHtml(t("outputHelp"))}</div>`;
         root.appendChild(outHeader);
 
         const outModeField = document.createElement("div");
         outModeField.className = "field";
         outModeField.appendChild(chipGroup(
           [
-            { label: "item", value: "item" },
-            { label: "coin", value: "coin" },
-            { label: "dynamic_pricing", value: "dynamic_pricing" },
-            { label: "weight", value: "weight" },
-            { label: "ecliptic_seasons", value: "ecliptic_seasons" }
+            { label: t("modeItem"), value: "item" },
+            { label: t("modeCoin"), value: "coin" },
+            { label: t("modeDynamicPricing"), value: "dynamic_pricing" },
+            { label: t("modeWeight"), value: "weight" },
+            { label: t("modeEclipticSeasons"), value: "ecliptic_seasons" }
           ],
           r.output.mode,
           (v) => {
@@ -860,7 +1295,7 @@
             else if (v === "coin") r.output = { mode: "coin", count: 0 };
             else if (v === "dynamic_pricing") r.output = { mode: "dynamic_pricing", coin: false, item: "", day: 0, thresholdText: "", valueText: "" };
             else if (v === "weight") r.output = { mode: "weight", items: [{ item: "", count: 1, weight: 1, componentsText: "" }] };
-            else r.output = { mode: "ecliptic_seasons", item: "", count: 1, componentsText: "", seasonalOnly: false, seasonText: "spring, summer, autumn, winter", addBonus: 0, reduceBonus: 0 };
+            else r.output = { mode: "ecliptic_seasons", item: "", count: 1, componentsText: "", seasonalOnly: false, seasonText: t("placeholderSeasonExample"), addBonus: 0, reduceBonus: 0 };
             render();
           }
         ));
@@ -870,7 +1305,7 @@
 
         const jsonField = document.createElement("div");
         jsonField.className = "field";
-        jsonField.innerHTML = `<div class="label">JSON 预览</div><div class="help">保存时会写入 editor.json，并可通过“从游戏重载”立即生效。</div>`;
+        jsonField.innerHTML = `<div class="label">${escapeHtml(t("jsonPreview"))}</div><div class="help">${escapeHtml(t("jsonHelp"))}</div>`;
         const preview = document.createElement("textarea");
         preview.className = "textarea";
         preview.readOnly = true;
@@ -885,50 +1320,47 @@
       function renderOutputDetails(root, r) {
         const o = r.output || {};
         if (o.mode === "coin") {
-          const count = fieldNumber("coin 数量", o.count, 0, 0, (v) => { o.count = v; renderList(); renderEditor(); });
+          const count = fieldNumber(t("coinCount"), o.count, 0, 0, (v) => { o.count = v; renderList(); renderEditor(); });
           root.appendChild(count);
           return;
         }
 
         if (o.mode === "item") {
-          const item = fieldText("item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
+          const item = fieldText(t("labelItemId"), o.item, t("placeholderItemId"), (v) => { o.item = v; renderList(); }, "dlItems");
           item.classList.add("half");
           root.appendChild(item);
-          const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
+          const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; renderList(); });
           count.classList.add("half");
           root.appendChild(count);
-          const qField = renderQualityFoodField(o.componentsText, (v) => {
-            o.componentsText = setQualityFoodInComponentsText(o.componentsText, v);
-            render();
-          });
-          root.appendChild(qField);
-          const comp = fieldTextarea("components（可选）", o.componentsText, `{"minecraft:custom_name":"\\\"My Item\\\""}`, (v) => { o.componentsText = v; });
+          const comp = fieldTextarea(t("labelComponents"), o.componentsText, t("placeholderComponentsExampleOutput"), (v) => { o.componentsText = v; });
           root.appendChild(comp);
+          const presets = renderPresetsField(o.componentsText, (next) => { o.componentsText = next; render(); });
+          root.appendChild(presets);
           return;
         }
 
         if (o.mode === "dynamic_pricing") {
           const coinToggle = document.createElement("div");
           coinToggle.className = "field";
-          coinToggle.innerHTML = `<div class="label">输出为虚拟货币 coin</div>`;
+          coinToggle.innerHTML = `<div class="label">${escapeHtml(t("outputCoin"))}</div>`;
           coinToggle.appendChild(chipGroup(
-            [{ label: "否", value: "no" }, { label: "是", value: "yes" }],
+            [{ label: t("no"), value: "no" }, { label: t("yes"), value: "yes" }],
             o.coin ? "yes" : "no",
             (v) => { o.coin = (v === "yes"); render(); }
           ));
           root.appendChild(coinToggle);
 
           if (!o.coin) {
-            const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
+            const item = fieldText(t("outputItemLabel"), o.item, t("placeholderItemId"), (v) => { o.item = v; renderList(); }, "dlItems");
             root.appendChild(item);
           }
 
-          const day = fieldNumber("重置天数 day（-1 永不重置，0 每日，>0 周期）", o.day, 0, -1, (v) => { o.day = v; });
+          const day = fieldNumber(t("dynamicDayLabel"), o.day, 0, -1, (v) => { o.day = v; });
           root.appendChild(day);
 
-          const th = fieldTextarea("threshold（阈值数组）", o.thresholdText, "0, 100, 250, 500", (v) => { o.thresholdText = v; });
+          const th = fieldTextarea(t("dynamicThresholdLabel"), o.thresholdText, t("placeholderThresholdExample"), (v) => { o.thresholdText = v; });
           root.appendChild(th);
-          const val = fieldTextarea("value（价值数组）", o.valueText, "8, 6, 4, 2", (v) => { o.valueText = v; });
+          const val = fieldTextarea(t("dynamicValueLabel"), o.valueText, t("placeholderValueExample"), (v) => { o.valueText = v; });
           root.appendChild(val);
           return;
         }
@@ -936,7 +1368,7 @@
         if (o.mode === "weight") {
           const header = document.createElement("div");
           header.className = "field";
-          header.innerHTML = `<div class="label">权重物品列表</div><div class="help">weight 越大，被抽中的概率越高。</div>`;
+          header.innerHTML = `<div class="label">${escapeHtml(t("weightedList"))}</div><div class="help">${escapeHtml(t("weightedHelp"))}</div>`;
           root.appendChild(header);
 
           const row = document.createElement("div");
@@ -945,11 +1377,11 @@
           buttons.className = "row";
           const add = document.createElement("button");
           add.className = "btn";
-          add.textContent = "添加候选";
+          add.textContent = t("addCandidate");
           add.onclick = () => { o.items.push({ item: "", count: 1, weight: 1, componentsText: "" }); render(); };
           const clear = document.createElement("button");
           clear.className = "btn ghost";
-          clear.textContent = "清空候选";
+          clear.textContent = t("clearCandidates");
           clear.onclick = () => { o.items = []; render(); };
           buttons.appendChild(add);
           buttons.appendChild(clear);
@@ -957,22 +1389,19 @@
           root.appendChild(row);
 
           o.items.forEach((w, idx) => {
-            const item = fieldText("候选 item（命名空间ID）", w.item, "minecraft:diamond", (v) => { w.item = v; renderList(); }, "dlItems");
+            const item = fieldText(t("candidateItemLabel"), w.item, t("placeholderItemId"), (v) => { w.item = v; renderList(); }, "dlItems");
             item.classList.add("half");
             root.appendChild(item);
-            const count = fieldNumber("数量", w.count, 1, 1, (v) => { w.count = v; });
+            const count = fieldNumber(t("labelCount"), w.count, 1, 1, (v) => { w.count = v; });
             count.classList.add("third");
             root.appendChild(count);
-            const weight = fieldNumber("权重", w.weight, 1, 1, (v) => { w.weight = v; });
+            const weight = fieldNumber(t("weightLabel"), w.weight, 1, 1, (v) => { w.weight = v; });
             weight.classList.add("third");
             root.appendChild(weight);
-            const qField = renderQualityFoodField(w.componentsText, (v) => {
-              w.componentsText = setQualityFoodInComponentsText(w.componentsText, v);
-              render();
-            });
-            root.appendChild(qField);
-            const comp = fieldTextarea("components（可选）", w.componentsText, "", (v) => { w.componentsText = v; });
+            const comp = fieldTextarea(t("labelComponents"), w.componentsText, "", (v) => { w.componentsText = v; });
             root.appendChild(comp);
+            const presets = renderPresetsField(w.componentsText, (next) => { w.componentsText = next; render(); });
+            root.appendChild(presets);
 
             const remove = document.createElement("div");
             remove.className = "field";
@@ -980,7 +1409,7 @@
             rr.className = "row";
             const btn = document.createElement("button");
             btn.className = "btn danger";
-            btn.textContent = "移除该候选";
+            btn.textContent = t("removeCandidate");
             btn.onclick = () => { o.items.splice(idx, 1); render(); };
             rr.appendChild(btn);
             remove.appendChild(rr);
@@ -995,40 +1424,36 @@
         }
 
         if (o.mode === "ecliptic_seasons") {
-          const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
+          const item = fieldText(t("outputItemLabel"), o.item, t("placeholderItemId"), (v) => { o.item = v; renderList(); }, "dlItems");
           item.classList.add("half");
           root.appendChild(item);
-          const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
+          const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; renderList(); });
           count.classList.add("half");
           root.appendChild(count);
-          const qField = renderQualityFoodField(o.componentsText, (v) => {
-            o.componentsText = setQualityFoodInComponentsText(o.componentsText, v);
-            render();
-          });
-          root.appendChild(qField);
-
-          const seasons = fieldText("season（逗号分隔：spring/summer/autumn/winter/all）", o.seasonText, "spring, summer, autumn, winter", (v) => { o.seasonText = v; });
+          const seasons = fieldText(t("seasonLabel"), o.seasonText, t("placeholderSeasonExample"), (v) => { o.seasonText = v; });
           root.appendChild(seasons);
 
           const seasonalOnly = document.createElement("div");
           seasonalOnly.className = "field";
-          seasonalOnly.innerHTML = `<div class="label">seasonal_only（仅在指定季节可出售）</div>`;
+          seasonalOnly.innerHTML = `<div class="label">${escapeHtml(t("seasonalOnlyLabel"))}</div>`;
           seasonalOnly.appendChild(chipGroup(
-            [{ label: "否", value: "no" }, { label: "是", value: "yes" }],
+            [{ label: t("no"), value: "no" }, { label: t("yes"), value: "yes" }],
             o.seasonalOnly ? "yes" : "no",
             (v) => { o.seasonalOnly = (v === "yes"); }
           ));
           root.appendChild(seasonalOnly);
 
-          const addBonus = fieldNumber("add_season_bonus（应季加成百分比）", o.addBonus, 0, 0, (v) => { o.addBonus = v; });
+          const addBonus = fieldNumber(t("addBonusLabel"), o.addBonus, 0, 0, (v) => { o.addBonus = v; });
           addBonus.classList.add("half");
           root.appendChild(addBonus);
-          const reduceBonus = fieldNumber("reduce_season_bonus（非应季减益百分比）", o.reduceBonus, 0, 0, (v) => { o.reduceBonus = v; });
+          const reduceBonus = fieldNumber(t("reduceBonusLabel"), o.reduceBonus, 0, 0, (v) => { o.reduceBonus = v; });
           reduceBonus.classList.add("half");
           root.appendChild(reduceBonus);
 
-          const comp = fieldTextarea("components（可选）", o.componentsText, "", (v) => { o.componentsText = v; });
+          const comp = fieldTextarea(t("labelComponents"), o.componentsText, "", (v) => { o.componentsText = v; });
           root.appendChild(comp);
+          const presets = renderPresetsField(o.componentsText, (next) => { o.componentsText = next; render(); });
+          root.appendChild(presets);
           return;
         }
       }
@@ -1091,18 +1516,18 @@
       }
 
       function setSubtitle() {
-        $("subTitle").textContent = "本地编辑 · " + "kubejs/data/shipping_box/exchange_rules（如无KubeJS则 config/shipping_box/exchange_rules）/" + (state.file || "editor.json");
+        $("subTitle").textContent = t("subTitleFallback", (state.file || "editor.json"));
       }
 
       async function apiLoadFile(file) {
         const res = await fetch("/api/load?token=" + encodeURIComponent(token) + "&file=" + encodeURIComponent(file), { method: "GET" });
-        if (!res.ok) throw new Error("GET /api/load failed: " + res.status);
+        if (!res.ok) throw new Error(t("apiLoadFailed", res.status));
         return await res.json();
       }
 
       async function loadRegistry() {
         const res = await fetch("/api/registry?token=" + encodeURIComponent(token), { method: "GET" });
-        if (!res.ok) throw new Error("GET /api/registry failed: " + res.status);
+        if (!res.ok) throw new Error(t("apiRegistryFailed", res.status));
         const json = await res.json();
         state.registry.items = Array.isArray(json.items) ? json.items : [];
         state.registry.tags = Array.isArray(json.tags) ? json.tags : [];
@@ -1137,13 +1562,13 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error("POST /api/save failed: " + res.status);
+        if (!res.ok) throw new Error(t("apiSaveFailed", res.status));
         return await res.json();
       }
 
       async function apiReloadGame() {
         const res = await fetch("/api/reload?token=" + encodeURIComponent(token), { method: "POST" });
-        if (!res.ok) throw new Error("POST /api/reload failed: " + res.status);
+        if (!res.ok) throw new Error(t("apiReloadFailed", res.status));
         return await res.json();
       }
 
@@ -1151,7 +1576,7 @@
         setSubtitle();
         const json = await apiLoadFile(state.file || "editor.json");
         if (json && json.ok === false) {
-          toast(String(json.error || "加载失败"), "bad");
+          toast(String(json.error || t("loadFailed")), "bad");
           state.rules = [];
           state.selectedId = null;
           render();
@@ -1161,7 +1586,40 @@
         state.rules = raw.map((r, idx) => fromJsonRule(r, idx));
         if (!state.selectedId && state.rules.length) state.selectedId = state.rules[0].id;
         render();
-        toast("已加载 " + state.rules.length + " 条规则 · " + (state.file || "editor.json"), "ok");
+        toast(t("loaded", state.rules.length, (state.file || "editor.json")), "ok");
+      }
+
+      state.lang = detectDefaultLang();
+      state.theme = detectDefaultThemePref();
+      applyI18nStatic();
+      applyTheme();
+      setSubtitle();
+
+      $("btnLang").onclick = () => {
+        state.lang = state.lang === "zh-CN" ? "en-US" : "zh-CN";
+        localStorage.setItem(STORAGE_LANG, state.lang);
+        applyI18nStatic();
+        applyTheme();
+        setSubtitle();
+        render();
+      };
+
+      $("btnTheme").onclick = () => {
+        const currentActual = (state.theme === "system" ? getSystemTheme() : state.theme);
+        state.theme = currentActual === "light" ? "dark" : "light";
+        localStorage.setItem(STORAGE_THEME, state.theme);
+        applyTheme();
+      };
+
+      if (window.matchMedia) {
+        const media = window.matchMedia("(prefers-color-scheme: light)");
+        const listener = () => {
+          if (state.theme === "system") {
+            applyTheme();
+          }
+        };
+        if (media.addEventListener) media.addEventListener("change", listener);
+        else if (media.addListener) media.addListener(listener);
       }
 
       $("search").addEventListener("input", (e) => {
@@ -1194,7 +1652,7 @@
       $("btnDelete").onclick = () => {
         const r = selectedRule();
         if (!r) return;
-        if (!confirm("确认删除当前规则？")) return;
+        if (!confirm(t("confirmDelete"))) return;
         const idx = state.rules.findIndex((x) => x.id === r.id);
         if (idx >= 0) state.rules.splice(idx, 1);
         state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
@@ -1206,9 +1664,9 @@
           const payload = { rules: state.rules.map(toJsonRule) };
           const res = await apiSaveRules(payload);
           if (res && res.ok) {
-            toast("已保存 · " + (res.savedPath || state.file), "ok");
+            toast(t("saved", (res.savedPath || state.file)), "ok");
           } else {
-            toast(String((res && res.error) || "保存失败"), "bad");
+            toast(String((res && res.error) || t("saveFailed")), "bad");
           }
         } catch (e) {
           toast(String(e.message || e), "bad");
@@ -1218,14 +1676,14 @@
       $("btnReloadFromGame").onclick = async () => {
         try {
           await apiReloadGame();
-          toast("已触发 /reload（稍等片刻）", "ok");
+          toast(t("reloadQueued"), "ok");
         } catch (e) {
           toast(String(e.message || e), "bad");
         }
       };
 
       if (!token) {
-        toast("缺少 token，无法访问 API。请从游戏内命令打开。", "bad");
+        toast(t("missingToken"), "bad");
       } else {
         $("filePath").value = state.file || "editor.json";
         setSubtitle();
