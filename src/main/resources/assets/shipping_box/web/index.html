@@ -325,6 +325,9 @@
       </div>
     </div>
 
+    <datalist id="dlItems"></datalist>
+    <datalist id="dlTags"></datalist>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -336,7 +339,8 @@
         rules: [],
         selectedId: null,
         filter: "",
-        file: initialFile
+        file: initialFile,
+        registry: { items: [], tags: [] }
       };
 
       function toast(message, kind = "ok") {
@@ -350,10 +354,10 @@
 
       function summarizeRule(r) {
         const inParts = (r.inputs || []).map((i) => {
-          const prefix = i.kind === "tag" ? "#" : "";
-          const name = (i.value || "").trim();
+          let name = (i.value || "").trim();
+          if (i.kind === "tag" && name && !name.startsWith("#")) name = "#" + name;
           const count = Number(i.count || 1);
-          return prefix + name + (count !== 1 ? "×" + count : "");
+          return name + (count !== 1 ? "×" + count : "");
         }).filter(Boolean);
 
         const o = r.output || {};
@@ -377,6 +381,65 @@
         return t;
       }
 
+      const QUALITY_FOOD_OPTIONS = [
+        { label: "普通", value: "normal" },
+        { label: "铁", value: "iron" },
+        { label: "金", value: "gold" },
+        { label: "钻石", value: "diamond" }
+      ];
+
+      function qualityFoodComponent(value) {
+        if (value === "diamond") return { level: 3, type: "quality_food:diamond" };
+        if (value === "gold") return { level: 2, type: "quality_food:gold" };
+        if (value === "iron") return { level: 1, type: "quality_food:iron" };
+        return null;
+      }
+
+      function componentsObjectFromText(text) {
+        const parsed = parseMaybeJson(text);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed;
+        }
+        return null;
+      }
+
+      function getQualityFoodFromComponentsText(text) {
+        const obj = componentsObjectFromText(text);
+        if (!obj) return "normal";
+        const q = obj["quality_food:quality"];
+        if (!q || typeof q !== "object") return "normal";
+        const type = String(q.type || "");
+        if (type === "quality_food:diamond") return "diamond";
+        if (type === "quality_food:gold") return "gold";
+        if (type === "quality_food:iron") return "iron";
+        return "normal";
+      }
+
+      function setQualityFoodInComponentsText(text, quality) {
+        const obj = componentsObjectFromText(text) || {};
+        if (quality === "normal") {
+          delete obj["quality_food:quality"];
+        } else {
+          const q = qualityFoodComponent(quality);
+          if (q) obj["quality_food:quality"] = q;
+        }
+        const keys = Object.keys(obj);
+        if (keys.length === 0) return "";
+        return JSON.stringify(obj, null, 2);
+      }
+
+      function renderQualityFoodField(currentComponentsText, onSelect) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">品质（Quality Food）</div><div class="help">普通 / 铁 / 金 / 钻石（会写入 quality_food:quality 组件）</div>`;
+        field.appendChild(chipGroup(
+          QUALITY_FOOD_OPTIONS,
+          getQualityFoodFromComponentsText(currentComponentsText),
+          onSelect
+        ));
+        return field;
+      }
+
       function parseIntList(text) {
         const parts = String(text || "")
           .split(/[\s,]+/g)
@@ -397,7 +460,7 @@
         const inputsArr = Array.isArray(inputRaw) ? inputRaw : (inputRaw ? [inputRaw] : []);
         const inputs = inputsArr.map((i) => ({
           kind: i.tag ? "tag" : "item",
-          value: (i.tag || i.item || "").replace(/^#/, ""),
+          value: i.tag ? (String(i.tag || "").startsWith("#") ? String(i.tag) : ("#" + String(i.tag || ""))) : (i.item || ""),
           count: Number(i.count || 1),
           componentsText: (typeof i.components === "object") ? JSON.stringify(i.components, null, 2) : (i.components || "")
         }));
@@ -640,8 +703,9 @@
           valueField.innerHTML = `<div class="label">${inp.kind === "tag" ? "tag" : "item"}（命名空间ID）</div>`;
           const valueInput = document.createElement("input");
           valueInput.className = "input";
-          valueInput.placeholder = inp.kind === "tag" ? "minecraft:logs" : "minecraft:diamond";
+          valueInput.placeholder = inp.kind === "tag" ? "#minecraft:logs" : "minecraft:diamond";
           valueInput.value = inp.value || "";
+          valueInput.setAttribute("list", inp.kind === "tag" ? "dlTags" : "dlItems");
           valueInput.oninput = (e) => { inp.value = e.target.value; renderList(); };
           valueField.appendChild(valueInput);
           root.appendChild(valueField);
@@ -658,6 +722,14 @@
           countInput.oninput = (e) => { inp.count = Number(e.target.value || 1); renderList(); };
           countField.appendChild(countInput);
           root.appendChild(countField);
+
+          if (inp.kind === "item") {
+            const qField = renderQualityFoodField(inp.componentsText, (v) => {
+              inp.componentsText = setQualityFoodInComponentsText(inp.componentsText, v);
+              render();
+            });
+            root.appendChild(qField);
+          }
 
           const compField = document.createElement("div");
           compField.className = "field";
@@ -740,12 +812,17 @@
         }
 
         if (o.mode === "item") {
-          const item = fieldText("item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); });
+          const item = fieldText("item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
           item.classList.add("half");
           root.appendChild(item);
           const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
           count.classList.add("half");
           root.appendChild(count);
+          const qField = renderQualityFoodField(o.componentsText, (v) => {
+            o.componentsText = setQualityFoodInComponentsText(o.componentsText, v);
+            render();
+          });
+          root.appendChild(qField);
           const comp = fieldTextarea("components（可选）", o.componentsText, `{"minecraft:custom_name":"\\\"My Item\\\""}`, (v) => { o.componentsText = v; });
           root.appendChild(comp);
           return;
@@ -763,7 +840,7 @@
           root.appendChild(coinToggle);
 
           if (!o.coin) {
-            const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); });
+            const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
             root.appendChild(item);
           }
 
@@ -801,7 +878,7 @@
           root.appendChild(row);
 
           o.items.forEach((w, idx) => {
-            const item = fieldText("候选 item（命名空间ID）", w.item, "minecraft:diamond", (v) => { w.item = v; renderList(); });
+            const item = fieldText("候选 item（命名空间ID）", w.item, "minecraft:diamond", (v) => { w.item = v; renderList(); }, "dlItems");
             item.classList.add("half");
             root.appendChild(item);
             const count = fieldNumber("数量", w.count, 1, 1, (v) => { w.count = v; });
@@ -810,6 +887,11 @@
             const weight = fieldNumber("权重", w.weight, 1, 1, (v) => { w.weight = v; });
             weight.classList.add("third");
             root.appendChild(weight);
+            const qField = renderQualityFoodField(w.componentsText, (v) => {
+              w.componentsText = setQualityFoodInComponentsText(w.componentsText, v);
+              render();
+            });
+            root.appendChild(qField);
             const comp = fieldTextarea("components（可选）", w.componentsText, "", (v) => { w.componentsText = v; });
             root.appendChild(comp);
 
@@ -834,12 +916,17 @@
         }
 
         if (o.mode === "ecliptic_seasons") {
-          const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); });
+          const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
           item.classList.add("half");
           root.appendChild(item);
           const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
           count.classList.add("half");
           root.appendChild(count);
+          const qField = renderQualityFoodField(o.componentsText, (v) => {
+            o.componentsText = setQualityFoodInComponentsText(o.componentsText, v);
+            render();
+          });
+          root.appendChild(qField);
 
           const seasons = fieldText("season（逗号分隔：spring/summer/autumn/winter/all）", o.seasonText, "spring, summer, autumn, winter", (v) => { o.seasonText = v; });
           root.appendChild(seasons);
@@ -867,7 +954,7 @@
         }
       }
 
-      function fieldText(label, value, placeholder, onChange) {
+      function fieldText(label, value, placeholder, onChange, listId) {
         const field = document.createElement("div");
         field.className = "field";
         field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
@@ -875,6 +962,7 @@
         input.className = "input";
         input.placeholder = placeholder || "";
         input.value = value || "";
+        if (listId) input.setAttribute("list", listId);
         input.oninput = (e) => onChange(e.target.value);
         field.appendChild(input);
         return field;
@@ -921,6 +1009,36 @@
         const res = await fetch("/api/load?token=" + encodeURIComponent(token) + "&file=" + encodeURIComponent(file), { method: "GET" });
         if (!res.ok) throw new Error("GET /api/load failed: " + res.status);
         return await res.json();
+      }
+
+      async function loadRegistry() {
+        const res = await fetch("/api/registry?token=" + encodeURIComponent(token), { method: "GET" });
+        if (!res.ok) throw new Error("GET /api/registry failed: " + res.status);
+        const json = await res.json();
+        state.registry.items = Array.isArray(json.items) ? json.items : [];
+        state.registry.tags = Array.isArray(json.tags) ? json.tags : [];
+        syncDatalists();
+      }
+
+      function syncDatalists() {
+        const dlItems = $("dlItems");
+        const dlTags = $("dlTags");
+        if (dlItems) {
+          dlItems.innerHTML = "";
+          for (const id of state.registry.items) {
+            const opt = document.createElement("option");
+            opt.value = String(id);
+            dlItems.appendChild(opt);
+          }
+        }
+        if (dlTags) {
+          dlTags.innerHTML = "";
+          for (const id of state.registry.tags) {
+            const opt = document.createElement("option");
+            opt.value = String(id);
+            dlTags.appendChild(opt);
+          }
+        }
       }
 
       async function apiSaveRules(payload) {
@@ -1021,7 +1139,9 @@
       } else {
         $("filePath").value = state.file || "editor.json";
         setSubtitle();
-        refresh().catch((e) => toast(String(e.message || e), "bad"));
+        loadRegistry()
+          .catch((e) => toast(String(e.message || e), "bad"))
+          .finally(() => refresh().catch((e) => toast(String(e.message || e), "bad")));
       }
     </script>
   </body>

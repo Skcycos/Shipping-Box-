@@ -6,9 +6,11 @@ import com.chinaex123.shipping_box.network.PacketEditorReloadRequest;
 import com.chinaex123.shipping_box.network.PacketEditorSaveRules;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.io.BufferedInputStream;
@@ -255,6 +257,11 @@ public final class WebEditorLocalServer {
                 return;
             }
 
+            if ("GET".equals(req.method) && "/api/registry".equals(path)) {
+                handleRegistry(out);
+                return;
+            }
+
             if ("GET".equals(req.method) && "/api/load".equals(path)) {
                 handleLoad(out, uri);
                 return;
@@ -274,6 +281,28 @@ public final class WebEditorLocalServer {
             writeText(out, 404, "Not Found");
         } catch (IOException ignored) {
         }
+    }
+
+    private static void handleRegistry(OutputStream out) throws IOException {
+        JsonArray items = new JsonArray();
+        BuiltInRegistries.ITEM.keySet().stream()
+                .map(Object::toString)
+                .sorted()
+                .forEach(items::add);
+
+        JsonArray tags = new JsonArray();
+        try {
+            BuiltInRegistries.ITEM.getTagNames()
+                    .map(tagKey -> "#" + tagKey.location())
+                    .map(Object::toString)
+                    .sorted()
+                    .forEach(tags::add);
+        } catch (Throwable ignored) {}
+
+        JsonObject res = new JsonObject();
+        res.add("items", items);
+        res.add("tags", tags);
+        writeBytes(out, 200, "application/json; charset=utf-8", GSON.toJson(res).getBytes(StandardCharsets.UTF_8));
     }
 
     private static void handleLoad(OutputStream out, URI uri) throws IOException {
