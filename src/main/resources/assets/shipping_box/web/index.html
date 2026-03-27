@@ -448,6 +448,20 @@
         file: initialFile,
         registry: { items: [], tags: [] },
         registryItemsSet: new Set(),
+        rulesVersion: 0,
+        listCache: {
+          version: -1,
+          filter: "",
+          view: [],
+          byId: new Map(),
+          dirtyIds: new Set(),
+          rowH: 104,
+          measured: false,
+          range: { start: 0, end: 0 },
+          renderedEls: new Map(),
+          raf: null,
+          forceNext: false
+        },
         lang: "zh-CN",
         theme: "system"
       };
@@ -1064,134 +1078,252 @@
       }
 
       function setSelected(id) {
+        const prev = state.selectedId;
         state.selectedId = id;
+        if (state.listCache) {
+          if (prev) state.listCache.dirtyIds.add(prev);
+          if (id) state.listCache.dirtyIds.add(id);
+        }
         render();
       }
 
-      function renderList() {
+      function getRuleIconId(r) {
+        const o = r.output || {};
+        if (o.mode === "item" && o.item) return String(o.item);
+        if (o.mode === "ecliptic_seasons" && o.item) return String(o.item);
+        if (o.mode === "dynamic_pricing" && !o.coin && o.item) return String(o.item);
+        const inItem = (r.inputs || []).find((i) => i && i.kind === "item" && i.value);
+        if (inItem) return String(inItem.value).replace(/^#/, "");
+        return "";
+      }
+
+      function ensureListStructure() {
         const list = $("list");
+        if (!list) return null;
+        if (list.dataset.vlist === "1") {
+          return { list, top: document.getElementById("listTopSpacer"), host: document.getElementById("listItemsHost"), bottom: document.getElementById("listBottomSpacer") };
+        }
+        list.dataset.vlist = "1";
+        list.style.position = "relative";
         list.innerHTML = "";
-        const q = state.filter.trim().toLowerCase();
-        const rules = state.rules.filter((r) => {
-          if (!q) return true;
-          const text = summarizeRule(r).toLowerCase();
-          const type = (r.output && r.output.mode) ? String(r.output.mode) : "";
-          return text.includes(q) || type.includes(q);
+        const top = document.createElement("div");
+        top.id = "listTopSpacer";
+        const host = document.createElement("div");
+        host.id = "listItemsHost";
+        const bottom = document.createElement("div");
+        bottom.id = "listBottomSpacer";
+        list.appendChild(top);
+        list.appendChild(host);
+        list.appendChild(bottom);
+        list.addEventListener("scroll", () => requestListViewport(false));
+        return { list, top, host, bottom };
+      }
+
+      function requestListViewport(force) {
+        const cache = state.listCache;
+        if (force) cache.forceNext = true;
+        if (cache.raf) return;
+        cache.raf = requestAnimationFrame(() => {
+          cache.raf = null;
+          renderListViewport(cache.forceNext);
+          cache.forceNext = false;
+        });
+      }
+
+      function buildRuleListItem(r) {
+        const el = document.createElement("div");
+        el.className = "item" + (r.id === state.selectedId ? " active" : "");
+        el.dataset.id = r.id;
+        el.onclick = () => setSelected(r.id);
+        el.draggable = true;
+        el.addEventListener("dragstart", (e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", r.id);
+          el.classList.add("dragging");
+        });
+        el.addEventListener("dragend", () => {
+          el.classList.remove("dragging");
+        });
+        el.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          el.classList.add("drag-over");
+        });
+        el.addEventListener("dragleave", () => {
+          el.classList.remove("drag-over");
+        });
+        el.addEventListener("drop", (e) => {
+          e.preventDefault();
+          el.classList.remove("drag-over");
+          const dragId = e.dataTransfer.getData("text/plain");
+          moveRuleBefore(dragId, r.id);
         });
 
-        $("ruleCount").textContent = String(rules.length);
+        const top = document.createElement("div");
+        top.className = "item-top";
 
-        const getRuleIconId = (r) => {
-          const o = r.output || {};
-          if (o.mode === "item" && o.item) return String(o.item);
-          if (o.mode === "ecliptic_seasons" && o.item) return String(o.item);
-          if (o.mode === "dynamic_pricing" && !o.coin && o.item) return String(o.item);
-          const inItem = (r.inputs || []).find((i) => i && i.kind === "item" && i.value);
-          if (inItem) return String(inItem.value).replace(/^#/, "");
-          return "";
-        };
+        const left = document.createElement("div");
+        left.style.display = "flex";
+        left.style.alignItems = "center";
+        left.style.gap = "8px";
 
-        const moveRuleBefore = (dragId, targetId) => {
-          if (!dragId || !targetId || dragId === targetId) return;
-          const from = state.rules.findIndex(x => x.id === dragId);
-          const to = state.rules.findIndex(x => x.id === targetId);
-          if (from < 0 || to < 0) return;
-          const [item] = state.rules.splice(from, 1);
-          const insertAt = from < to ? to - 1 : to;
-          state.rules.splice(insertAt, 0, item);
+        const { box, img } = createIconBox();
+        img.dataset.role = "ruleIcon";
+        left.appendChild(box);
+
+        const titleDiv = document.createElement("div");
+        titleDiv.className = "item-title";
+        titleDiv.dataset.role = "ruleTitle";
+        left.appendChild(titleDiv);
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.dataset.role = "ruleBadge";
+
+        top.appendChild(left);
+        top.appendChild(badge);
+
+        const sub = document.createElement("div");
+        sub.className = "item-sub";
+        sub.dataset.role = "ruleSub";
+
+        const actions = document.createElement("div");
+        actions.className = "row";
+        const dup = document.createElement("div");
+        dup.className = "chip";
+        dup.textContent = t("btnDuplicate");
+        dup.onclick = (ev) => {
+          ev.stopPropagation();
+          const copy = JSON.parse(JSON.stringify(r));
+          copy.id = "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2);
+          const idx = state.rules.findIndex(x => x.id === r.id);
+          state.rules.splice(idx + 1, 0, copy);
+          state.rulesVersion++;
+          state.selectedId = copy.id;
           scheduleRenderList();
+          renderEditor();
         };
+        const del = document.createElement("div");
+        del.className = "chip";
+        del.textContent = t("btnDelete");
+        del.onclick = (ev) => {
+          ev.stopPropagation();
+          const idx = state.rules.findIndex(x => x.id === r.id);
+          if (idx >= 0) state.rules.splice(idx, 1);
+          state.rulesVersion++;
+          state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
+          scheduleRenderList();
+          renderEditor();
+        };
+        actions.appendChild(dup);
+        actions.appendChild(del);
 
-        for (const r of rules) {
-          const el = document.createElement("div");
-          el.className = "item" + (r.id === state.selectedId ? " active" : "");
-          el.onclick = () => setSelected(r.id);
-          el.draggable = true;
-          el.addEventListener("dragstart", (e) => {
-            e.dataTransfer.effectAllowed = "move";
-            e.dataTransfer.setData("text/plain", r.id);
-            el.classList.add("dragging");
-          });
-          el.addEventListener("dragend", () => {
-            el.classList.remove("dragging");
-          });
-          el.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            el.classList.add("drag-over");
-          });
-          el.addEventListener("dragleave", () => {
-            el.classList.remove("drag-over");
-          });
-          el.addEventListener("drop", (e) => {
-            e.preventDefault();
-            el.classList.remove("drag-over");
-            const dragId = e.dataTransfer.getData("text/plain");
-            moveRuleBefore(dragId, r.id);
-          });
+        el.appendChild(top);
+        el.appendChild(sub);
+        el.appendChild(actions);
+        updateRuleListItem(el, r);
+        return el;
+      }
 
-          const top = document.createElement("div");
-          top.className = "item-top";
-
-          const left = document.createElement("div");
-          left.style.display = "flex";
-          left.style.alignItems = "center";
-          left.style.gap = "8px";
-
-          const { box, img } = createIconBox();
+      function updateRuleListItem(el, r) {
+        if (!el || !r) return;
+        el.classList.toggle("active", r.id === state.selectedId);
+        const title = el.querySelector('[data-role="ruleTitle"]');
+        if (title) title.textContent = summarizeRule(r);
+        const badge = el.querySelector('[data-role="ruleBadge"]');
+        if (badge) badge.textContent = r.output && r.output.mode ? modeLabel(r.output.mode) : t("badgeRule");
+        const sub = el.querySelector('[data-role="ruleSub"]');
+        if (sub) sub.textContent = t("itemSub", (r.inputs || []).length);
+        const img = el.querySelector('img[data-role="ruleIcon"]');
+        if (img) {
           const iconId = getRuleIconId(r);
-          if (iconId) updateIconForValue(img, iconId); else img.src = TRANSPARENT_IMG;
-          left.appendChild(box);
-
-          const titleDiv = document.createElement("div");
-          titleDiv.className = "item-title";
-          titleDiv.textContent = summarizeRule(r);
-          left.appendChild(titleDiv);
-
-          const badge = document.createElement("div");
-          badge.className = "badge";
-          badge.textContent = r.output && r.output.mode ? modeLabel(r.output.mode) : t("badgeRule");
-
-          top.appendChild(left);
-          top.appendChild(badge);
-
-          const sub = document.createElement("div");
-          sub.className = "item-sub";
-          sub.textContent = t("itemSub", r.inputs.length);
-
-          const actions = document.createElement("div");
-          actions.className = "row";
-          const dup = document.createElement("div");
-          dup.className = "chip";
-          dup.textContent = t("btnDuplicate");
-          dup.onclick = (ev) => {
-            ev.stopPropagation();
-            const copy = JSON.parse(JSON.stringify(r));
-            copy.id = "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2);
-            const idx = state.rules.findIndex(x => x.id === r.id);
-            state.rules.splice(idx + 1, 0, copy);
-            state.selectedId = copy.id;
-            scheduleRenderList();
-            renderEditor();
-          };
-          const del = document.createElement("div");
-          del.className = "chip";
-          del.textContent = t("btnDelete");
-          del.onclick = (ev) => {
-            ev.stopPropagation();
-            const idx = state.rules.findIndex(x => x.id === r.id);
-            if (idx >= 0) state.rules.splice(idx, 1);
-            state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
-            scheduleRenderList();
-            renderEditor();
-          };
-          actions.appendChild(dup);
-          actions.appendChild(del);
-
-          el.appendChild(top);
-          el.appendChild(sub);
-          el.appendChild(actions);
-          list.appendChild(el);
+          if (iconId) updateIconForValue(img, iconId);
+          else img.src = TRANSPARENT_IMG;
         }
+      }
+
+      function moveRuleBefore(dragId, targetId) {
+        if (!dragId || !targetId || dragId === targetId) return;
+        const from = state.rules.findIndex(x => x.id === dragId);
+        const to = state.rules.findIndex(x => x.id === targetId);
+        if (from < 0 || to < 0) return;
+        const [item] = state.rules.splice(from, 1);
+        const insertAt = from < to ? to - 1 : to;
+        state.rules.splice(insertAt, 0, item);
+        state.rulesVersion++;
+        scheduleRenderList();
+      }
+
+      function renderListViewport(force) {
+        const parts = ensureListStructure();
+        if (!parts) return;
+        const { list, top, host, bottom } = parts;
+        const cache = state.listCache;
+        const view = cache.view || [];
+        const total = view.length;
+        const rowH = Math.max(48, Math.trunc(cache.rowH || 104));
+        const overscan = 6;
+        const scrollTop = list.scrollTop || 0;
+        const vh = list.clientHeight || 0;
+        let start = Math.floor(scrollTop / rowH) - overscan;
+        let end = Math.ceil((scrollTop + vh) / rowH) + overscan;
+        if (start < 0) start = 0;
+        if (end > total) end = total;
+        const sameRange = cache.range.start === start && cache.range.end === end;
+        if (!force && sameRange && cache.dirtyIds.size === 0) return;
+        cache.range = { start, end };
+
+        const nextEls = new Map();
+        const frag = document.createDocumentFragment();
+        for (let i = start; i < end; i++) {
+          const r = view[i];
+          const el = buildRuleListItem(r);
+          nextEls.set(r.id, el);
+          frag.appendChild(el);
+        }
+
+        host.innerHTML = "";
+        host.appendChild(frag);
+        cache.renderedEls = nextEls;
+        top.style.height = (start * rowH) + "px";
+        bottom.style.height = ((total - end) * rowH) + "px";
+
+        if (!cache.measured && host.firstElementChild) {
+          requestAnimationFrame(() => {
+            const h = host.firstElementChild.getBoundingClientRect().height;
+            if (h && Number.isFinite(h) && h >= 60 && h <= 220) {
+              cache.rowH = Math.round(h + 8);
+              cache.measured = true;
+              requestListViewport(true);
+            } else {
+              cache.measured = true;
+            }
+          });
+        }
+
+        if (cache.dirtyIds.size) cache.dirtyIds.clear();
+      }
+
+      function renderList() {
+        const cache = state.listCache;
+        const q = state.filter.trim().toLowerCase();
+        const needRecalc = cache.version !== state.rulesVersion || cache.filter !== q;
+        if (needRecalc) {
+          cache.byId = new Map(state.rules.map((r) => [r.id, r]));
+          cache.filter = q;
+          cache.version = state.rulesVersion;
+          cache.measured = false;
+          cache.view = state.rules.filter((r) => {
+            if (!q) return true;
+            const text = summarizeRule(r).toLowerCase();
+            const type = (r.output && r.output.mode) ? String(r.output.mode) : "";
+            return text.includes(q) || type.includes(q);
+          });
+          cache.dirtyIds.clear();
+        }
+
+        $("ruleCount").textContent = String(cache.view.length);
+        requestListViewport(needRecalc);
+        if (!needRecalc && cache.dirtyIds.size) requestListViewport(false);
       }
 
       function escapeHtml(s) {
@@ -1844,6 +1976,7 @@
       }
 
       function notifyChange() {
+        if (state.listCache && state.selectedId) state.listCache.dirtyIds.add(state.selectedId);
         updateJsonPreviewForSelected();
         scheduleRenderList();
       }
@@ -1942,12 +2075,14 @@
         if (json && json.ok === false) {
           toast(String(json.error || t("loadFailed")), "bad");
           state.rules = [];
+          state.rulesVersion++;
           state.selectedId = null;
           render();
           return;
         }
         const raw = Array.isArray(json.rules) ? json.rules : [];
         state.rules = raw.map((r, idx) => fromJsonRule(r, idx));
+        state.rulesVersion++;
         if (!state.selectedId && state.rules.length) state.selectedId = state.rules[0].id;
         render();
         toast(t("loaded", state.rules.length, (state.file || "editor.json")), "ok");
@@ -2015,6 +2150,7 @@
       $("btnNew").onclick = () => {
         const r = { id: "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2), inputs: [{ kind: "item", value: "", count: 1, componentsText: "" }], output: { mode: "item", item: "", count: 1, componentsText: "" } };
         state.rules.unshift(r);
+        state.rulesVersion++;
         state.selectedId = r.id;
         render();
       };
@@ -2024,6 +2160,7 @@
         const copy = JSON.parse(JSON.stringify(r));
         copy.id = "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2);
         state.rules.unshift(copy);
+        state.rulesVersion++;
         state.selectedId = copy.id;
         render();
       };
@@ -2033,6 +2170,7 @@
         if (!confirm(t("confirmDelete"))) return;
         const idx = state.rules.findIndex((x) => x.id === r.id);
         if (idx >= 0) state.rules.splice(idx, 1);
+        state.rulesVersion++;
         state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
         render();
       };
