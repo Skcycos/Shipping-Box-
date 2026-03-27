@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_diamond_creeper_coin_shapeless": {
+      "conditions": {
+        "items": [
+          {
+            "items": "shipping_box:netherite_creeper_coin"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "shipping_box:diamond_creeper_coin_shapeless"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_diamond_creeper_coin_shapeless"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "shipping_box:diamond_creeper_coin_shapeless"
+    ]
+  }
+}

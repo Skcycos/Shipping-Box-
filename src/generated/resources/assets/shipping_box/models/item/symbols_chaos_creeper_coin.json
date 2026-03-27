@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "shipping_box:item/symbols_chaos_creeper_coin"
+  }
+}
