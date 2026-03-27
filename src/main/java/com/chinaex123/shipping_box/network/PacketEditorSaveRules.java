@@ -10,9 +10,12 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,6 +27,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public record PacketEditorSaveRules(String requestId, String relativePath, String rulesJson) implements CustomPacketPayload {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PacketEditorSaveRules.class);
+
     public static final Type<PacketEditorSaveRules> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_save_rules")
     );
@@ -62,49 +67,78 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
             try {
                 obj = JsonParser.parseString(packet.rulesJson()).getAsJsonObject();
             } catch (JsonParseException e) {
-                context.player().displayClientMessage(Component.literal("Invalid JSON"), false);
+                sendResult(context, packet.requestId(), false, "", "Invalid JSON");
                 return;
             } catch (Exception e) {
-                context.player().displayClientMessage(Component.literal("Invalid payload"), false);
+                sendResult(context, packet.requestId(), false, "", "Invalid payload");
                 return;
             }
 
             if (!obj.has("rules") || !obj.get("rules").isJsonArray()) {
-                context.player().displayClientMessage(Component.literal("Expected {\"rules\": [...]}"), false);
-                if (context.player() instanceof ServerPlayer serverPlayer) {
-                    PacketDistributor.sendToPlayer(
-                            serverPlayer,
-                            new PacketEditorSaveRulesResult(packet.requestId(), false, "", "Expected {\"rules\": [...]}"));
-                }
+                sendResult(context, packet.requestId(), false, "", "Expected {\"rules\": [...]}");
                 return;
             }
 
             try {
-                Path base = FMLPaths.CONFIGDIR.get().resolve("shipping_box/exchange_rules").normalize();
+                Path base = getBaseDir();
                 Files.createDirectories(base);
                 String rel = packet.relativePath() == null || packet.relativePath().isBlank() ? "editor.json" : packet.relativePath();
                 if (!rel.endsWith(".json")) {
                     rel = rel + ".json";
                 }
-                Path file = base.resolve(rel).normalize();
-                if (!file.startsWith(base)) {
-                    throw new IllegalArgumentException("Invalid path");
+                Path relPath = Path.of(rel).normalize();
+                Path file = base.resolve(relPath).normalize();
+                if (relPath.isAbsolute() || !file.startsWith(base)) {
+                    LOGGER.warn("Web editor save blocked by path validation. base={}, rel={}", base, rel);
+                    sendResult(context, packet.requestId(), false, "", "Invalid path");
+                    return;
                 }
                 Files.createDirectories(file.getParent());
                 Files.writeString(file, packet.rulesJson(), StandardCharsets.UTF_8);
-                if (context.player() instanceof ServerPlayer serverPlayer) {
-                    PacketDistributor.sendToPlayer(
-                            serverPlayer,
-                            new PacketEditorSaveRulesResult(packet.requestId(), true, file.toString(), ""));
-                }
+
+                var server = context.player().getServer();
+                server.execute(() -> {
+                    var commandSource = server.createCommandSourceStack().withPermission(4);
+                    try {
+                        if (ModList.get().isLoaded("kubejs")) {
+                            server.getCommands().performPrefixedCommand(commandSource, "kubejs reload server_scripts");
+                        }
+                    } catch (Exception e) {
+                        LOGGER.warn("Failed to run KubeJS reload command after save: {}", e.getMessage());
+                    }
+                    try {
+                        server.getCommands().performPrefixedCommand(commandSource, "reload");
+                    } catch (Exception e) {
+                        LOGGER.warn("Failed to run /reload after save: {}", e.getMessage());
+                    }
+                });
+
+                sendResult(context, packet.requestId(), true, file.toString(), "");
             } catch (Exception e) {
-                if (context.player() instanceof ServerPlayer serverPlayer) {
-                    PacketDistributor.sendToPlayer(
-                            serverPlayer,
-                            new PacketEditorSaveRulesResult(packet.requestId(), false, "", e.getMessage()));
-                }
+                sendResult(context, packet.requestId(), false, "", e.getMessage());
             }
         }).exceptionally(e -> null);
+    }
+
+    private static void sendResult(IPayloadContext context, String requestId, boolean ok, String savedPath, String error) {
+        if (context.player() instanceof ServerPlayer serverPlayer) {
+            PacketDistributor.sendToPlayer(
+                    serverPlayer,
+                    new PacketEditorSaveRulesResult(
+                            requestId,
+                            ok,
+                            savedPath == null ? "" : savedPath,
+                            error == null ? "" : error
+                    )
+            );
+        }
+    }
+
+    private static Path getBaseDir() {
+        if (ModList.get().isLoaded("kubejs")) {
+            return FMLPaths.GAMEDIR.get().resolve("kubejs/data/shipping_box/exchange_rules").normalize();
+        }
+        return FMLPaths.CONFIGDIR.get().resolve("shipping_box/exchange_rules").normalize();
     }
 
     private static byte[] compress(String str) throws IOException {

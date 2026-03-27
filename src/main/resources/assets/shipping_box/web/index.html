@@ -1002,7 +1002,7 @@
       }
 
       function setSubtitle() {
-        $("subTitle").textContent = "本地编辑 · " + "config/shipping_box/exchange_rules/" + (state.file || "editor.json");
+        $("subTitle").textContent = "本地编辑 · " + "kubejs/data/shipping_box/exchange_rules（如无KubeJS则 config/shipping_box/exchange_rules）/" + (state.file || "editor.json");
       }
 
       async function apiLoadFile(file) {

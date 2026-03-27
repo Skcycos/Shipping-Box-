@@ -7,15 +7,20 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public record PacketEditorReadFile(String requestId, String relativePath) implements CustomPacketPayload {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PacketEditorReadFile.class);
+
     public static final Type<PacketEditorReadFile> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_read_file")
     );
@@ -38,16 +43,18 @@ public record PacketEditorReadFile(String requestId, String relativePath) implem
             boolean ok = true;
 
             try {
-                Path base = FMLPaths.CONFIGDIR.get().resolve("shipping_box/exchange_rules").normalize();
+                Path base = getBaseDir();
                 Files.createDirectories(base);
                 String rel = packet.relativePath() == null || packet.relativePath().isBlank() ? "editor.json" : packet.relativePath();
                 if (!rel.endsWith(".json")) {
                     rel = rel + ".json";
                 }
-                Path target = base.resolve(rel).normalize();
-                if (!target.startsWith(base)) {
+                Path relPath = Path.of(rel).normalize();
+                Path target = base.resolve(relPath).normalize();
+                if (relPath.isAbsolute() || !target.startsWith(base)) {
                     ok = false;
                     error = "Invalid path";
+                    LOGGER.warn("Web editor read blocked by path validation. base={}, rel={}", base, rel);
                 } else if (Files.exists(target) && Files.isRegularFile(target)) {
                     content = Files.readString(target, StandardCharsets.UTF_8);
                 }
@@ -63,5 +70,12 @@ public record PacketEditorReadFile(String requestId, String relativePath) implem
                 );
             }
         }).exceptionally(e -> null);
+    }
+
+    private static Path getBaseDir() {
+        if (ModList.get().isLoaded("kubejs")) {
+            return FMLPaths.GAMEDIR.get().resolve("kubejs/data/shipping_box/exchange_rules").normalize();
+        }
+        return FMLPaths.CONFIGDIR.get().resolve("shipping_box/exchange_rules").normalize();
     }
 }
