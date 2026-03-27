@@ -227,6 +227,33 @@
         font-size: 13px;
         outline: none;
       }
+      .inputWithIcon {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .inputWithIcon .input {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .iconPreview {
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex: 0 0 auto;
+      }
+      .iconPreview img {
+        width: 24px;
+        height: 24px;
+        image-rendering: pixelated;
+        display: none;
+      }
       .textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
       .help {
         font-size: 11.5px;
@@ -627,6 +654,49 @@
           .replaceAll('"', "&quot;");
       }
 
+      function isValidResourceLocation(text) {
+        const s = String(text || "").trim();
+        if (!s) return false;
+        return /^[a-z0-9_.-]+:[a-z0-9/._-]+$/.test(s);
+      }
+
+      function createIconPreview() {
+        const wrap = document.createElement("div");
+        wrap.className = "iconPreview";
+        const img = document.createElement("img");
+        img.alt = "";
+        img.decoding = "async";
+        img.loading = "lazy";
+        img.onerror = () => {
+          img.style.display = "none";
+          img.removeAttribute("src");
+        };
+        img.onload = () => {
+          img.style.display = "block";
+        };
+        wrap.appendChild(img);
+        return { wrap, img };
+      }
+
+      function bindItemIconPreview(inputEl, imgEl) {
+        let timer = 0;
+        const update = () => {
+          const v = String(inputEl.value || "").trim();
+          if (!isValidResourceLocation(v)) {
+            imgEl.style.display = "none";
+            imgEl.removeAttribute("src");
+            return;
+          }
+          imgEl.style.display = "none";
+          imgEl.src = "/api/icon?token=" + encodeURIComponent(token) + "&item=" + encodeURIComponent(v);
+        };
+        inputEl.addEventListener("input", () => {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(update, 120);
+        });
+        update();
+      }
+
       function chipGroup(options, active, onChange) {
         const row = document.createElement("div");
         row.className = "row";
@@ -707,7 +777,15 @@
           valueInput.value = inp.value || "";
           valueInput.setAttribute("list", inp.kind === "tag" ? "dlTags" : "dlItems");
           valueInput.oninput = (e) => { inp.value = e.target.value; renderList(); };
-          valueField.appendChild(valueInput);
+          const valueRow = document.createElement("div");
+          valueRow.className = "inputWithIcon";
+          valueRow.appendChild(valueInput);
+          if (inp.kind === "item") {
+            const { wrap, img } = createIconPreview();
+            valueRow.appendChild(wrap);
+            bindItemIconPreview(valueInput, img);
+          }
+          valueField.appendChild(valueRow);
           root.appendChild(valueField);
 
           const countField = document.createElement("div");
@@ -812,7 +890,7 @@
         }
 
         if (o.mode === "item") {
-          const item = fieldText("item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
+          const item = fieldText("item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems", true);
           item.classList.add("half");
           root.appendChild(item);
           const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
@@ -840,7 +918,7 @@
           root.appendChild(coinToggle);
 
           if (!o.coin) {
-            const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
+            const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems", true);
             root.appendChild(item);
           }
 
@@ -878,7 +956,7 @@
           root.appendChild(row);
 
           o.items.forEach((w, idx) => {
-            const item = fieldText("候选 item（命名空间ID）", w.item, "minecraft:diamond", (v) => { w.item = v; renderList(); }, "dlItems");
+            const item = fieldText("候选 item（命名空间ID）", w.item, "minecraft:diamond", (v) => { w.item = v; renderList(); }, "dlItems", true);
             item.classList.add("half");
             root.appendChild(item);
             const count = fieldNumber("数量", w.count, 1, 1, (v) => { w.count = v; });
@@ -916,7 +994,7 @@
         }
 
         if (o.mode === "ecliptic_seasons") {
-          const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems");
+          const item = fieldText("输出 item（命名空间ID）", o.item, "minecraft:diamond", (v) => { o.item = v; renderList(); }, "dlItems", true);
           item.classList.add("half");
           root.appendChild(item);
           const count = fieldNumber("数量", o.count, 1, 1, (v) => { o.count = v; renderList(); });
@@ -954,7 +1032,7 @@
         }
       }
 
-      function fieldText(label, value, placeholder, onChange, listId) {
+      function fieldText(label, value, placeholder, onChange, listId, withIconPreview) {
         const field = document.createElement("div");
         field.className = "field";
         field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
@@ -964,7 +1042,17 @@
         input.value = value || "";
         if (listId) input.setAttribute("list", listId);
         input.oninput = (e) => onChange(e.target.value);
-        field.appendChild(input);
+        if (withIconPreview) {
+          const row = document.createElement("div");
+          row.className = "inputWithIcon";
+          row.appendChild(input);
+          const { wrap, img } = createIconPreview();
+          row.appendChild(wrap);
+          bindItemIconPreview(input, img);
+          field.appendChild(row);
+        } else {
+          field.appendChild(input);
+        }
         return field;
       }
 

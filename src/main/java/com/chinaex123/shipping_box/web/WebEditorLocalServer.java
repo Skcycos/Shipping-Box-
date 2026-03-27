@@ -11,6 +11,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.io.BufferedInputStream;
@@ -262,6 +265,11 @@ public final class WebEditorLocalServer {
                 return;
             }
 
+            if ("GET".equals(req.method) && "/api/icon".equals(path)) {
+                handleIcon(out, uri);
+                return;
+            }
+
             if ("GET".equals(req.method) && "/api/load".equals(path)) {
                 handleLoad(out, uri);
                 return;
@@ -303,6 +311,75 @@ public final class WebEditorLocalServer {
         res.add("items", items);
         res.add("tags", tags);
         writeBytes(out, 200, "application/json; charset=utf-8", GSON.toJson(res).getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void handleIcon(OutputStream out, URI uri) throws IOException {
+        String itemId = parseQuery(uri).getOrDefault("item", "");
+        itemId = itemId == null ? "" : itemId.trim();
+        if (itemId.isEmpty()) {
+            writeText(out, 400, "Missing item");
+            return;
+        }
+
+        ResourceLocation itemLoc = ResourceLocation.tryParse(itemId);
+        if (itemLoc == null) {
+            writeText(out, 400, "Invalid item");
+            return;
+        }
+        if (!BuiltInRegistries.ITEM.containsKey(itemLoc)) {
+            writeText(out, 404, "Not Found");
+            return;
+        }
+
+        ResourceManager resourceManager = getClientResourceManager();
+        if (resourceManager == null) {
+            writeText(out, 503, "Resource manager unavailable");
+            return;
+        }
+
+        String ns = itemLoc.getNamespace();
+        String path = itemLoc.getPath();
+        ResourceLocation itemTexture = ResourceLocation.fromNamespaceAndPath(ns, "textures/item/" + path + ".png");
+        ResourceLocation blockTexture = ResourceLocation.fromNamespaceAndPath(ns, "textures/block/" + path + ".png");
+
+        byte[] bytes = readPng(resourceManager, itemTexture);
+        if (bytes == null) {
+            bytes = readPng(resourceManager, blockTexture);
+        }
+        if (bytes == null) {
+            writeText(out, 404, "Not Found");
+            return;
+        }
+        writeBytes(out, 200, "image/png", bytes);
+    }
+
+    private static byte[] readPng(ResourceManager resourceManager, ResourceLocation location) {
+        try {
+            var opt = resourceManager.getResource(location);
+            if (opt.isEmpty()) {
+                return null;
+            }
+            Resource res = opt.get();
+            try (InputStream in = res.open()) {
+                return readAllBytes(in);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static ResourceManager getClientResourceManager() {
+        try {
+            Class<?> mcClass = Class.forName("net.minecraft.client.Minecraft");
+            Object mc = mcClass.getMethod("getInstance").invoke(null);
+            Object rm = mc.getClass().getMethod("getResourceManager").invoke(mc);
+            if (rm instanceof ResourceManager resourceManager) {
+                return resourceManager;
+            }
+            return null;
+        } catch (Throwable e) {
+            return null;
+        }
     }
 
     private static void handleLoad(OutputStream out, URI uri) throws IOException {
