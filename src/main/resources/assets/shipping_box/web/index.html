@@ -434,9 +434,6 @@
       </div>
     </div>
 
-    <datalist id="dlItems"></datalist>
-    <datalist id="dlTags"></datalist>
-
     <div class="toast" id="toast"></div>
 
     <script>
@@ -1248,6 +1245,223 @@
         update();
       }
 
+      const ac = {
+        layer: null,
+        input: null,
+        type: null,
+        items: [],
+        index: -1,
+        hideTimer: null
+      };
+
+      function ensureAutocompleteLayer() {
+        if (ac.layer) return ac.layer;
+        const layer = document.createElement("div");
+        layer.id = "acLayer";
+        layer.style.display = "none";
+        layer.style.position = "absolute";
+        layer.style.zIndex = "9999";
+        layer.style.minWidth = "240px";
+        layer.style.maxWidth = "520px";
+        layer.style.maxHeight = "320px";
+        layer.style.overflow = "auto";
+        layer.style.padding = "6px";
+        layer.style.borderRadius = "14px";
+        layer.style.border = "1px solid var(--border)";
+        layer.style.background = "var(--panel-2)";
+        layer.style.boxShadow = "var(--shadow)";
+        layer.style.backdropFilter = "blur(18px)";
+        layer.style.userSelect = "none";
+        layer.style.transition = "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease";
+
+        layer.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+        });
+
+        document.body.appendChild(layer);
+        ac.layer = layer;
+
+        const reposition = () => {
+          if (!ac.input || !ac.layer || ac.layer.style.display === "none") return;
+          const rect = ac.input.getBoundingClientRect();
+          ac.layer.style.left = (window.scrollX + rect.left) + "px";
+          ac.layer.style.top = (window.scrollY + rect.bottom + 6) + "px";
+          ac.layer.style.minWidth = rect.width + "px";
+        };
+
+        window.addEventListener("scroll", reposition, true);
+        window.addEventListener("resize", reposition);
+        return layer;
+      }
+
+      function hideAutocompleteNow() {
+        if (ac.hideTimer) clearTimeout(ac.hideTimer);
+        ac.hideTimer = null;
+        if (ac.layer) ac.layer.style.display = "none";
+        ac.input = null;
+        ac.type = null;
+        ac.items = [];
+        ac.index = -1;
+      }
+
+      function scheduleHideAutocomplete() {
+        if (ac.hideTimer) clearTimeout(ac.hideTimer);
+        ac.hideTimer = setTimeout(() => hideAutocompleteNow(), 120);
+      }
+
+      function normalizeTagId(v) {
+        const s = String(v || "").trim();
+        return s.startsWith("#") ? s.slice(1) : s;
+      }
+
+      function formatTagValue(v) {
+        const s = String(v || "").trim();
+        if (!s) return "";
+        return s.startsWith("#") ? s : ("#" + s);
+      }
+
+      function getSuggestions(type, query) {
+        const q = String(query || "").trim().toLowerCase();
+        if (type === "tag") {
+          const qn = normalizeTagId(q);
+          const src = Array.isArray(state.registry.tags) ? state.registry.tags : [];
+          const out = [];
+          for (const raw of src) {
+            const id = normalizeTagId(raw);
+            const hay = id.toLowerCase();
+            if (!qn || hay.includes(qn)) {
+              out.push({ type: "tag", value: formatTagValue(id), label: formatTagValue(id), iconId: "" });
+              if (out.length >= 60) break;
+            }
+          }
+          return out;
+        }
+        const src = Array.isArray(state.registry.items) ? state.registry.items : [];
+        const out = [];
+        for (const id of src) {
+          const hay = String(id || "").toLowerCase();
+          if (!q || hay.includes(q)) {
+            out.push({ type: "item", value: String(id), label: String(id), iconId: String(id) });
+            if (out.length >= 60) break;
+          }
+        }
+        return out;
+      }
+
+      function renderAutocomplete() {
+        const layer = ensureAutocompleteLayer();
+        layer.innerHTML = "";
+        for (let i = 0; i < ac.items.length; i++) {
+          const it = ac.items[i];
+          const row = document.createElement("div");
+          row.className = "item";
+          row.style.display = "flex";
+          row.style.alignItems = "center";
+          row.style.gap = "10px";
+          row.style.padding = "10px 10px";
+          row.style.margin = "0";
+          row.style.cursor = "pointer";
+          row.style.borderRadius = "12px";
+          row.style.border = "1px solid transparent";
+          row.style.background = (i === ac.index) ? "var(--hover)" : "transparent";
+          row.addEventListener("mouseenter", () => {
+            ac.index = i;
+            renderAutocomplete();
+          });
+          row.addEventListener("click", () => {
+            applyAutocompleteSelection(i);
+          });
+
+          if (it.type === "item") {
+            const { box, img } = createIconBox();
+            updateIconForValue(img, it.iconId);
+            row.appendChild(box);
+          } else {
+            const badge = document.createElement("div");
+            badge.className = "badge";
+            badge.textContent = "#";
+            row.appendChild(badge);
+          }
+
+          const text = document.createElement("div");
+          text.style.flex = "1";
+          text.style.minWidth = "0";
+          text.style.fontSize = "12.5px";
+          text.style.whiteSpace = "nowrap";
+          text.style.overflow = "hidden";
+          text.style.textOverflow = "ellipsis";
+          text.textContent = it.label;
+          row.appendChild(text);
+
+          layer.appendChild(row);
+        }
+
+        if (!ac.items.length) {
+          const empty = document.createElement("div");
+          empty.className = "help";
+          empty.style.padding = "10px 10px";
+          empty.textContent = "—";
+          layer.appendChild(empty);
+        }
+      }
+
+      function showAutocomplete(input, type) {
+        if (!input) return;
+        const layer = ensureAutocompleteLayer();
+        ac.input = input;
+        ac.type = type;
+        ac.items = getSuggestions(type, input.value);
+        ac.index = ac.items.length ? 0 : -1;
+        renderAutocomplete();
+
+        const rect = input.getBoundingClientRect();
+        layer.style.left = (window.scrollX + rect.left) + "px";
+        layer.style.top = (window.scrollY + rect.bottom + 6) + "px";
+        layer.style.minWidth = rect.width + "px";
+        layer.style.display = "block";
+      }
+
+      function applyAutocompleteSelection(index) {
+        if (!ac.input) return;
+        const it = ac.items[index];
+        if (!it) return;
+        const input = ac.input;
+        input.value = it.value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        hideAutocompleteNow();
+        input.focus();
+      }
+
+      function attachAutocomplete(input, type) {
+        if (!input) return;
+        input.setAttribute("autocomplete", "off");
+        input.addEventListener("focus", () => showAutocomplete(input, type));
+        input.addEventListener("input", () => showAutocomplete(input, type));
+        input.addEventListener("blur", () => scheduleHideAutocomplete());
+        input.addEventListener("keydown", (e) => {
+          if (!ac.layer || ac.layer.style.display === "none" || ac.input !== input) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            ac.index = Math.min(ac.items.length - 1, ac.index + 1);
+            renderAutocomplete();
+            ensureAutocompleteLayer().children[ac.index]?.scrollIntoView({ block: "nearest" });
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            ac.index = Math.max(0, ac.index - 1);
+            renderAutocomplete();
+            ensureAutocompleteLayer().children[ac.index]?.scrollIntoView({ block: "nearest" });
+          } else if (e.key === "Enter") {
+            if (ac.index >= 0) {
+              e.preventDefault();
+              applyAutocompleteSelection(ac.index);
+            }
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            hideAutocompleteNow();
+          }
+        });
+      }
+
       function chipGroup(options, active, onChange) {
         const row = document.createElement("div");
         row.className = "row";
@@ -1255,13 +1469,14 @@
           const c = document.createElement("div");
           c.className = "chip" + (opt.value === active ? " active" : "");
           c.textContent = opt.label;
-          c.onclick = () => onChange(opt.value);
+          c.onclick = () => { onChange(opt.value); notifyChange(); };
           row.appendChild(c);
         }
         return row;
       }
 
       function renderEditor() {
+        hideAutocompleteNow();
         const editor = $("editor");
         const r = selectedRule();
         if (!r) {
@@ -1326,8 +1541,7 @@
           valueInput.className = "input";
           valueInput.placeholder = inp.kind === "tag" ? t("placeholderTagId") : t("placeholderItemId");
           valueInput.value = inp.value || "";
-          valueInput.setAttribute("list", inp.kind === "tag" ? "dlTags" : "dlItems");
-          valueInput.oninput = (e) => { inp.value = e.target.value; renderList(); };
+          valueInput.oninput = (e) => { inp.value = e.target.value; notifyChange(); };
           const valueRow = document.createElement("div");
           valueRow.className = "input-row";
           if (inp.kind === "item") {
@@ -1335,8 +1549,10 @@
             valueRow.appendChild(box);
             valueRow.appendChild(valueInput);
             bindDebouncedIcon(valueInput, img);
+            attachAutocomplete(valueInput, "item");
           } else {
             valueRow.appendChild(valueInput);
+            attachAutocomplete(valueInput, "tag");
           }
           valueField.appendChild(valueRow);
           root.appendChild(valueField);
@@ -1350,7 +1566,7 @@
           countInput.min = "1";
           countInput.step = "1";
           countInput.value = String(inp.count || 1);
-          countInput.oninput = (e) => { inp.count = Number(e.target.value || 1); renderList(); };
+          countInput.oninput = (e) => { inp.count = Number(e.target.value || 1); notifyChange(); };
           countField.appendChild(countInput);
           root.appendChild(countField);
 
@@ -1440,10 +1656,10 @@
         }
 
         if (o.mode === "item") {
-          const item = fieldText(t("labelItemId"), o.item, t("placeholderItemId"), (v) => { o.item = v; renderList(); }, "dlItems");
+          const item = fieldText(t("labelItemId"), o.item, t("placeholderItemId"), (v) => { o.item = v; }, "dlItems");
           item.classList.add("half");
           root.appendChild(item);
-          const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; renderList(); });
+          const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; });
           count.classList.add("half");
           root.appendChild(count);
           const comp = fieldTextarea(t("labelComponents"), o.componentsText, t("placeholderComponentsExampleOutput"), (v) => { o.componentsText = v; });
@@ -1465,7 +1681,7 @@
           root.appendChild(coinToggle);
 
           if (!o.coin) {
-            const item = fieldText(t("outputItemLabel"), o.item, t("placeholderItemId"), (v) => { o.item = v; renderList(); }, "dlItems");
+            const item = fieldText(t("outputItemLabel"), o.item, t("placeholderItemId"), (v) => { o.item = v; }, "dlItems");
             root.appendChild(item);
           }
 
@@ -1503,7 +1719,7 @@
           root.appendChild(row);
 
           o.items.forEach((w, idx) => {
-            const item = fieldText(t("candidateItemLabel"), w.item, t("placeholderItemId"), (v) => { w.item = v; renderList(); }, "dlItems");
+            const item = fieldText(t("candidateItemLabel"), w.item, t("placeholderItemId"), (v) => { w.item = v; }, "dlItems");
             item.classList.add("half");
             root.appendChild(item);
             const count = fieldNumber(t("labelCount"), w.count, 1, 1, (v) => { w.count = v; });
@@ -1538,10 +1754,10 @@
         }
 
         if (o.mode === "ecliptic_seasons") {
-          const item = fieldText(t("outputItemLabel"), o.item, t("placeholderItemId"), (v) => { o.item = v; renderList(); }, "dlItems");
+          const item = fieldText(t("outputItemLabel"), o.item, t("placeholderItemId"), (v) => { o.item = v; }, "dlItems");
           item.classList.add("half");
           root.appendChild(item);
-          const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; renderList(); });
+          const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; });
           count.classList.add("half");
           root.appendChild(count);
           const seasons = fieldText(t("seasonLabel"), o.seasonText, t("placeholderSeasonExample"), (v) => { o.seasonText = v; });
@@ -1580,8 +1796,7 @@
         input.className = "input";
         input.placeholder = placeholder || "";
         input.value = value || "";
-        if (listId) input.setAttribute("list", listId);
-        input.oninput = (e) => onChange(e.target.value);
+        input.oninput = (e) => { onChange(e.target.value); notifyChange(); };
         if (listId === "dlItems") {
           const row = document.createElement("div");
           row.className = "input-row";
@@ -1589,6 +1804,7 @@
           row.appendChild(box);
           row.appendChild(input);
           bindDebouncedIcon(input, img);
+          attachAutocomplete(input, "item");
           field.appendChild(row);
         } else {
           field.appendChild(input);
@@ -1606,7 +1822,7 @@
         input.step = "1";
         if (typeof min === "number") input.min = String(min);
         input.value = String(Number.isFinite(Number(value)) ? value : def);
-        input.oninput = (e) => onChange(Math.trunc(Number(e.target.value || def)));
+        input.oninput = (e) => { onChange(Math.trunc(Number(e.target.value || def))); notifyChange(); };
         field.appendChild(input);
         return field;
       }
@@ -1627,6 +1843,11 @@
         el.value = JSON.stringify(toJsonRule(r), null, 2);
       }
 
+      function notifyChange() {
+        updateJsonPreviewForSelected();
+        scheduleRenderList();
+      }
+
       function fieldNumberSmooth(label, value, def, min, setValue) {
         const field = document.createElement("div");
         field.className = "field";
@@ -1642,8 +1863,7 @@
           const n = raw === "" ? def : Number(raw);
           if (!Number.isFinite(n)) return;
           setValue(Math.trunc(n));
-          updateJsonPreviewForSelected();
-          scheduleRenderList();
+          notifyChange();
         });
         input.addEventListener("blur", (e) => {
           const raw = e.target.value;
@@ -1651,15 +1871,13 @@
           if (!Number.isFinite(n)) {
             input.value = String(def);
             setValue(Math.trunc(def));
-            updateJsonPreviewForSelected();
-            scheduleRenderList();
+            notifyChange();
             return;
           }
           const fixed = Math.trunc(n);
           input.value = String(fixed);
           setValue(fixed);
-          updateJsonPreviewForSelected();
-          scheduleRenderList();
+          notifyChange();
         });
         field.appendChild(input);
         return field;
@@ -1673,7 +1891,7 @@
         input.className = "textarea";
         input.placeholder = placeholder || "";
         input.value = value || "";
-        input.oninput = (e) => onChange(e.target.value);
+        input.oninput = (e) => { onChange(e.target.value); notifyChange(); };
         field.appendChild(input);
         return field;
       }
@@ -1700,28 +1918,6 @@
         state.registry.items = Array.isArray(json.items) ? json.items : [];
         state.registry.tags = Array.isArray(json.tags) ? json.tags : [];
         state.registryItemsSet = new Set(state.registry.items.map((x) => String(x)));
-        syncDatalists();
-      }
-
-      function syncDatalists() {
-        const dlItems = $("dlItems");
-        const dlTags = $("dlTags");
-        if (dlItems) {
-          dlItems.innerHTML = "";
-          for (const id of state.registry.items) {
-            const opt = document.createElement("option");
-            opt.value = String(id);
-            dlItems.appendChild(opt);
-          }
-        }
-        if (dlTags) {
-          dlTags.innerHTML = "";
-          for (const id of state.registry.tags) {
-            const opt = document.createElement("option");
-            opt.value = String(id);
-            dlTags.appendChild(opt);
-          }
-        }
       }
 
       async function apiSaveRules(payload) {
