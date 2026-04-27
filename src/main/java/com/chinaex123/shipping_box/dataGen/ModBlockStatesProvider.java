@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box.dataGen;
 
 import com.chinaex123.shipping_box.ShippingBox;
-import com.chinaex123.shipping_box.block.ModBlocks;
+import com.chinaex123.shipping_box.init.ModBlocks;
 import net.minecraft.data.PackOutput;
 import net.neoforged.neoforge.client.model.generators.BlockStateProvider;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;

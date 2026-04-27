@@ -5,8 +5,8 @@ import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.config.ServerConfig;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategy;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategyFactory;
-import com.chinaex123.shipping_box.modCompat.EclipticSeasons.EclipticSeasonsUtil;
-import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
+import com.chinaex123.shipping_box.compat.EclipticSeasons.EclipticSeasonsUtil;
+import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.PacketExchangeEffects;
 import com.chinaex123.shipping_box.network.PacketShowSuccessMessage;
 import net.minecraft.core.NonNullList;
@@ -23,6 +23,10 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 兑换管理器；
+ * 执行物品匹配、消耗和生成的核心兑换逻辑
+ */
 public class ExchangeManager {
 
     /**

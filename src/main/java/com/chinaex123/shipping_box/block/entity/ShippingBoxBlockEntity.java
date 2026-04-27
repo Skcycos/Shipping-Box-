@@ -1,7 +1,9 @@
 package com.chinaex123.shipping_box.block.entity;
 
 import com.chinaex123.shipping_box.event.*;
+import com.chinaex123.shipping_box.init.ModBlockEntities;
 import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
+import com.chinaex123.shipping_box.storage.GlobalPlayerStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -9,12 +11,12 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.ContainerHelper;
-import net.minecraft.world.Containers;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -26,14 +28,14 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-
+/**
+ * 普通售货箱的方块实体类；
+ * 负责管理玩家独立的物品存储、时间窗口兑换逻辑和与漏斗等自动化设备的交互控制
+ */
 public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
 
     /** 存储物品列表 - 共享的公共存储 */
     private NonNullList<ItemStack> sharedItems;
-
-    /** 玩家独立存储管理器 - 每个售货箱实例独立 */
-    private final PlayerStorageManager playerStorageManager;
 
     /** 上次兑换日期 */
     private long lastExchangeDay = -1L;
@@ -49,8 +51,17 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         super(ModBlockEntities.SHIPPING_BOX.get(), pos, state);
         // 初始化共享存储
         this.sharedItems = NonNullList.withSize(54, ItemStack.EMPTY);
-        // 每个售货箱有自己独立的存储管理器
-        this.playerStorageManager = new PlayerStorageManager();
+    }
+
+    /**
+     * 获取全局玩家存储管理器
+     */
+    private GlobalPlayerStorage getGlobalStorage() {
+        if (level instanceof ServerLevel serverLevel) {
+            MinecraftServer server = serverLevel.getServer();
+            return GlobalPlayerStorage.get(server);
+        }
+        return null;
     }
 
     /**
@@ -106,54 +117,40 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
 
     /**
      * 获取指定玩家的物品存储列表
-     * 通过玩家独立存储管理器获取该玩家的54槽位存储空间
-     *
-     * @param playerUUID 玩家的唯一标识符
-     * @return 该玩家的物品存储列表（NonNullList<ItemStack>类型）
      */
     public NonNullList<ItemStack> getPlayerItems(UUID playerUUID) {
-        return playerStorageManager.getPlayerStorage(playerUUID);
+        GlobalPlayerStorage storage = getGlobalStorage();
+        return storage != null ? storage.getPlayerStorage(playerUUID) : NonNullList.withSize(54, ItemStack.EMPTY);
     }
 
     /**
      * 获取指定玩家在指定槽位的物品
-     * 从玩家独立存储中检索特定位置的物品堆栈
-     *
-     * @param slot 物品槽位索引（0-53）
-     * @param playerUUID 玩家的唯一标识符
-     * @return 指定槽位的物品堆栈
      */
     public ItemStack getItemForPlayer(int slot, UUID playerUUID) {
-        return playerStorageManager.getItem(slot, playerUUID);
+        GlobalPlayerStorage storage = getGlobalStorage();
+        return storage != null ? storage.getItem(slot, playerUUID) : ItemStack.EMPTY;
     }
 
     /**
      * 为指定玩家在指定槽位设置物品
-     * 将物品放置到玩家独立存储的特定位置，并确保物品数量不超过最大堆叠限制
-     *
-     * @param slot 目标槽位索引（0-53）
-     * @param stack 要设置的物品堆栈
-     * @param playerUUID 玩家的唯一标识符
      */
     public void setItemForPlayer(int slot, ItemStack stack, UUID playerUUID) {
-        playerStorageManager.setItem(slot, stack, playerUUID);
-        if (stack.getCount() > getMaxStackSize()) {
-            stack.setCount(getMaxStackSize());
+        GlobalPlayerStorage storage = getGlobalStorage();
+        if (storage != null) {
+            storage.setItem(slot, stack, playerUUID);
+            if (stack.getCount() > getMaxStackSize()) {
+                stack.setCount(getMaxStackSize());
+            }
+            setChanged();
         }
-        setChanged();
     }
 
     /**
      * 从指定玩家的指定槽位移除指定数量的物品
-     * 从玩家独立存储中取出指定数量的物品，并返回被移除的物品堆栈
-     *
-     * @param slot 要移除物品的槽位索引（0-53）
-     * @param amount 要移除的物品数量
-     * @param playerUUID 玩家的唯一标识符
-     * @return 被移除的物品堆栈
      */
     public ItemStack removeItemForPlayer(int slot, int amount, UUID playerUUID) {
-        return playerStorageManager.removeItem(slot, amount, playerUUID);
+        GlobalPlayerStorage storage = getGlobalStorage();
+        return storage != null ? storage.removeItem(slot, amount, playerUUID) : ItemStack.EMPTY;
     }
 
     /**
@@ -300,42 +297,15 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         // 清空共享存储
         sharedItems.clear();
         // 清空所有玩家的独立存储
-        playerStorageManager.clearAllStorages();
+        GlobalPlayerStorage storage = getGlobalStorage();
+        if (storage != null) {
+            for (UUID playerUUID : storage.getAllPlayerUUIDs()) {
+                storage.clearPlayerStorage(playerUUID);
+            }
+        }
         slotOwners.clear();
         playerItemCounts.clear();
         setChanged();
-    }
-
-    /**
-     * 掉落指定玩家的个人存储物品
-     *
-     * @param playerUUID 玩家UUID
-     */
-    public void dropPlayerItems(UUID playerUUID) {
-        if (level instanceof ServerLevel serverLevel) {
-            // 获取玩家的个人存储
-            NonNullList<ItemStack> playerItems = playerStorageManager.getPlayerStorage(playerUUID);
-
-            if (playerItems != null && !playerItems.isEmpty()) {
-                // 掉落玩家物品到世界
-                for (ItemStack stack : playerItems) {
-                    if (!stack.isEmpty()) {
-                        Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
-                    }
-                }
-                // 清空该玩家的存储
-                playerStorageManager.clearPlayerStorage(playerUUID);
-            }
-        }
-    }
-
-    /**
-     * 获取共享存储的物品列表
-     *
-     * @return 共享物品列表
-     */
-    public NonNullList<ItemStack> getSharedItems() {
-        return sharedItems;
     }
 
     /**
@@ -364,10 +334,13 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
 
         // 如果共享存储没有物品，检查玩家独立存储
         if (!hasItems) {
-            for (UUID playerUUID : playerStorageManager.getAllPlayerUUIDs()) {
-                if (!playerStorageManager.isPlayerStorageEmpty(playerUUID)) {
-                    hasItems = true;
-                    break;
+            GlobalPlayerStorage storage = getGlobalStorage();
+            if (storage != null) {
+                for (UUID playerUUID : storage.getAllPlayerUUIDs()) {
+                    if (!storage.isPlayerStorageEmpty(playerUUID)) {
+                        hasItems = true;
+                        break;
+                    }
                 }
             }
         }
@@ -413,6 +386,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
             return;
         }
 
+        GlobalPlayerStorage storage = getGlobalStorage();
+        if (storage == null) return;
+
         // 使用最简单直接的方式：为每个玩家单独处理
         Map<UUID, List<ItemStack>> playerItemsToProcess = new HashMap<>();
 
@@ -428,8 +404,8 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         }
 
         // 收集玩家独立存储的物品
-        for (UUID playerUUID : playerStorageManager.getAllPlayerUUIDs()) {
-            NonNullList<ItemStack> playerItems = playerStorageManager.getPlayerStorage(playerUUID);
+        for (UUID playerUUID : storage.getAllPlayerUUIDs()) {
+            NonNullList<ItemStack> playerItems = storage.getPlayerStorage(playerUUID);
             for (ItemStack stack : playerItems) {
                 if (!stack.isEmpty()) {
                     playerItemsToProcess.computeIfAbsent(playerUUID, k -> new ArrayList<>()).add(stack.copy());
@@ -443,7 +419,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
 
         // 清空所有存储
         Collections.fill(sharedItems, ItemStack.EMPTY);
-        playerStorageManager.clearAllStorages();
+        for (UUID playerUUID : storage.getAllPlayerUUIDs()) {
+            storage.clearPlayerStorage(playerUUID);
+        }
 
         // 为每个玩家单独执行兑换
         Map<UUID, List<ItemStack>> playerResults = new HashMap<>();
@@ -564,42 +542,8 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 计算指定兑换规则可以执行的最大兑换次数
-     * 通过检查每种输入物品的可用数量来确定限制因素
-     *
-     * @param rule 兑换规则，包含所需的输入物品列表
-     * @param availableStacks 当前可用的物品堆列表
-     * @return 可以执行的最大兑换次数，如果无法兑换则返回0
-     */
-    private int getMaxExchanges(ExchangeRule rule, List<ItemStack> availableStacks) {
-        int maxExchanges = Integer.MAX_VALUE;
-
-        // 遍历每个必需的输入物品
-        for (ExchangeRule.InputItem required : rule.getInputs()) {
-            int totalCount = 0;
-            // 统计匹配该输入要求的物品总数
-            for (ItemStack stack : availableStacks) {
-                if (required.matches(stack)) {
-                    totalCount += stack.getCount();
-                }
-            }
-
-            // 计算基于当前输入物品可进行的兑换次数
-            int possibleExchanges = totalCount / required.getCount();
-            if (possibleExchanges < maxExchanges) {
-                maxExchanges = possibleExchanges;
-            }
-        }
-
-        return maxExchanges;
-    }
-
-    /**
      * 将方块实体的额外数据保存到NBT标签中
-     * 持久化运输箱的完整状态，包括共享存储、兑换时间、槽位所有权信息、玩家物品计数和独立存储数据
-     *
-     * @param tag 目标NBT复合标签，用于存储持久化数据
-     * @param registries 数据注册表提供者，用于物品序列化
+     * 注意：玩家独立存储现在由 GlobalPlayerStorage 管理，不再保存在方块实体NBT中
      */
     @Override
     protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
@@ -622,20 +566,13 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
             countsTag.putInt(entry.getKey().toString(), entry.getValue());
         }
         tag.put("PlayerCounts", countsTag);
-
-        // 保存玩家独立存储
-        playerStorageManager.saveToNBT(tag, registries);
     }
 
     /**
      * 从NBT标签中加载方块实体的额外数据
-     * 恢复运输箱的完整状态，包括共享存储、兑换时间、槽位所有者信息和玩家独立存储
-     *
-     * @param tag 包含持久化数据的NBT复合标签
-     * @param registries 数据注册表提供者，用于物品序列化/反序列化
      */
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.@NotNull Provider registries) {
+    protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
         super.loadAdditional(tag, registries);
 
         // 加载共享存储
@@ -659,27 +596,14 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
                 }
             }
         }
-
-        // 加载玩家独立存储
-        //playerStorageManager.loadFromNBT(tag, registries);
     }
 
     /**
      * 当方块实体被移除时调用
-     * 清空该售货箱相关的玩家存储数据，防止存档间数据污染
+     * 不清空数据，玩家物品存储在全局数据中
      */
     @Override
     public void setRemoved() {
         super.setRemoved();
-        
-        // 如果是服务端且方块实体存在，清空相关数据
-        if (level != null && !level.isClientSide) {
-            // 清空所有玩家的存储（因为这个售货箱要被移除了）
-            playerStorageManager.clearAllStorages();
-            
-            // 清空本地映射
-            slotOwners.clear();
-            playerItemCounts.clear();
-        }
     }
 }

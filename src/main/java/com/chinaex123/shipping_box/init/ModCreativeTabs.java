@@ -1,7 +1,6 @@
-package com.chinaex123.shipping_box;
+package com.chinaex123.shipping_box.init;
 
-import com.chinaex123.shipping_box.block.ModBlocks;
-import com.chinaex123.shipping_box.item.ModItems;
+import com.chinaex123.shipping_box.ShippingBox;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;

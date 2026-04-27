@@ -22,7 +22,7 @@
   "message.shipping_box.auto_box_already_bound": "§aThis Auto Shipping Box is bound to a player：[%s§a]",
 
   "message.shipping_box.recipe_error_title": "§c§l[Shipping Box] Rules Configuration Error!",
-  "message.shipping_box.recipe_error_help": "§7Please check the JSON configuration files in data/shipping_box/recipe/recipe_manager/",
+  "message.shipping_box.recipe_error_help": "§7Please check the JSON configuration files in data/shipping_box/recipe/exchange_rules/",
   "error.shipping_box.rule_validation_failed": "§cRule %s validation failed: %s",
   "error.shipping_box.rule_parse_error": "§cRule parse error (%s): %s",
   "error.shipping_box.missing_rules_array": "§cConfiguration file missing 'rules' array: %s",

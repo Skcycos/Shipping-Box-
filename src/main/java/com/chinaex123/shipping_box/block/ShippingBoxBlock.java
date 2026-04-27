@@ -6,11 +6,9 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
@@ -25,6 +23,13 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
+/**
+ * 普通售货箱方块类；
+ * 负处理方块的右键交互、破坏掉落和刻更新器注册
+ */
+@ParametersAreNonnullByDefault
 public class ShippingBoxBlock extends BaseEntityBlock {
     public static final MapCodec<ShippingBoxBlock> CODEC = simpleCodec(ShippingBoxBlock::new);
 
@@ -38,7 +43,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      * @return 方块属性的MapCodec编解码器实例
      */
     @Override
-    protected MapCodec<? extends BaseEntityBlock> codec() {
+    protected @NotNull MapCodec<? extends BaseEntityBlock> codec() {
         return CODEC;
     }
 
@@ -49,7 +54,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      * @return 渲染形状，返回MODEL表示使用模型文件进行渲染
      */
     @Override
-    public @NotNull RenderShape getRenderShape(@NotNull BlockState state) {
+    public @NotNull RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
     }
 
@@ -77,7 +82,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      * @return 交互结果，成功时返回sidedSuccess
      */
     @Override
-    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         }
@@ -116,32 +121,8 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      * @param isMoving 是否正在被移动（如活塞推动）
      */
     @Override
-    public void onRemove(BlockState state, @NotNull Level level, @NotNull BlockPos pos, BlockState newState, boolean isMoving) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
-            BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof ShippingBoxBlockEntity shippingBox) {
-                if (level instanceof ServerLevel serverLevel) {
-                    // 获取附近的玩家作为破坏者（简单近似检测）
-                    Player breaker = null;
-                    double closestDistance = 16.0; // 4格范围
-
-                    for (Player player : level.players()) {
-                        double distance = player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-                        if (distance < closestDistance) {
-                            closestDistance = distance;
-                            breaker = player;
-                        }
-                    }
-
-//                    if (breaker != null) {
-//                        // 掉落指定玩家的物品
-//                        shippingBox.dropPlayerItems(breaker.getUUID());
-//                    }
-
-                    // 掉落共享存储的物品
-                    Containers.dropContents(level, pos, shippingBox.getSharedItems());
-                }
-            }
             super.onRemove(state, level, pos, newState, isMoving);
         }
     }

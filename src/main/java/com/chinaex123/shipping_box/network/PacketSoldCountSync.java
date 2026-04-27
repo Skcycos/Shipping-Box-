@@ -10,8 +10,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * 销售计数同步数据包
- * @param itemIdentifier 物品标识符
- * @param soldCount 销售数量
+ * 在服务器和客户端之间同步动态定价数据
  */
 public record PacketSoldCountSync(String itemIdentifier, int soldCount) implements CustomPacketPayload {
     public static final Type<PacketSoldCountSync> TYPE = new Type<>(

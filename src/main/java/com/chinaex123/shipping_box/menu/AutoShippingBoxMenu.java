@@ -15,6 +15,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 自动售货箱菜单类；
+ * 管理自动售货箱的GUI界面和物品交互
+ */
 public class AutoShippingBoxMenu extends ChestMenu {
     private final AutoShippingBoxBlockEntity blockEntity;
     private static BlockPos storedPos = null;

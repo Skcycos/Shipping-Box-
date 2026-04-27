@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.modCompat.EclipticSeasons;
+package com.chinaex123.shipping_box.compat.EclipticSeasons;
 
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;

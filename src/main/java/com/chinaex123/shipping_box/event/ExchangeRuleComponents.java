@@ -22,6 +22,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 组件匹配器；
+ * 解析和验证物品组件（如药水、附魔、区间值等）的匹配规则
+ */
 public class ExchangeRuleComponents {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeRuleComponents.class.getName());
 
@@ -390,8 +394,14 @@ public class ExchangeRuleComponents {
      * @return 是区间格式返回true，否则返回false
      */
     private static boolean isRangeFormat(String value) {
-        return (value.startsWith("[") && value.endsWith("]")) ||
-                (value.startsWith("(") && value.endsWith(")"));
+        if (value.length() < 5) return false; // 至少需要 "[0,1]" 这样的长度
+
+        char startChar = value.charAt(0);
+        char endChar = value.charAt(value.length() - 1);
+
+        return (startChar == '[' || startChar == '(') &&
+                (endChar == ']' || endChar == ')') &&
+                value.contains(",");
     }
 
     /**

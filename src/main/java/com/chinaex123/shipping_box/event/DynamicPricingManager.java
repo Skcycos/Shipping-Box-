@@ -10,6 +10,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 动态定价管理器；
+ * 管理物品销售计数、价格调整和重置周期
+ */
 public class DynamicPricingManager {
     private static final String DATA_NAME = "dynamic_pricing_data";
 

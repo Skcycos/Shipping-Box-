@@ -3,6 +3,10 @@ package com.chinaex123.shipping_box.network;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 客户端销售计数缓存；
+ * 存储本地销售数据以减少网络请求
+ */
 public class ClientSoldCountCache {
     private static final Map<String, Integer> cache = new HashMap<>();
 

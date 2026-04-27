@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box.dataGen;
 
 import com.chinaex123.shipping_box.ShippingBox;
-import com.chinaex123.shipping_box.block.ModBlocks;
+import com.chinaex123.shipping_box.init.ModBlocks;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.tags.BlockTags;

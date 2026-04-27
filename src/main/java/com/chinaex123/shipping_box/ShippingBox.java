@@ -1,17 +1,15 @@
 package com.chinaex123.shipping_box;
 
 import com.chinaex123.shipping_box.attribute.ModAttributes;
-import com.chinaex123.shipping_box.block.ModBlocks;
+import com.chinaex123.shipping_box.init.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
-import com.chinaex123.shipping_box.block.entity.ModBlockEntities;
+import com.chinaex123.shipping_box.init.ModBlockEntities;
 import com.chinaex123.shipping_box.config.ServerConfig;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
-import com.chinaex123.shipping_box.event.ExchangeRuleComponents;
-import com.chinaex123.shipping_box.event.PlayerStorageManager;
-import com.chinaex123.shipping_box.item.ModItems;
+import com.chinaex123.shipping_box.init.ModCreativeTabs;
+import com.chinaex123.shipping_box.init.ModItems;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.capabilities.Capabilities;

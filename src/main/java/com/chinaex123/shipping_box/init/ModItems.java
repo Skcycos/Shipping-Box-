@@ -1,7 +1,8 @@
-package com.chinaex123.shipping_box.item;
+package com.chinaex123.shipping_box.init;
 
 import com.chinaex123.shipping_box.ShippingBox;
-import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptCoinItemServer;
+import com.chinaex123.shipping_box.item.DimensionalPouchItem;
+import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptCoinItemServer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;

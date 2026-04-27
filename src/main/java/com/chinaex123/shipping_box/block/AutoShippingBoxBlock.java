@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box.block;
 
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
-import com.chinaex123.shipping_box.block.entity.ModBlockEntities;
+import com.chinaex123.shipping_box.init.ModBlockEntities;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -31,14 +31,20 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 自动售货箱方块类；
+ * 处理自动售货箱的放置、交互和状态管理
+ */
+@ParametersAreNonnullByDefault
 public class AutoShippingBoxBlock extends BaseEntityBlock {
 
     public static final MapCodec<AutoShippingBoxBlock> CODEC = simpleCodec(AutoShippingBoxBlock::new);
 
-    public MapCodec<AutoShippingBoxBlock> codec() {
+    public @NotNull MapCodec<AutoShippingBoxBlock> codec() {
         return CODEC;
     }
 
@@ -55,7 +61,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @return 渲染形状枚举值，此处返回MODEL表示使用模型渲染
      */
     @Override
-    public RenderShape getRenderShape(BlockState state) {
+    public @NotNull RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
     }
 
@@ -171,7 +177,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @param hit    点击结果信息
      * @return 交互结果枚举值，CONSUME表示消耗此次交互
      */
-    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (!level.isClientSide) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
 
@@ -207,7 +213,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @param isMoving 是否由活塞等机械装置移动
      */
     @Override
-    public void onRemove(BlockState state, @NotNull Level level, @NotNull BlockPos pos, BlockState newState, boolean isMoving) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
@@ -234,7 +240,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
 
                         // 使用LORE组件显示友好的绑定信息
                         dropStack.set(DataComponents.LORE, new ItemLore(List.of(
-                                Component.translatable("tooltip.shipping_box.bound_to_player_formatted",
+                                Component.translatable("tooltip.item.shipping_box.bound_to_player_formatted",
                                                 Component.literal(playerName).withStyle(ChatFormatting.YELLOW))
                                         .withStyle(ChatFormatting.GRAY)
                         )));

@@ -1,8 +1,9 @@
 {
   "rules": [
+    // 物品 ↔ 物品：基础兑换格式
     {
       "input": {
-        "item": "minecraft:podzol",
+        "item": "minecraft:stone",
         "count": 1
       },
       "output": {
@@ -10,16 +11,35 @@
         "count": 1
       }
     },
+    // 标签 → 物品：输出不支持标签
     {
       "input": {
         "tag": "#minecraft:logs",
         "count": 1
       },
       "output": {
-        "item": "minecraft:diamond",
+        "item": "minecraft:emerald",
+        "count": 2
+      }
+    },
+    // 多物品 → 物品：输出不支持多物品
+    {
+      "input": [
+        {
+          "item": "minecraft:emerald",
+          "count": 1
+        },
+        {
+          "item": "minecraft:diamond",
+          "count": 2
+        }
+      ],
+      "output": {
+        "item": "shipping_box:copper_creeper_coin",
         "count": 1
       }
     },
+    // 物品 ↔ 简单组件物品
     {
       "input": {
         "item": "minecraft:iron_sword",
@@ -28,9 +48,10 @@
       "output": {
         "item": "minecraft:iron_sword",
         "count": 1,
-        "components": "damage=200"
+        "components": "damage=100"
       }
     },
+    // 物品 ↔ 药水物品
     {
       "input": {
         "item": "minecraft:glass_bottle",
@@ -46,6 +67,7 @@
         "count": 1
       }
     },
+    // 物品 ↔ 附魔物品
     {
       "input": {
         "item": "minecraft:book",
@@ -56,7 +78,7 @@
         "components": {
           "stored_enchantments": {
             "levels": {
-              "minecraft:sharpness": 5,
+              "minecraft:sharpness": 3,
               "minecraft:unbreaking": 3
             }
           }
@@ -64,6 +86,8 @@
         "count": 1
       }
     },
+    // 动态阈值系统
+    // 物品 → 物品
     {
       "input": {
         "item": "minecraft:stone",
@@ -73,43 +97,14 @@
         "type": "dynamic_pricing",
         "item": "minecraft:diamond",
         "dynamic_properties": {
-          "threshold": [64,128],
-          "value": [2,1],
-          "day": 3
+          "threshold": [64,128,256,512], // 阈值数组
+          "value": [5,4,3,2], // 价值数组
+          "day": 3 // 重置天数，-1为永不重置
         }
       }
     },
-    {
-      "input": {
-        "item": "minecraft:cobblestone",
-        "count": 1
-      },
-      "output": {
-        "type": "dynamic_pricing",
-        "coin": true,
-        "dynamic_properties": {
-          "threshold": [64,128],
-          "value": [2,1],
-          "day": 3
-        }
-      }
-    },
-    
-    {
-      "input": {
-        "item": "minecraft:blackstone",
-        "count": 1
-      },
-      "output": {
-        "type": "dynamic_pricing",
-        "item": "minecraft:diamond",
-        "dynamic_properties": {
-          "threshold": [64,128,256,512],
-          "value": [10,5,3,1],
-          "day": -1
-        }
-      }
-    },
+    // ViScriptShop 联动
+    // 物品 → 货币
     {
       "input": {
         "item": "minecraft:dirt",
@@ -120,6 +115,25 @@
         "count": 10
       }
     },
+    // 动态阈值系统+虚拟货币
+    // 物品 → 货币
+    {
+      "input": {
+        "item": "minecraft:stone",
+        "count": 1
+      },
+      "output": {
+        "type": "dynamic_pricing",
+        "coin": true,
+        "dynamic_properties": {
+          "threshold": [64,128,256,512], // 阈值数组
+          "value": [5,4,3,2], // 货币价值
+          "day": 3 // 重置天数
+        }
+      }
+    },
+    // 输出权重模式
+    // 物品 → 物品
     {
       "input": {
         "item": "minecraft:nether_star",
@@ -151,21 +165,22 @@
         ]
       }
     },
+    // [MOD]潮汐(Tide)
     {
       "input": {
-        "item": "minecraft:potion",
+        "item": "minecraft:apple",
         "components": {
-          "potion_contents": {
-            "potion": "minecraft:water"
-          }
+          "tide:fish_length": "[40.0,50.0)",
+          "tide:catch_timestamp": "[5000,6000]"
         },
         "count": 1
       },
       "output": {
-        "item": "minecraft:diamond",
+        "item": "minecraft:apple",
         "count": 1
       }
     },
+    // [MOD]QualityFood
     {
       "input": {
         "item": "minecraft:apple",
@@ -182,55 +197,54 @@
         "count": 1
       }
     },
+    // [MOD]QualityFood + 多物品
     {
-      "input": {
-        "item": "minecraft:golden_apple",
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:golden_apple",
-        "components": {
-          "quality_food:quality": {
-            "level": 3,
-            "type": "quality_food:diamond"
+      "input": [
+        {
+          "item": "minecraft:wheat",
+          "count": 3,
+          "components": {
+            "quality_food:quality": {
+              "level": 3,
+              "type": "quality_food:diamond"
+            }
           }
         },
-        "count": 1
-      }
-    },
-    {
-      "input": {
-        "item": "minecraft:wheat_seeds",
-        "count": 1,
-        "components": {
-          "quality_food:quality": {
-            "level": 3,
-            "type": "quality_food:diamond"
-          }
+        {
+          "item": "minecraft:blaze_powder",
+          "count": 1
         }
-      },
+      ],
       "output": {
+        "type": "dynamic_pricing",
         "coin": true,
-        "count": 4
+        "dynamic_properties": {
+          "threshold": [32,64],
+          "value": [20,10],
+          "day": 5
+        }
       }
     },
+    // 节气 联动
+    // 判断售卖的物品是否在当前季节，如果是的话则增加售额，如果不是则减少售额
+    // 不兼容VSS货币模式
     {
       "input": {
         "item": "minecraft:potato",
         "count": 1
       },
       "output": {
-        "type": "ecliptic_seasons",
+        "type": "ecliptic_seasons", // 节气类型
         "item": "minecraft:emerald",
-        "count": 1,
         "ecliptic_seasons": {
-          "season": ["spring","autumn"],
-          "seasonal_only": false,
-          "add_season_bonus": 30,
-          "reduce_season_bonus": 20
+          "season": ["winter"], // spring, summer, autumn, winter, all，必须是数组格式
+          "seasonal_only": false, // 仅限当前季节出售，启用的话限制只有"season"设定的季节才会出售
+          "add_season_bonus": 30,// 应季时，价格加成%（卖得更贵）
+          "reduce_season_bonus": 20// 非应季时，价格减益%（卖得更便宜）
         }
       }
     },
+    // 森罗酒馆 - 酿酒品质
     {
       "input": {
         "item": "kaleidoscope_tavern:wine",
@@ -243,21 +257,6 @@
         "item": "minecraft:emerald",
         "count": 1
       }
-    },
-    {
-      "input": {
-        "item": "kaleidoscope_tavern:wine",
-        "components": {
-          "kaleidoscope_tavern:brew_level": 7
-        },
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:emerald",
-        "count": 10
-      }
     }
   ]
 }
-
-

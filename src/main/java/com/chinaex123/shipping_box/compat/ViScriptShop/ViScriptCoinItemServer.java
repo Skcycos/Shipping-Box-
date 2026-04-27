@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.modCompat.ViScriptShop;
+package com.chinaex123.shipping_box.compat.ViScriptShop;
 
 import com.chinaex123.shipping_box.tooltip.TooltipItems;
 import net.minecraft.core.particles.ParticleTypes;

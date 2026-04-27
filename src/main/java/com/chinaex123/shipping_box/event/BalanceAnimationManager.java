@@ -11,7 +11,6 @@ import java.util.*;
 /**
  * 虚拟货币余额动画管理器
  * 专门处理ViScriptShop余额增加时的动画效果
- * 直接复制爬爬币的动画实现以确保一致性
  */
 @EventBusSubscriber
 public class BalanceAnimationManager {

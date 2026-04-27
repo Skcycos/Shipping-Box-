@@ -3,7 +3,7 @@ package com.chinaex123.shipping_box.tooltip;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
-import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
+import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.ClientSoldCountCache;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -20,6 +20,10 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 兑换提示提供者；
+ * 生成物品兑换规则和动态定价信息的tooltip
+ */
 public class ExchangeTooltipProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeTooltipProvider.class);
 

@@ -7,6 +7,9 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
+/**
+ * 客户端事件监听
+ */
 @EventBusSubscriber(modid = ShippingBox.MOD_ID, value = Dist.CLIENT)
 public class ClientModEvents {
 

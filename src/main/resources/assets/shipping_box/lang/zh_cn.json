@@ -22,7 +22,7 @@
   "message.shipping_box.auto_box_already_bound": "§a此自动售货箱已绑定玩家：[%s§a]",
 
   "message.shipping_box.recipe_error_title": "§c§l[运输箱] 规则配置错误!",
-  "message.shipping_box.recipe_error_help": "§c请检查 data/shipping_box/recipe/recipe_manager/ 目录下的JSON文件",
+  "message.shipping_box.recipe_error_help": "§c请检查 data/shipping_box/recipe/exchange_rules/ 目录下的JSON文件",
   "error.shipping_box.rule_validation_failed": "§c规则 %s 验证失败：%s",
   "error.shipping_box.rule_parse_error": "§c规则解析错误 (%s): %s",
   "error.shipping_box.missing_rules_array": "§c配置文件缺少 'rules' 数组：%s",

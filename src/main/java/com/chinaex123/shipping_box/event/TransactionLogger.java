@@ -18,6 +18,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * 时间调度器；
+ * 检测游戏时间窗口并触发定时兑换逻辑
+ */
 public class TransactionLogger {
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionLogger.class.getName());
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");

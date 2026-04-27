@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * 支持自定义Tooltip的物品类
- * 可以直接用于创建各种需要Tooltip的物品
+ * 提示物品基类
+ * 为物品添加自定义tooltip显示
  */
 public class TooltipItems extends Item {
     private final Supplier<List<Component>> tooltipSupplier;

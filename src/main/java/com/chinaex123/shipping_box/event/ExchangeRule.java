@@ -14,6 +14,10 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * 兑换规则类；
+ * 定义输入输出物品的匹配条件和动态定价属性
+ */
 public class ExchangeRule {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeRule.class);
 

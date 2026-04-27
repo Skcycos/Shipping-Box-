@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.item;
 
-import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
+import com.chinaex123.shipping_box.init.ModItems;
+import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.tooltip.TooltipItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -31,6 +32,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 次元钱包物品类；
+ * 实现跨维度物品存储和动画效果
+ */
 public class DimensionalPouchItem extends TooltipItems {
 
     // 存储玩家的动画状态

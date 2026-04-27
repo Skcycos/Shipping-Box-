@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.block.entity;
 
 import com.chinaex123.shipping_box.event.ExchangeManager;
+import com.chinaex123.shipping_box.init.ModBlockEntities;
 import com.chinaex123.shipping_box.menu.AutoShippingBoxMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -20,6 +21,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
+/**
+ * 自动售货箱的方块实体类；
+ * 负责管理自动售货箱的物品存储、兑换逻辑和与玩家的交互界面
+ */
 public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity implements MenuProvider {
 
     private NonNullList<ItemStack> items;
@@ -27,7 +32,6 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
     private long lastExchangeDay = -1L;
     private final Map<Integer, Boolean> slotIsExchanged = new HashMap<>();
     private final Map<Integer, ItemStack> exchangedItemPrototype = new HashMap<>();
-    private int currentGeneration = 0;
     private boolean skipResetDuringExchange = false;
 
     /**
@@ -262,8 +266,6 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         }
 
         // ========== 第四阶段：更新兑换轮次和状态 ==========
-        // 增加兑换轮次计数器，用于区分不同批次的兑换产物
-        currentGeneration++;
         
         // 先清空所有相关槽位的兑换状态（后续会根据实际情况重新设置）
         for (int slot : slotsWithItems) {
@@ -397,7 +399,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
      * @param registries 注册表提供者，用于反序列化物品
      */
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.@NotNull Provider registries) {
+    protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
         // 调用父类加载基础数据
         super.loadAdditional(tag, registries);
         
@@ -450,12 +452,12 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
     }
 
     @Override
-    public ItemStack getItem(int slot) {
+    public @NotNull ItemStack getItem(int slot) {
         return itemHandler.getStackInSlot(slot);
     }
 
     @Override
-    public ItemStack removeItem(int slot, int count) {
+    public @NotNull ItemStack removeItem(int slot, int count) {
         // 玩家手动取出物品时，不受兑换状态限制
         ItemStack stack = itemHandler.getStackInSlot(slot);
         if (stack.isEmpty()) {
@@ -475,7 +477,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
     }
 
     @Override
-    public ItemStack removeItemNoUpdate(int slot) {
+    public @NotNull ItemStack removeItemNoUpdate(int slot) {
         // 玩家手动取出物品时，不受兑换状态限制
         ItemStack stack = itemHandler.getStackInSlot(slot);
         itemHandler.setStackInSlot(slot, ItemStack.EMPTY);
@@ -488,7 +490,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
     }
 
     @Override
-    public void setItem(int slot, ItemStack stack) {
+    public void setItem(int slot, @NotNull ItemStack stack) {
         itemHandler.setStackInSlot(slot, stack);
         items.set(slot, stack);
         // 当物品被放入时，重置兑换状态

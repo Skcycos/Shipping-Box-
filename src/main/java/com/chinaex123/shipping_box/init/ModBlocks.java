@@ -1,7 +1,8 @@
-package com.chinaex123.shipping_box.block;
+package com.chinaex123.shipping_box.init;
 
 import com.chinaex123.shipping_box.ShippingBox;
-import com.chinaex123.shipping_box.item.ModItems;
+import com.chinaex123.shipping_box.block.AutoShippingBoxBlock;
+import com.chinaex123.shipping_box.block.ShippingBoxBlock;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;

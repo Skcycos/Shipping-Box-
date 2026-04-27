@@ -14,6 +14,9 @@ import net.minecraft.world.phys.HitResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 强制兑换命令
+ */
 public class ForceExchangeCommand {
     private static final Logger LOGGER = LoggerFactory.getLogger(ForceExchangeCommand.class);
 

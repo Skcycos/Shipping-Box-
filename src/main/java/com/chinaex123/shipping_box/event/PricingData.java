@@ -9,6 +9,10 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 定价数据持久化类；
+ * 保存和加载销售计数及最后销售时间
+ */
 public class PricingData extends SavedData {
     public static final SavedData.Factory<PricingData> FACTORY = new SavedData.Factory<>(
             PricingData::new,

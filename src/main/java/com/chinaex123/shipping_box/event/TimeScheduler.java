@@ -1,8 +1,12 @@
-package com.chinaex123.shipping_box.block.entity;
+package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.config.ServerConfig;
 import net.minecraft.world.level.Level;
 
+/**
+ * 时间调度器；
+ * 检测游戏时间窗口并触发定时兑换逻辑
+ */
 public class TimeScheduler {
     public static boolean shouldExchange(Level level, long lastExchangeDay) {
         if (level == null || level.isClientSide) return false;

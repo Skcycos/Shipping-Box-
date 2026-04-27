@@ -17,6 +17,10 @@ import net.minecraft.world.level.Level;
 
 import java.util.UUID;
 
+/**
+ * 普通售货箱菜单类；
+ * 提供玩家专属的物品存储访问接口和快速移动逻辑
+ */
 public class ShippingBoxMenu extends ChestMenu {
     private final UUID playerUUID;
     private final ShippingBoxBlockEntity blockEntity;

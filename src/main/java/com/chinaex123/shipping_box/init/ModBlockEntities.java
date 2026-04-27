@@ -1,7 +1,8 @@
-package com.chinaex123.shipping_box.block.entity;
+package com.chinaex123.shipping_box.init;
 
 import com.chinaex123.shipping_box.ShippingBox;
-import com.chinaex123.shipping_box.block.ModBlocks;
+import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
+import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
