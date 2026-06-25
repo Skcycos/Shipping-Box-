@@ -24,3 +24,5 @@ runs
 run-data
 
 repo
+.codegraph/
+CLAUDE.md
