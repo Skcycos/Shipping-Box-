@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
-import com.chinaex123.shipping_box.web.WebEditorLocalServer;
 import com.chinaex123.shipping_box.util.ItemIconPngRenderer;
 
 import java.io.IOException;
@@ -166,6 +165,9 @@ public class EditorIconCacheManager {
             }
         }
 
+        // 无论 force 模式，始终确保输出目录存在
+        ensureDirectories();
+
         if (force) {
             forceMode = true;
             clearCacheInternal(false);
@@ -205,6 +207,18 @@ public class EditorIconCacheManager {
     public void clearCache() {
         stopCurrentTask();
         clearCacheInternal(true);
+    }
+
+    /**
+     * 确保缓存输出目录存在（幂等）。
+     */
+    private void ensureDirectories() {
+        try {
+            Files.createDirectories(itemsDir);
+            Files.createDirectories(blocksDir);
+        } catch (Exception e) {
+            LOGGER.error("[IconCache] 创建缓存目录失败", e);
+        }
     }
 
     private void clearCacheInternal(boolean resetStatus) {
@@ -282,10 +296,6 @@ public class EditorIconCacheManager {
 
                 byte[] png = ItemIconPngRenderer.renderStackToPng(stack, ICON_SIZE);
                 if (png == null || png.length == 0) {
-                    // 回退使用旧的提取逻辑（保证有图标）
-                    png = WebEditorLocalServer.extractIconForItemAsBytes(entry.id());
-                }
-                if (png == null || png.length == 0) {
                     // Fallback: generate a simple placeholder icon so the cache doesn't completely fail
                     png = createPlaceholderPng(ICON_SIZE, entry.id().hashCode());
                     LOGGER.warn("[IconCache] 使用占位符图标 for {}", entry.id());
@@ -296,7 +306,9 @@ public class EditorIconCacheManager {
                 Files.write(targetFile, png);
 
             } catch (Exception e) {
-                LOGGER.warn("[IconCache] 处理 {} 失败: {}", entry.id(), e.getMessage());
+                LOGGER.warn("[IconCache] 处理 {} 失败: [{}] {}",
+                        entry.id(), e.getClass().getSimpleName(), e.getMessage());
+                LOGGER.debug("[IconCache] 详细堆栈", e);
             } finally {
                 processed.incrementAndGet();
                 processedThisTick++;
@@ -364,6 +376,33 @@ public class EditorIconCacheManager {
             root.add("items", itemsArr);
             root.add("blocks", blocksArr);
 
+            // tag → 代表性图标：遍历所有 item tag，取第一个已有缓存的物品图标
+            JsonArray tagsArr = new JsonArray();
+            JsonObject tagIcons = new JsonObject();
+            BuiltInRegistries.ITEM.getTags().forEach(pair -> {
+                var tagKey = pair.getFirst();
+                ResourceLocation loc = tagKey.location();
+                if (loc == null) return;
+                String tagId = "#" + loc.getNamespace() + ":" + loc.getPath();
+                tagsArr.add(tagId);
+                // 找 tag 中第一个有缓存的物品
+                var holderSet = BuiltInRegistries.ITEM.getTag(tagKey);
+                if (holderSet.isPresent()) {
+                    for (var holder : holderSet.get()) {
+                        Item item = holder.value();
+                        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
+                        if (itemId == null) continue;
+                        String fileName = toSafeFileName(itemId) + ".png";
+                        if (Files.exists(itemsDir.resolve(fileName))) {
+                            tagIcons.addProperty(tagId, "/icon/cache/items/" + fileName);
+                            break;
+                        }
+                    }
+                }
+            });
+            root.add("tags", tagsArr);
+            root.add("tagIcons", tagIcons);
+
             Files.writeString(manifestFile, GSON.toJson(root), StandardCharsets.UTF_8);
             LOGGER.info("[IconCache] manifest.json 已生成");
 
@@ -403,27 +442,49 @@ public class EditorIconCacheManager {
     }
 
     /**
-     * Create a simple colored placeholder PNG when real icon extraction fails.
+     * Create a simple colored placeholder PNG when icon rendering fails.
+     * Public so ItemIconPngRenderer can call it directly as a fallback.
      */
-    private static byte[] createPlaceholderPng(int size, int seed) {
+    public static byte[] createPlaceholderPng(int size, int seed) {
         try {
             NativeImage image = new NativeImage(NativeImage.Format.RGBA, size, size, false);
             // Simple color based on seed
             int r = (seed >> 16) & 0xFF;
             int g = (seed >> 8) & 0xFF;
             int b = seed & 0xFF;
-            int color = 0xFF000000 | (r << 16) | (g << 8) | b;  // ARGB with full alpha
+            int color = 0xFF000000 | (r << 16) | (g << 8) | b;
             for (int x = 0; x < size; x++) {
                 for (int y = 0; y < size; y++) {
                     image.setPixelRGBA(x, y, color);
                 }
             }
-            byte[] bytes = image.asByteArray();
+            // Encode as valid PNG via writeToChannel
+            byte[] bytes = encodePng(image);
             image.close();
-            return bytes;
+            if (bytes != null && bytes.length > 0) {
+                return bytes;
+            }
         } catch (Exception e) {
-            // ultimate fallback: small transparent
-            return new byte[0];
+            LOGGER.warn("[IconCache] Failed to create placeholder PNG", e);
         }
+        return new byte[0];
+    }
+
+    /**
+     * Encode NativeImage as valid PNG bytes via writeToFile (writeToChannel is private in NeoForge).
+     */
+    private static byte[] encodePng(NativeImage image) {
+        try {
+            java.nio.file.Path tempFile = java.nio.file.Files.createTempFile("icon_", ".png");
+            image.writeToFile(tempFile);
+            byte[] result = java.nio.file.Files.readAllBytes(tempFile);
+            java.nio.file.Files.deleteIfExists(tempFile);
+            if (result.length > 0) {
+                return result;
+            }
+        } catch (Exception e) {
+            LOGGER.warn("[IconCache] Failed to encode PNG via temp file", e);
+        }
+        return null;
     }
 }

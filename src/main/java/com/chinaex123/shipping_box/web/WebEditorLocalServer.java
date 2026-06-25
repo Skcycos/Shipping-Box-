@@ -11,6 +11,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -38,7 +39,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -46,11 +46,6 @@ import java.util.concurrent.TimeUnit;
 public final class WebEditorLocalServer {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final SecureRandom RANDOM = new SecureRandom();
-    private static final Map<String, byte[]> ICON_CACHE = new ConcurrentHashMap<>();
-    private static final byte[] TRANSPARENT_PNG = Base64.getDecoder().decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5WvKsAAAAASUVORK5CYII="
-    );
-
     private static final Logger LOGGER = LoggerFactory.getLogger(WebEditorLocalServer.class);
 
     private static volatile ServerSocket serverSocket;
@@ -320,15 +315,14 @@ public final class WebEditorLocalServer {
         });
 
         JsonArray tags = new JsonArray();
-        // For simplicity, we provide common tags that might be useful; full tag registry is more involved.
-        // Clients can also use free text. Here we expose a basic set of vanilla tags used in examples.
-        String[] commonTags = new String[] {
-            "#minecraft:logs", "#minecraft:planks", "#minecraft:stone_tool_materials",
-            "#minecraft:coals", "#minecraft:dirt", "#minecraft:sand", "#minecraft:gravel"
-        };
-        for (String t : commonTags) {
-            tags.add(t);
-        }
+        // 从游戏注册表获取所有 item tag
+        BuiltInRegistries.ITEM.getTags().forEach(pair -> {
+            var tagKey = pair.getFirst();
+            ResourceLocation loc = tagKey.location();
+            if (loc != null) {
+                tags.add("#" + loc.getNamespace() + ":" + loc.getPath());
+            }
+        });
 
         JsonObject resp = new JsonObject();
         resp.add("items", items);
@@ -341,30 +335,52 @@ public final class WebEditorLocalServer {
         if (itemId.isBlank()) {
             itemId = parseQuery(uri).getOrDefault("item", "");
         }
-        if (itemId.isBlank()) {
-            writeBytes(out, 200, "image/png", TRANSPARENT_PNG);
-            return;
-        }
 
-        byte[] cached = ICON_CACHE.get(itemId);
-        if (cached != null) {
-            writeBytes(out, 200, "image/png", cached);
-            return;
-        }
-
-        byte[] png = null;
-        try {
+        // Try cache directory first
+        if (!itemId.isBlank()) {
             ResourceLocation rl = ResourceLocation.tryParse(itemId);
             if (rl != null) {
-                png = extractIconForItem(rl);
-            }
-        } catch (Exception ignored) {}
+                String fileName = (rl.getNamespace() + "_" + rl.getPath()).replace(':', '_').replace('/', '_') + ".png";
+                Path cacheDir = EditorIconCacheManager.getInstance().getCacheRoot();
 
-        if (png == null) {
-            png = TRANSPARENT_PNG;
+                Path inItems = cacheDir.resolve("items").resolve(fileName);
+                if (Files.exists(inItems)) {
+                    writeBytes(out, 200, "image/png", Files.readAllBytes(inItems));
+                    return;
+                }
+
+                Path inBlocks = cacheDir.resolve("blocks").resolve(fileName);
+                if (Files.exists(inBlocks)) {
+                    writeBytes(out, 200, "image/png", Files.readAllBytes(inBlocks));
+                    return;
+                }
+            }
         }
-        ICON_CACHE.put(itemId, png);
-        writeBytes(out, 200, "image/png", png);
+
+        // Fallback: transparent 1x1 PNG
+        byte[] transparent = generateTransparentPng();
+        writeBytes(out, 200, "image/png", transparent);
+    }
+
+    /** Generate a minimal valid transparent PNG in memory. */
+    private static byte[] generateTransparentPng() {
+        try {
+            NativeImage img = new NativeImage(NativeImage.Format.RGBA, 1, 1, false);
+            img.setPixelRGBA(0, 0, 0);
+            Path tempFile = Files.createTempFile("sbox_transparent_", ".png");
+            img.writeToFile(tempFile);
+            byte[] result = Files.readAllBytes(tempFile);
+            Files.deleteIfExists(tempFile);
+            img.close();
+            if (result.length > 0) {
+                return result;
+            }
+        } catch (Exception e) {
+            LOGGER.debug("[WebEditor] Failed to generate transparent PNG via writeToFile", e);
+        }
+        // Hardcoded minimal valid transparent PNG as ultimate fallback
+        return java.util.Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5WvKsAAAAASUVORK5CYII=");
     }
 
     /** 返回 manifest 或 missing_cache 提示 */
@@ -436,208 +452,6 @@ public final class WebEditorLocalServer {
 
         byte[] bytes = Files.readAllBytes(target);
         writeBytes(out, 200, "image/png", bytes);
-    }
-
-    /** 供缓存管理器复用 */
-    public static byte[] extractIconForItemAsBytes(ResourceLocation itemRl) {
-        return extractIconForItem(itemRl);
-    }
-
-    private static byte[] extractIconForItem(ResourceLocation itemRl) {
-        String namespace = itemRl.getNamespace();
-        String path = itemRl.getPath();
-
-        byte[] modelBytes = null;
-
-        // Prefer Minecraft ResourceManager (works for vanilla and resource packs)
-        try {
-            var mc = net.minecraft.client.Minecraft.getInstance();
-            if (mc != null && mc.getResourceManager() != null) {
-                var rm = mc.getResourceManager();
-                // Try item model
-                var modelLoc = ResourceLocation.fromNamespaceAndPath(namespace, "models/item/" + path + ".json");
-                var resOpt = rm.getResource(modelLoc);
-                if (resOpt.isPresent()) {
-                    try (var in = resOpt.get().open()) {
-                        modelBytes = in.readAllBytes();
-                    }
-                }
-                if (modelBytes == null) {
-                    // block model
-                    modelLoc = ResourceLocation.fromNamespaceAndPath(namespace, "models/block/" + path + ".json");
-                    resOpt = rm.getResource(modelLoc);
-                    if (resOpt.isPresent()) {
-                        try (var in = resOpt.get().open()) {
-                            modelBytes = in.readAllBytes();
-                        }
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-
-        // Fallback to classpath (for mod's own assets in some environments)
-        if (modelBytes == null) {
-            String modelPath = "assets/" + namespace + "/models/item/" + path + ".json";
-            modelBytes = tryReadBytes(modelPath);
-            if (modelBytes == null) {
-                modelPath = "assets/" + namespace + "/models/block/" + path + ".json";
-                modelBytes = tryReadBytes(modelPath);
-            }
-        }
-
-        if (modelBytes == null) {
-            LOGGER.warn("[Icon] Could not load model JSON for {} (tried RM and classpath)", itemRl);
-            return null;
-        }
-
-        try {
-            String json = new String(modelBytes, StandardCharsets.UTF_8);
-            JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-
-            // Resolve textures, following "parent" if necessary (simple 2-3 levels to avoid infinite)
-            JsonObject textures = resolveTextures(obj, namespace, path, 0);
-
-            if (textures == null || !textures.isJsonObject()) {
-                return null;
-            }
-            textures = textures.getAsJsonObject();
-
-            // Support common texture keys for both item (layer0) and block models
-            String[] textureKeys = {"layer0", "all", "texture", "stone", "top", "side", "end", "particle"};
-            String layer0 = null;
-            for (String k : textureKeys) {
-                if (textures.has(k)) {
-                    layer0 = textures.get(k).getAsString();
-                    if (layer0 != null && !layer0.isBlank()) break;
-                }
-            }
-            if (layer0 == null || layer0.isBlank()) {
-                LOGGER.warn("[Icon] No suitable texture key found in model for {}", itemRl);
-                return null;
-            }
-
-            String texNamespace = namespace;
-            String texPath = layer0;
-            int idx = layer0.indexOf(':');
-            if (idx > 0) {
-                texNamespace = layer0.substring(0, idx);
-                texPath = layer0.substring(idx + 1);
-            }
-            if (texPath.startsWith("textures/")) {
-                texPath = texPath.substring("textures/".length());
-            }
-
-            String texClasspath = "assets/" + texNamespace + "/textures/" + texPath + ".png";
-            byte[] png = tryReadPng(texClasspath);
-
-            // Fallback using Minecraft ResourceManager (reliable for vanilla + resource packs)
-            if (png == null) {
-                try {
-                    var mc = net.minecraft.client.Minecraft.getInstance();
-                    if (mc != null && mc.getResourceManager() != null) {
-                        var rm = mc.getResourceManager();
-                        var texLoc = ResourceLocation.fromNamespaceAndPath(texNamespace, "textures/" + texPath + ".png");
-                        var resOpt = rm.getResource(texLoc);
-                        if (resOpt.isPresent()) {
-                            try (var in = resOpt.get().open()) {
-                                png = in.readAllBytes();
-                            }
-                        }
-                    }
-                } catch (Exception ignored) {}
-            }
-
-            if (png == null) {
-                LOGGER.warn("[Icon] Could not load texture PNG for {} at {}", itemRl, texPath);
-            }
-
-            return png;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static byte[] tryReadPng(String resourcePath) {
-        byte[] bytes = tryReadBytes(resourcePath);
-        if (bytes == null || bytes.length == 0) {
-            return null;
-        }
-        return bytes;
-    }
-
-    private static byte[] tryReadBytes(String resourcePath) {
-        // Try mod classloader first (works for mod assets)
-        try (InputStream in = WebEditorLocalServer.class.getClassLoader().getResourceAsStream(resourcePath)) {
-            if (in != null) {
-                return readAllBytes(in);
-            }
-        } catch (IOException ignored) {}
-
-        // Also try context classloader (sometimes has more resources in dev)
-        try (InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath)) {
-            if (in != null) {
-                return readAllBytes(in);
-            }
-        } catch (IOException ignored) {}
-
-        return null;
-    }
-
-    /**
-     * Recursively resolve textures by following "parent" in model JSON.
-     * Returns the "textures" JsonObject from the deepest parent or the model itself.
-     */
-    private static JsonObject resolveTextures(JsonObject modelJson, String namespace, String path, int depth) {
-        if (depth > 5) return null; // prevent infinite recursion
-
-        if (modelJson.has("textures") && modelJson.get("textures").isJsonObject()) {
-            return modelJson.getAsJsonObject("textures");
-        }
-
-        if (!modelJson.has("parent")) {
-            return null;
-        }
-
-        String parent = modelJson.get("parent").getAsString();
-        if (parent == null || parent.isEmpty()) return null;
-
-        String parentNamespace = namespace;
-        String parentPath = parent;
-        if (parent.contains(":")) {
-            String[] parts = parent.split(":", 2);
-            parentNamespace = parts[0];
-            parentPath = parts[1];
-        }
-
-        // Try to load parent model
-        String parentModelClasspath = "assets/" + parentNamespace + "/models/" + parentPath + ".json";
-        byte[] parentBytes = tryReadBytes(parentModelClasspath);
-        if (parentBytes == null) {
-            // try RM
-            try {
-                var mc = net.minecraft.client.Minecraft.getInstance();
-                if (mc != null && mc.getResourceManager() != null) {
-                    var rm = mc.getResourceManager();
-                    var parentLoc = ResourceLocation.fromNamespaceAndPath(parentNamespace, "models/" + parentPath + ".json");
-                    var resOpt = rm.getResource(parentLoc);
-                    if (resOpt.isPresent()) {
-                        try (var in = resOpt.get().open()) {
-                            parentBytes = in.readAllBytes();
-                        }
-                    }
-                }
-            } catch (Exception ignored) {}
-        }
-
-        if (parentBytes == null) return null;
-
-        try {
-            String parentJsonStr = new String(parentBytes, StandardCharsets.UTF_8);
-            JsonObject parentJson = JsonParser.parseString(parentJsonStr).getAsJsonObject();
-            return resolveTextures(parentJson, parentNamespace, parentPath, depth + 1);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     private static void handleLoad(OutputStream out, URI uri) throws IOException {

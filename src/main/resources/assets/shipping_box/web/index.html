@@ -94,6 +94,8 @@
         transition: background 0.3s ease, color 0.3s ease;
       }
       .app {
+        position: relative;
+        z-index: 1;
         max-width: 1240px;
         margin: 0 auto;
         padding: 28px 18px 32px;
@@ -168,6 +170,20 @@
         background: var(--hover);
         transform: translateY(-1px);
       }
+      @keyframes btnPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.5); }
+        50% { box-shadow: 0 0 0 8px rgba(48, 209, 88, 0); }
+      }
+      .btn.success-pulse {
+        animation: btnPulse 0.8s ease;
+      }
+      .btn {
+        transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+      }
+      .btn:active {
+        transform: scale(0.94);
+      }
       .btn.primary {
         border-color: rgba(10, 132, 255, 0.55);
         background: rgba(10, 132, 255, 0.18);
@@ -235,25 +251,42 @@
       .list::-webkit-scrollbar { width: 10px; }
       .list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; transition: background 0.3s ease; }
       .item {
+        position: relative;
+        overflow: hidden;
         padding: 14px 14px;
         border: 1px solid var(--border);
         background: var(--item-bg);
         border-radius: var(--radius-sm);
         cursor: grab;
-        transition: background 0.2s ease, 
-                    border-color 0.2s ease, 
-                    transform 0.15s ease, 
+        transition: background 0.2s ease,
+                    border-color 0.2s ease,
+                    transform 0.15s ease,
                     box-shadow 0.2s ease,
                     opacity 0.2s ease;
         user-select: none;
       }
-      .item:hover { 
-        background: var(--item-bg-hover); 
-        border-color: var(--border); 
-        transform: translateY(-1px);
+      .item-icon-bg {
+        position: absolute;
+        right: -16px;
+        top: -16px;
+        height: calc(100% + 32px);
+        width: auto;
+        opacity: 0.50;
+        image-rendering: pixelated;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .item:hover {
+        background: var(--item-bg-hover);
+        border-color: var(--border);
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      }
+      .item:hover .item-icon-bg {
+        opacity: 0.65 !important;
       }
       .item:active {
-        transform: scale(0.985);
+        transform: scale(0.98);
       }
       .item.active { 
         background: rgba(10, 132, 255, 0.16); 
@@ -265,6 +298,16 @@
         border-color: rgba(10, 132, 255, 0.6); 
         transform: scale(1.01);
         box-shadow: 0 4px 12px rgba(10, 132, 255, 0.2);
+      }
+      .item.entering {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      .item.removing {
+        opacity: 0;
+        transform: scale(0.9);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        pointer-events: none;
       }
       .item.dragging {
         opacity: 0.6;
@@ -285,21 +328,25 @@
         100% { transform: scale(1); opacity: 1; }
       }
       .item-top {
+        position: relative;
+        z-index: 1;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
       }
       .item-title {
+        flex: 1;
+        min-width: 0;
         font-weight: 650;
         font-size: 12.5px;
         letter-spacing: 0.15px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 260px;
       }
       .badge {
+        flex-shrink: 0;
         font-size: 11px;
         color: var(--muted);
         border: 1px solid var(--border);
@@ -310,6 +357,8 @@
         transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
       .item-sub {
+        position: relative;
+        z-index: 1;
         margin-top: 6px;
         font-size: 11.5px;
         color: var(--muted);
@@ -386,6 +435,7 @@
         width: 24px;
         height: 24px;
         display: block;
+        image-rendering: pixelated;
       }
       .textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
       .help {
@@ -424,6 +474,16 @@
         border-color: rgba(10, 132, 255, 0.55);
         background: rgba(10, 132, 255, 0.18);
       }
+      @keyframes toastIn {
+        0% { transform: translateY(50px); opacity: 0; }
+        60% { transform: translateY(-6px); opacity: 1; }
+        80% { transform: translateY(3px); }
+        100% { transform: translateY(0); opacity: 1; }
+      }
+      @keyframes toastOut {
+        0% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(20px); opacity: 0; }
+      }
       .toast {
         position: fixed;
         right: 18px;
@@ -436,11 +496,20 @@
         box-shadow: var(--shadow);
         font-size: 12.5px;
         color: var(--toast-text);
-        display: none;
         max-width: 360px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(50px);
         transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        z-index: 10002;
       }
-      .toast.show { display: block; }
+      .toast.show {
+        animation: toastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        pointer-events: auto;
+      }
+      .toast.hide {
+        animation: toastOut 0.3s ease forwards;
+      }
       .toast.ok { border-color: rgba(48,209,88,0.40); }
       .toast.bad { border-color: rgba(255,69,58,0.45); }
       @media (max-width: 980px) {
@@ -468,7 +537,7 @@
         cursor: pointer;
         z-index: 9999;
         user-select: none;
-        transition: all 0.2s ease;
+        transition: opacity 0.3s ease, background 0.2s ease, color 0.2s ease, padding 0.2s ease;
         box-shadow: -2px 0 8px rgba(0,0,0,0.3);
       }
       .json-sidebar-toggle:hover {
@@ -487,11 +556,13 @@
         border-left: 1px solid var(--border);
         box-shadow: -10px 0 30px rgba(0,0,0,0.6);
         z-index: 10000;
-        display: none;
+        display: flex;
         flex-direction: column;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        transform: translateX(100%);
+        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
       }
-      .json-sidebar.open { display: flex; }
+      .json-sidebar.open { transform: translateX(0); }
       .json-sidebar-header {
         padding: 12px 16px;
         border-bottom: 1px solid var(--border);
@@ -542,9 +613,24 @@
       .json-number { color: #b5cea8; }
       .json-boolean { color: #569cd6; font-weight: 500; }
       .json-bracket { color: #858585; }
+
+      /* ===== 动态物品贴图背景 ===== */
+      .bg-particles {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .bg-particle {
+        position: absolute;
+        filter: blur(4px) brightness(1.0);
+        transition: opacity 0.8s ease;
+      }
     </style>
   </head>
   <body>
+    <div class="bg-particles" id="bgParticles"></div>
     <div class="app">
       <div class="topbar">
         <div class="brand">
@@ -553,6 +639,7 @@
         </div>
         <div class="actions">
           <button class="btn ghost icon" id="btnTheme"></button>
+          <button class="btn ghost icon" id="btnBgAnim" title="切换动态背景"></button>
           <button class="btn ghost" id="btnLang"></button>
           <input class="file" id="filePath" placeholder="" />
           <button class="btn" id="btnOpenFile"></button>
@@ -740,6 +827,8 @@
         rulesVersion: 0,
         iconManifest: null,           // from /manifest
         iconCacheMap: new Map(),      // id -> full cached url with token
+        displayNameMap: new Map(),    // id -> displayName from manifest
+        tagIconMap: new Map(),        // tag id -> icon URL from manifest
         iconCacheReady: false,
         componentHelperExpanded: false,  // 组件助手和品质全局折叠，默认折叠
         listCache: {
@@ -756,7 +845,8 @@
           forceNext: false
         },
         lang: "zh-CN",
-        theme: "system"
+        theme: "system",
+        bgAnimEnabled: true
       };
 
       const TRANSPARENT_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5WvKsAAAAASUVORK5CYII=";
@@ -787,19 +877,19 @@
           itemSub: (count) => "输入 " + count + " 项 · 点击编辑",
           helpEmpty: "选择左侧规则，或点击“新建”开始。",
           inputsLabel: "输入",
-          inputsHelp: "支持 item 或 tag（#minecraft:logs）。components 支持原版 + 多联动mod组件（quality_food、tide、kaleidoscope_tavern等），可写完整JSON或用下方助手添加。",
+          inputsHelp: "支持物品或标签（#minecraft:logs）。数据组件支持原版 + 多联动模组组件（quality_food、tide、kaleidoscope_tavern等），可写完整JSON或用下方助手添加。",
           addInput: "添加输入",
           clearInputs: "清空输入",
           removeInput: "移除该输入",
           outputLabel: "输出",
-          outputHelp: "选择一种输出模式：item / coin / dynamic_pricing / weight / ecliptic_seasons",
+          outputHelp: "选择输出模式：物品 / 虚拟货币 / 动态定价 / 抽奖 / 节气",
           jsonPreview: "JSON 预览",
           jsonHelp: "保存时会写入当前文件，并可通过“从游戏重载”立即生效。",
           labelType: "类型",
-          labelItemId: "item（命名空间ID）",
-          labelTagId: "tag（命名空间ID）",
+          labelItemId: "物品（命名空间ID）",
+          labelTagId: "标签（命名空间ID）",
           labelCount: "数量",
-          labelComponents: "components（可选）",
+          labelComponents: "数据组件（可选）",
           placeholderItemId: "minecraft:diamond",
           placeholderTagId: "#minecraft:logs",
           placeholderComponentsExampleInput: `{"minecraft:enchantments":{"levels":{"minecraft:sharpness":5}}}`,
@@ -809,33 +899,35 @@
           placeholderSeasonExample: "spring, summer, autumn, winter",
           kindItem: "item",
           kindTag: "tag",
-          modeItem: "item",
-          modeCoin: "coin",
-          modeDynamicPricing: "dynamic_pricing",
-          modeWeight: "weight",
-          modeEclipticSeasons: "ecliptic_seasons",
+          modeItem: "物品",
+          modeCoin: "虚拟货币",
+          modeDynamicPricing: "动态定价",
+          modeWeight: "抽奖",
+          modeEclipticSeasons: "节气",
           badgeRule: "规则",
           summaryEmpty: "空",
-          summaryCoin: (n) => "coin×" + n,
-          summaryDynamicPricing: (isCoin) => "dynamic_pricing" + (isCoin ? " (coin)" : ""),
-          summaryWeight: (n) => "weight (" + n + ")",
-          summarySeasons: "ecliptic_seasons",
-          summaryOutput: "output",
-          presetsLabel: "组件助手（Presets）",
-          presetsHelp: "点击快速添加常用组件（支持 quality_food、tide、kaleidoscope_tavern 等多联动 mod，会自动合并到现有 JSON）。",
+          summaryCoin: (n) => "虚拟货币×" + n,
+          summaryDynamicPricing: (isCoin) => "动态定价" + (isCoin ? " (虚拟货币)" : ""),
+          summaryWeight: (n) => "抽奖 (" + n + " 项)",
+          summarySeasons: "节气",
+          summaryOutput: "输出",
+          kindItem: "物品",
+          kindTag: "标签",
+          presetsLabel: "组件助手",
+          presetsHelp: "点击快速添加常用组件（支持 quality_food、tide、kaleidoscope_tavern 等多联动模组，会自动合并到现有 JSON）。",
           presetsApplied: (name) => "已注入组件 · " + name,
           presetsRemoved: (name) => "已移除组件 · " + name,
           presets: {
             tide: {
-              name: "Tide（鱼类长度）",
+              name: "鱼类长度（Tide）",
               inject: { "tide:fish_length": "[40.0, 50.0)" }
             },
             tide_time: {
-              name: "Tide（捕获时间）",
+              name: "捕获时间（Tide）",
               inject: { "tide:catch_timestamp": "[2000, 3000)" }
             },
             brewing: {
-              name: "Brewing（酿酒等级）",
+              name: "酿酒等级（Brewing）",
               inject: { "kaleidoscope_tavern:brew_level": 7 }
             },
             potion: {
@@ -851,27 +943,27 @@
               inject: { "damage": 100 }
             }
           },
-          coinCount: "coin 数量",
-          outputCoin: "输出为虚拟货币 coin",
+          coinCount: "虚拟货币数量",
+          outputCoin: "输出为虚拟货币",
           yes: "是",
           no: "否",
-          outputItemLabel: "输出 item（命名空间ID）",
-          candidateItemLabel: "候选 item（命名空间ID）",
+          outputItemLabel: "输出物品（命名空间ID）",
+          candidateItemLabel: "候选物品（命名空间ID）",
           weightLabel: "权重",
           weightedList: "权重物品列表",
-          weightedHelp: "weight 越大，被抽中的概率越高。",
+          weightedHelp: "权重越大，被抽中的概率越高。",
           addCandidate: "添加候选",
           clearCandidates: "清空候选",
           removeCandidate: "移除该候选",
-          seasonLabel: "season（逗号分隔：spring/summer/autumn/winter/all）",
-          seasonalOnlyLabel: "seasonal_only（仅在指定季节可出售）",
-          addBonusLabel: "add_season_bonus（应季加成百分比）",
-          reduceBonusLabel: "reduce_season_bonus（非应季减益百分比）",
-          dynamicDayLabel: "重置天数 day（-1 永不重置，0 每日，>0 周期）",
-          dynamicThresholdLabel: "threshold（阈值数组）",
-          dynamicValueLabel: "value（价值数组）",
-          qualityLabel: "品质（Quality Food）",
-          qualityHelp: "普通 / 铁 / 金 / 钻石（会写入 quality_food:quality 组件）",
+          seasonLabel: "季节（逗号分隔：spring/summer/autumn/winter/all）",
+          seasonalOnlyLabel: "仅限指定季节出售",
+          addBonusLabel: "应季加成百分比",
+          reduceBonusLabel: "非应季减益百分比",
+          dynamicDayLabel: "重置天数（-1 永不重置，0 每日，>0 周期）",
+          dynamicThresholdLabel: "阈值（数组）",
+          dynamicValueLabel: "价值（数组）",
+          qualityLabel: "品质",
+          qualityHelp: "普通 / 铁 / 金 / 钻石",
           qualityNormal: "普通",
           qualityIron: "铁",
           qualityGold: "金",
@@ -880,31 +972,13 @@
           addComponent: "添加组件",
           selectComponentType: "选择组件类型",
           componentMod: "所属模组",
-          vanilla: "原版 (Vanilla)",
-          qualityFood: "品质作物 (Quality Food)",
-          tide: "鱼类 (Tide)",
-          brewing: "酿酒 (Kaleidoscope Tavern)",
+          vanilla: "原版",
+          qualityFood: "品质作物",
+          tide: "鱼类",
+          brewing: "酿酒",
           apply: "应用",
           cancel: "取消",
-          componentKey: "组件 Key",
-          componentValue: "组件值",
-          minValue: "最小值",
-          maxValue: "最大值",
-          potionType: "药水类型",
-          enchantName: "附魔名称",
-          enchantLevel: "附魔等级",
-          damageValue: "耐久值",
-          customName: "自定义名称",
-          addComponent: "添加组件",
-          selectComponentType: "选择组件类型",
-          componentMod: "所属模组",
-          vanilla: "原版 (Vanilla)",
-          qualityFood: "品质作物 (Quality Food)",
-          tide: "鱼类 (Tide)",
-          brewing: "酿酒 (Kaleidoscope Tavern)",
-          apply: "应用",
-          cancel: "取消",
-          componentKey: "组件 Key",
+          componentKey: "组件键",
           componentValue: "组件值",
           minValue: "最小值",
           maxValue: "最大值",
@@ -1086,6 +1160,179 @@
         return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
       }
 
+      // ===== 动态物品贴图背景 =====
+      let bgParticlesSpawned = false;
+      let bgParticlesRotationTimer = null;
+      let bgPhysicsRaf = null;
+      let bgPhysicsParticles = []; // { el, x, y, vx, vy, size, rot, omega }
+
+      function spawnBgParticles() {
+        const container = $("bgParticles");
+        if (!container) return false;
+
+        const candidates = [];
+        if (state.iconCacheMap.size > 0) {
+          for (const [, url] of state.iconCacheMap) {
+            candidates.push(url);
+          }
+        }
+        if (candidates.length === 0) return false;
+
+        container.innerHTML = "";
+        bgPhysicsParticles = [];
+
+        const shuffledAll = [...candidates].sort(() => Math.random() - 0.5);
+        const count = Math.min(10 + Math.floor(Math.random() * 9), shuffledAll.length);
+        const vw = window.innerWidth, vh = window.innerHeight;
+
+        // 创建粒子，初始位置用泊松盘采样避免重叠
+        const placed = [];
+        const minDist = 120; // 最小间距
+        let attempts = 0;
+
+        while (placed.length < count && attempts < count * 30) {
+          attempts++;
+          const size = 70 + Math.random() * 100;
+          const x = size + Math.random() * (vw - size * 2);
+          const y = size + Math.random() * (vh - size * 2);
+
+          // 检查是否与已放置的粒子重叠
+          let overlap = false;
+          for (const o of placed) {
+            const dx = x - o.x, dy = y - o.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < (size + o.size) / 2 + minDist * 0.4) { overlap = true; break; }
+          }
+          if (overlap) continue;
+
+          const p = document.createElement("img");
+          p.className = "bg-particle";
+          p.src = shuffledAll[placed.length % shuffledAll.length];
+          p.style.width = size + "px";
+          p.style.height = size + "px";
+          p.style.opacity = (0.10 + Math.random() * 0.14);
+          p.style.left = "0";
+          p.style.top = "0";
+          p.style.transform = `translate(${x}px, ${y}px) rotate(${Math.random() * 360}deg)`;
+          p.onerror = () => { p.remove(); };
+          container.appendChild(p);
+
+          placed.push({ x, y, size });
+          bgPhysicsParticles.push({
+            el: p,
+            x, y,
+            vx: (Math.random() - 0.5) * 80,
+            vy: (Math.random() - 0.5) * 80,
+            size,
+            rot: Math.random() * 360,
+            omega: (Math.random() - 0.5) * 4
+          });
+        }
+
+        // 物理循环
+        if (bgPhysicsRaf) cancelAnimationFrame(bgPhysicsRaf);
+        let lastT = performance.now();
+        const tick = (now) => {
+          if (!state.bgAnimEnabled) { lastT = now; bgPhysicsRaf = requestAnimationFrame(tick); return; }
+          const dt = Math.min((now - lastT) / 1000, 0.1); // cap to 100ms
+          lastT = now;
+          const w = window.innerWidth, h = window.innerHeight;
+
+          for (let i = 0; i < bgPhysicsParticles.length; i++) {
+            const a = bgPhysicsParticles[i];
+            // 移动
+            a.x += a.vx * dt;
+            a.y += a.vy * dt;
+            a.rot += a.omega * dt;
+
+            // 边界反弹
+            const r = a.size / 2;
+            if (a.x - r < 0) { a.x = r; a.vx *= -0.7; }
+            if (a.x + r > w) { a.x = w - r; a.vx *= -0.7; }
+            if (a.y - r < 0) { a.y = r; a.vy *= -0.7; }
+            if (a.y + r > h) { a.y = h - r; a.vy *= -0.7; }
+
+            // 粒子间碰撞（简化：推离 + 交换部分动量）
+            for (let j = i + 1; j < bgPhysicsParticles.length; j++) {
+              const b = bgPhysicsParticles[j];
+              const dx = b.x - a.x, dy = b.y - a.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              const minD = (a.size + b.size) / 2;
+              if (dist < minD && dist > 0.001) {
+                // 推离重叠
+                const overlap = (minD - dist) / 2;
+                const nx = dx / dist, ny = dy / dist;
+                a.x -= nx * overlap;
+                a.y -= ny * overlap;
+                b.x += nx * overlap;
+                b.y += ny * overlap;
+                // 交换径向速度分量
+                const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
+                const dvn = dvx * nx + dvy * ny;
+                if (dvn > 0) {
+                  a.vx -= dvn * nx * 0.5;
+                  a.vy -= dvn * ny * 0.5;
+                  b.vx += dvn * nx * 0.5;
+                  b.vy += dvn * ny * 0.5;
+                }
+              }
+            }
+
+            // 阻尼
+            a.vx *= 0.998;
+            a.vy *= 0.998;
+
+            // 同步 DOM
+            a.el.style.transform = `translate(${a.x}px, ${a.y}px) rotate(${a.rot}deg)`;
+            a.el.style.left = "0";
+            a.el.style.top = "0";
+          }
+          bgPhysicsRaf = requestAnimationFrame(tick);
+        };
+        bgPhysicsRaf = requestAnimationFrame(tick);
+
+        // 每 30 秒轮换图标（保留物理状态）
+        if (bgParticlesRotationTimer) clearInterval(bgParticlesRotationTimer);
+        bgParticlesRotationTimer = setInterval(() => {
+          if (!state.bgAnimEnabled || bgPhysicsParticles.length === 0) return;
+          const freshShuffled = [...candidates].sort(() => Math.random() - 0.5);
+          bgPhysicsParticles.forEach(p => { p.el.style.opacity = "0"; });
+          setTimeout(() => {
+            bgPhysicsParticles.forEach((p, i) => {
+              p.el.src = freshShuffled[i % freshShuffled.length];
+              p.el.style.opacity = (0.10 + Math.random() * 0.14);
+            });
+          }, 800);
+        }, 30000);
+
+        bgParticlesSpawned = true;
+        return true;
+      }
+
+      function toggleBgAnim() {
+        state.bgAnimEnabled = !state.bgAnimEnabled;
+        const btn = $("btnBgAnim");
+        if (btn) btn.textContent = state.bgAnimEnabled ? "✦" : "✧";
+      }
+
+      function initBgAnim() {
+        const btn = $("btnBgAnim");
+        if (btn) {
+          btn.textContent = state.bgAnimEnabled ? "✦" : "✧";
+          btn.onclick = () => toggleBgAnim();
+        }
+        // 立即尝试，没有素材则等 manifest 加载后再试
+        if (!spawnBgParticles() && !bgParticlesSpawned) {
+          // manifest 还没加载，等它加载后自动触发
+          // 最多等 5 秒，之后用 api/icon 兜底
+          let retries = 0;
+          const ival = setInterval(() => {
+            retries++;
+            if (spawnBgParticles() || retries > 10) clearInterval(ival);
+          }, 500);
+        }
+      }
+
       function applyTheme() {
         const pref = state.theme || "system";
         const actual = pref === "system" ? getSystemTheme() : pref;
@@ -1114,10 +1361,15 @@
 
       function toast(message, kind = "ok") {
         const el = $("toast");
-        el.className = "toast show " + (kind === "bad" ? "bad" : "ok");
+        el.classList.remove("show", "hide");
+        void el.offsetWidth;
+        el.className = "toast " + (kind === "bad" ? "bad" : "ok") + " show";
         el.textContent = message;
-        setTimeout(() => {
-          el.className = "toast";
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(() => {
+          el.classList.add("hide");
+          el.classList.remove("show");
+          el._hideTimer = setTimeout(() => { el.classList.remove("hide"); }, 300);
         }, 2600);
       }
 
@@ -1131,10 +1383,24 @@
         return m || t("badgeRule");
       }
 
+      /** 将 raw item ID 解析为友好名称（manifest 中的 displayName，否则返回原 ID） */
+      function resolveDisplayName(rawId) {
+        const id = String(rawId || "").trim();
+        if (!id) return "";
+        const dn = state.displayNameMap.get(id);
+        return dn || id;
+      }
+
       function summarizeRule(r) {
         const inParts = (r.inputs || []).map((i) => {
           let name = (i.value || "").trim();
-          if (i.kind === "tag" && name && !name.startsWith("#")) name = "#" + name;
+          if (i.kind === "tag") {
+            if (name && !name.startsWith("#")) name = "#" + name;
+            // 缩短 tag 名：省略 minecraft: 命名空间
+            name = name.replace(/^#minecraft:/, "#");
+          } else if (i.kind === "item") {
+            name = resolveDisplayName(name);
+          }
           const count = Number(i.count || 1);
           return name + (count !== 1 ? "×" + count : "");
         }).filter(Boolean);
@@ -1142,11 +1408,15 @@
         const o = r.output || {};
         let outText = "";
         if (o.mode === "coin") outText = t("summaryCoin", Number(o.count || 0));
-        else if (o.mode === "item") outText = (o.item || "").trim() + "×" + Number(o.count || 1);
-        else if (o.mode === "dynamic_pricing") outText = t("summaryDynamicPricing", Boolean(o.coin));
-        else if (o.mode === "weight") outText = t("summaryWeight", (o.items || []).length);
-        else if (o.mode === "ecliptic_seasons") outText = t("summarySeasons");
-        else outText = t("summaryOutput");
+        else if (o.mode === "item") outText = resolveDisplayName((o.item || "").trim()) + "×" + Number(o.count || 1);
+        else if (o.mode === "dynamic_pricing") {
+          if (!o.coin && o.item) outText = "dynamic: " + resolveDisplayName((o.item || "").trim());
+          else outText = t("summaryDynamicPricing", Boolean(o.coin));
+        } else if (o.mode === "weight") outText = t("summaryWeight", (o.items || []).length);
+        else if (o.mode === "ecliptic_seasons") {
+          if (o.item) outText = resolveDisplayName((o.item || "").trim()) + " (seasons)";
+          else outText = t("summarySeasons");
+        } else outText = t("summaryOutput");
 
         return (inParts.join(" + ") || t("summaryEmpty")) + " → " + outText;
       }
@@ -1394,28 +1664,25 @@
         title.textContent = (t("addComponent") || "添加组件") + " (可添加多个)";
         container.appendChild(title);
 
-        const modSelect = document.createElement("select");
-        modSelect.className = "input";
-        modSelect.style.marginBottom = "8px";
         const options = [
           { value: "", label: t("selectComponentType") || "选择组件类型" },
-          { value: "quality_food", label: t("qualityFood") || "品质作物 (Quality Food)" },
+          { value: "quality_food", label: t("qualityFood") || "品质作物" },
           { value: "tide_length", label: t("tide") + " - 长度" },
           { value: "tide_time", label: t("tide") + " - 捕获时间" },
           { value: "brew_level", label: t("brewing") || "酿酒等级" },
-          { value: "potion", label: "药水 (Potion)" },
-          { value: "enchant", label: "附魔 (Enchant)" },
-          { value: "damage", label: "耐久 (Damage)" },
+          { value: "potion", label: "药水" },
+          { value: "enchant", label: "附魔" },
+          { value: "damage", label: "耐久" },
           { value: "custom_name", label: "自定义名称" },
           { value: "custom", label: "自定义组件" }
         ];
-        options.forEach(opt => {
-          const o = document.createElement("option");
-          o.value = opt.value;
-          o.textContent = opt.label;
-          modSelect.appendChild(o);
+        const { el: modSelect, setValue } = customSelect(options, "", (val) => {
+          modSelect.dataset.value = val;
+          renderForm(val);
         });
+        modSelect.style.marginBottom = "8px";
         container.appendChild(modSelect);
+        container._getSelectValue = () => modSelect.dataset.value || "";
 
         const formArea = document.createElement("div");
         formArea.style.margin = "8px 0";
@@ -1763,22 +2030,23 @@
           formArea.appendChild(fields);
         };
 
-        modSelect.onchange = () => renderForm(modSelect.value);
-
         function startEdit(idx) {
           const item = pending[idx];
           if (!item) return;
           editingIndex = idx;
           addThisBtn.textContent = "更新此组件";
-          modSelect.value = item.type || "custom";
-          renderForm(modSelect.value);
+          const type = item.type || "custom";
+          modSelect.dataset.value = type;
+          setValue(type);
+          renderForm(type);
 
           // 尝试填充表单值 (简单反向填充)
           setTimeout(() => {
             const comp = item.comp;
             const key = Object.keys(comp)[0];
             const val = comp[key];
-            if (modSelect.value === "quality_food" && key.includes("quality")) {
+            const selVal = modSelect.dataset.value || "";
+            if (selVal === "quality_food" && key.includes("quality")) {
               const level = val && val.type ? (val.type.includes("diamond") ? "diamond" : val.type.includes("gold") ? "gold" : val.type.includes("iron") ? "iron" : "normal") : "diamond";
               if (formArea._setQuality) {
                 formArea._setQuality(level);
@@ -1787,26 +2055,26 @@
                 const chips = formArea.querySelectorAll(".chip");
                 chips.forEach(c => c.classList.toggle("active", c.textContent.includes(level === "diamond" ? "钻石" : level === "gold" ? "金" : level === "iron" ? "铁" : "普通")));
               }
-            } else if ((modSelect.value === "tide_length" || modSelect.value === "tide_time") && typeof val === "string") {
+            } else if ((selVal === "tide_length" || selVal === "tide_time") && typeof val === "string") {
               const match = val.match(/\[?([0-9.]+),([0-9.]+)/);
               if (match && formArea.querySelector("input")) {
                 formArea.querySelector("input").value = `${match[1]},${match[2]}`;
               }
-            } else if (modSelect.value === "brew_level" && formArea.querySelector("input")) {
+            } else if (selVal === "brew_level" && formArea.querySelector("input")) {
               formArea.querySelector("input").value = val || 7;
-            } else if (modSelect.value === "potion" && val && val.potion && formArea.querySelector("input")) {
+            } else if (selVal === "potion" && val && val.potion && formArea.querySelector("input")) {
               formArea.querySelector("input").value = val.potion;
-            } else if (modSelect.value === "enchant" && val && val.levels) {
+            } else if (selVal === "enchant" && val && val.levels) {
               const encInput = formArea.querySelector("input");
               const lvlInput = formArea.querySelectorAll("input")[1];
               const firstKey = Object.keys(val.levels)[0];
               if (encInput) encInput.value = firstKey || "";
               if (lvlInput) lvlInput.value = val.levels[firstKey] || 1;
-            } else if (modSelect.value === "damage" && formArea.querySelector("input")) {
+            } else if (selVal === "damage" && formArea.querySelector("input")) {
               formArea.querySelector("input").value = val || 100;
-            } else if (modSelect.value === "custom_name" && formArea.querySelector("input")) {
+            } else if (selVal === "custom_name" && formArea.querySelector("input")) {
               formArea.querySelector("input").value = val ? val.replace(/^"|"$/g, "") : "";
-            } else if (modSelect.value === "custom" ) {
+            } else if (selVal === "custom" ) {
               const inputs = formArea.querySelectorAll("input");
               if (inputs[0]) inputs[0].value = key;
               if (inputs[1]) inputs[1].value = typeof val === "object" ? JSON.stringify(val) : val;
@@ -1819,7 +2087,7 @@
           const newComp = formArea._getValue();
           if (!newComp || Object.keys(newComp).length === 0) return;
 
-          const currentType = modSelect.value;
+          const currentType = modSelect.dataset.value || "";
 
           if (editingIndex >= 0) {
             // 更新模式
@@ -1833,7 +2101,8 @@
           }
           renderAdded();
           // 重置表单
-          modSelect.value = "";
+          modSelect.dataset.value = "";
+          setValue("");
           formArea.innerHTML = "";
         };
 
@@ -2012,12 +2281,30 @@
 
       function getRuleIconId(r) {
         const o = r.output || {};
-        if (o.mode === "item" && o.item) return String(o.item);
-        if (o.mode === "ecliptic_seasons" && o.item) return String(o.item);
-        if (o.mode === "dynamic_pricing" && !o.coin && o.item) return String(o.item);
+        if (o.mode === "item" && o.item) return { id: String(o.item), type: "item" };
+        if (o.mode === "ecliptic_seasons" && o.item) return { id: String(o.item), type: "item" };
+        if (o.mode === "dynamic_pricing" && !o.coin && o.item) return { id: String(o.item), type: "item" };
+        // 优先取第一个物品输入，其次取第一个 tag 输入
         const inItem = (r.inputs || []).find((i) => i && i.kind === "item" && i.value);
-        if (inItem) return String(inItem.value).replace(/^#/, "");
-        return "";
+        if (inItem) return { id: String(inItem.value), type: "item" };
+        const inTag = (r.inputs || []).find((i) => i && i.kind === "tag" && i.value);
+        if (inTag) {
+          const v = String(inTag.value).trim();
+          return { id: v.startsWith("#") ? v : ("#" + v), type: "tag" };
+        }
+        return null;
+      }
+
+      /** 根据 icon 信息获取实际 URL（item 或 tag） */
+      function resolveIconUrl(iconInfo) {
+        if (!iconInfo) return null;
+        if (iconInfo.type === "tag" && state.tagIconMap.has(iconInfo.id)) {
+          return state.tagIconMap.get(iconInfo.id);
+        }
+        if (state.iconCacheReady && state.iconCacheMap.has(iconInfo.id)) {
+          return state.iconCacheMap.get(iconInfo.id);
+        }
+        return null;
       }
 
       function ensureListStructure() {
@@ -2056,12 +2343,28 @@
         });
       }
 
-      function buildRuleListItem(r) {
+      function buildRuleListItem(r, idx) {
         const el = document.createElement("div");
-        el.className = "item" + (r.id === state.selectedId ? " active" : "");
+        el.className = "item entering" + (r.id === state.selectedId ? " active" : "");
         el.dataset.id = r.id;
+        // 交错入场
+        el.style.transition = "opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)";
+        el.style.transitionDelay = ((idx || 0) * 0.04) + "s";
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.classList.remove("entering");
+          });
+        });
         el.onclick = () => setSelected(r.id);
         el.draggable = true;
+
+        // 左侧背景图标（半透明像素风）
+        const bgImg = document.createElement("img");
+        bgImg.className = "item-icon-bg";
+        bgImg.alt = "";
+        bgImg.dataset.role = "ruleIconBg";
+        bgImg.src = TRANSPARENT_IMG;
+        el.appendChild(bgImg);
         el.addEventListener("dragstart", (e) => {
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/plain", r.id);
@@ -2099,15 +2402,13 @@
         grip.style.color = "var(--muted)";
         grip.style.cursor = "grab";
         grip.style.paddingRight = "6px";
-        grip.style.opacity = "0.65";
+        grip.style.opacity = "0.5";
         grip.style.lineHeight = "1";
         grip.style.userSelect = "none";
-        grip.style.transition = "opacity 0.2s ease";
+        grip.style.transition = "opacity 0.2s ease, color 0.2s ease";
+        grip.onmouseenter = () => { grip.style.opacity = "1"; grip.style.color = "var(--accent)"; };
+        grip.onmouseleave = () => { grip.style.opacity = "0.5"; grip.style.color = "var(--muted)"; };
         left.appendChild(grip);
-
-        const { box, img } = createIconBox();
-        img.dataset.role = "ruleIcon";
-        left.appendChild(box);
 
         const titleDiv = document.createElement("div");
         titleDiv.className = "item-title";
@@ -2127,6 +2428,7 @@
 
         const actions = document.createElement("div");
         actions.className = "row";
+        actions.style.marginTop = "10px";
         const dup = document.createElement("div");
         dup.className = "chip";
         dup.textContent = t("btnDuplicate");
@@ -2146,12 +2448,15 @@
         del.textContent = t("btnDelete");
         del.onclick = (ev) => {
           ev.stopPropagation();
-          const idx = state.rules.findIndex(x => x.id === r.id);
-          if (idx >= 0) state.rules.splice(idx, 1);
-          state.rulesVersion++;
-          state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
-          scheduleRenderList();
-          renderEditor();
+          el.classList.add("removing");
+          setTimeout(() => {
+            const idx = state.rules.findIndex(x => x.id === r.id);
+            if (idx >= 0) state.rules.splice(idx, 1);
+            state.rulesVersion++;
+            state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
+            scheduleRenderList();
+            renderEditor();
+          }, 250);
         };
         actions.appendChild(dup);
         actions.appendChild(del);
@@ -2184,11 +2489,17 @@
             ` <span class="match-hint ${info.level}">${info.label}</span>`;
         }
 
-        const img = el.querySelector('img[data-role="ruleIcon"]');
-        if (img) {
-          const iconId = getRuleIconId(r);
-          if (iconId) updateIconForValue(img, iconId);
-          else img.src = TRANSPARENT_IMG;
+        // 背景图标：左侧半透明物品/tag 图标
+        const bgImg = el.querySelector('img[data-role="ruleIconBg"]');
+        if (bgImg) {
+          const iconInfo = getRuleIconId(r);
+          const url = resolveIconUrl(iconInfo);
+          if (url) {
+            bgImg.src = url;
+            bgImg.style.display = "";
+          } else {
+            bgImg.src = TRANSPARENT_IMG;
+          }
         }
       }
 
@@ -2238,7 +2549,7 @@
         const frag = document.createDocumentFragment();
         for (let i = start; i < end; i++) {
           const r = view[i];
-          const el = buildRuleListItem(r);
+          const el = buildRuleListItem(r, i);
           nextEls.set(r.id, el);
           frag.appendChild(el);
         }
@@ -2336,6 +2647,22 @@
         img.src = iconUrl(v);
       }
 
+      /** tag 输入框：根据 tagIconMap 显示对应图标 */
+      function bindTagIcon(input, img) {
+        const update = () => {
+          const v = String(input.value || "").trim();
+          const tagId = v.startsWith("#") ? v : ("#" + v);
+          const url = state.tagIconMap.get(tagId);
+          if (url) {
+            img.src = url;
+          } else {
+            img.src = TRANSPARENT_IMG;
+          }
+        };
+        input.addEventListener("input", update);
+        update();
+      }
+
       function bindDebouncedIcon(input, img) {
         let timer = null;
         const update = () => updateIconForValue(img, input.value);
@@ -2373,7 +2700,7 @@
         layer.style.boxShadow = "var(--shadow)";
         layer.style.backdropFilter = "blur(18px)";
         layer.style.userSelect = "none";
-        layer.style.transition = "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease";
+        layer.style.transition = "opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease";
 
         layer.addEventListener("mousedown", (e) => {
           e.preventDefault();
@@ -2398,7 +2725,12 @@
       function hideAutocompleteNow() {
         if (ac.hideTimer) clearTimeout(ac.hideTimer);
         ac.hideTimer = null;
-        if (ac.layer) ac.layer.style.display = "none";
+        if (ac.layer) {
+          ac.layer.style.opacity = "0";
+          ac.layer.style.transform = "scale(0.95) translateY(-6px)";
+          const l = ac.layer;
+          setTimeout(() => { l.style.display = "none"; }, 150);
+        }
         ac.input = null;
         ac.type = null;
         ac.items = [];
@@ -2431,22 +2763,36 @@
             const id = normalizeTagId(raw);
             const hay = id.toLowerCase();
             if (!qn || hay.includes(qn)) {
-              out.push({ type: "tag", value: formatTagValue(id), label: formatTagValue(id), iconId: "" });
+              const iconId = state.tagIconMap.get(formatTagValue(id)) || "";
+              out.push({ type: "tag", value: formatTagValue(id), label: formatTagValue(id), iconId: iconId });
               if (out.length >= 60) break;
             }
           }
           return out;
         }
+        // item 类型：优先用 manifest 中的 displayName，并支持按 displayName 搜索
         const src = Array.isArray(state.registry.items) ? state.registry.items : [];
-        const out = [];
+        const exact = [];  // query is prefix of displayName or id
+        const fuzzy = [];  // query appears anywhere in displayName or id
         for (const id of src) {
-          const hay = String(id || "").toLowerCase();
-          if (!q || hay.includes(q)) {
-            out.push({ type: "item", value: String(id), label: String(id), iconId: String(id) });
-            if (out.length >= 60) break;
+          const idLower = String(id || "").toLowerCase();
+          const dn = state.displayNameMap.get(id) || "";
+          const dnLower = dn.toLowerCase();
+          const matchId = idLower.includes(q);
+          const matchDn = dnLower.includes(q);
+          if ((!q) || matchId || matchDn) {
+            const label = dn || String(id);
+            const entry = { type: "item", value: String(id), label: label, iconId: String(id) };
+            // query 是 displayName 或 id 的前缀 → 优先
+            if (q && (dnLower.startsWith(q) || idLower.startsWith(q))) {
+              exact.push(entry);
+            } else {
+              fuzzy.push(entry);
+            }
+            if (exact.length + fuzzy.length >= 60) break;
           }
         }
-        return out;
+        return exact.concat(fuzzy);
       }
 
       function renderAutocomplete() {
@@ -2473,15 +2819,21 @@
             applyAutocompleteSelection(i);
           });
 
-          if (it.type === "item") {
+          if (it.type === "tag") {
+            if (it.iconId) {
+              const { box, img } = createIconBox();
+              img.src = it.iconId;
+              row.appendChild(box);
+            } else {
+              const badge = document.createElement("div");
+              badge.className = "badge";
+              badge.textContent = "#";
+              row.appendChild(badge);
+            }
+          } else {
             const { box, img } = createIconBox();
             updateIconForValue(img, it.iconId);
             row.appendChild(box);
-          } else {
-            const badge = document.createElement("div");
-            badge.className = "badge";
-            badge.textContent = "#";
-            row.appendChild(badge);
           }
 
           const text = document.createElement("div");
@@ -2519,7 +2871,14 @@
         layer.style.left = (window.scrollX + rect.left) + "px";
         layer.style.top = (window.scrollY + rect.bottom + 6) + "px";
         layer.style.minWidth = rect.width + "px";
+        // 入场动画
         layer.style.display = "block";
+        layer.style.opacity = "0";
+        layer.style.transform = "scale(0.95) translateY(-6px)";
+        requestAnimationFrame(() => {
+          layer.style.opacity = "1";
+          layer.style.transform = "scale(1) translateY(0)";
+        });
       }
 
       function applyAutocompleteSelection(index) {
@@ -2580,17 +2939,22 @@
         hideAutocompleteNow();
         const editor = $("editor");
         const r = selectedRule();
-        if (!r) {
-          editor.innerHTML = `
-            <div class="help">${escapeHtml(t("helpEmpty"))}</div>
-          `;
-          $("editorTitle").textContent = t("editor");
-          $("editorMeta").textContent = "";
-          return;
-        }
+        // 内容淡入
+        editor.style.transition = "opacity 0.15s ease";
+        editor.style.opacity = "0";
+        setTimeout(() => {
+          if (!r) {
+            editor.innerHTML = `
+              <div class="help">${escapeHtml(t("helpEmpty"))}</div>
+            `;
+            $("editorTitle").textContent = t("editor");
+            $("editorMeta").textContent = "";
+            editor.style.opacity = "1";
+            return;
+          }
 
-        $("editorTitle").textContent = t("editorRule");
-        $("editorMeta").textContent = t("editorMeta", r.inputs.length, modeLabel(r.output && r.output.mode ? r.output.mode : ""));
+          $("editorTitle").textContent = t("editorRule");
+          $("editorMeta").textContent = t("editorMeta", r.inputs.length, modeLabel(r.output && r.output.mode ? r.output.mode : ""));
 
         const root = document.createElement("div");
         root.className = "grid";
@@ -2646,10 +3010,7 @@
           const valueRow = document.createElement("div");
           valueRow.className = "input-row";
           if (inp.kind === "item") {
-            const { box, img } = createIconBox();
-            valueRow.appendChild(box);
             valueRow.appendChild(valueInput);
-            bindDebouncedIcon(valueInput, img);
             attachAutocomplete(valueInput, "item");
           } else {
             valueRow.appendChild(valueInput);
@@ -2855,6 +3216,8 @@
 
         editor.innerHTML = "";
         editor.appendChild(root);
+        editor.style.opacity = "1";
+        }, 0);
       }
 
       function renderOutputDetails(root, r) {
@@ -3053,6 +3416,122 @@
         }
       }
 
+      /** 自定义下拉选择器，风格与整体 UI 一致 */
+      function customSelect(options, currentValue, onChange) {
+        const el = document.createElement("div");
+        el.className = "input";
+        el.style.position = "relative";
+        el.style.cursor = "pointer";
+        el.style.display = "flex";
+        el.style.alignItems = "center";
+        el.style.justifyContent = "space-between";
+        el.style.userSelect = "none";
+
+        const label = document.createElement("span");
+        const arrow = document.createElement("span");
+        arrow.textContent = "▾";
+        arrow.style.fontSize = "10px";
+        arrow.style.opacity = "0.5";
+        arrow.style.transition = "transform 0.2s ease";
+
+        const setLabel = (val) => {
+          const opt = options.find(o => o.value === val);
+          label.textContent = opt ? opt.label : (options[0] ? options[0].label : "");
+          label.style.opacity = val ? "1" : "0.45";
+        };
+        setLabel(currentValue);
+        el.appendChild(label);
+        el.appendChild(arrow);
+
+        let open = false;
+        let layer = null;
+
+        const reposition = () => {
+          if (!layer) return;
+          const r = el.getBoundingClientRect();
+          layer.style.left = r.left + "px";
+          layer.style.top = (r.bottom + 4) + "px";
+          const lr = layer.getBoundingClientRect();
+          if (lr.bottom > window.innerHeight - 8) {
+            layer.style.top = (r.top - lr.height - 4) + "px";
+          }
+        };
+
+        const close = () => {
+          open = false;
+          arrow.style.transform = "rotate(0deg)";
+          if (layer) { layer.remove(); layer = null; }
+          document.removeEventListener("click", onOutside, true);
+          window.removeEventListener("scroll", onScroll, true);
+        };
+
+        const onOutside = (e) => {
+          if (layer && !layer.contains(e.target) && e.target !== el && !el.contains(e.target)) {
+            close();
+          }
+        };
+
+        const onScroll = () => { reposition(); };
+
+        el.onclick = (e) => {
+          e.stopPropagation();
+          if (open) { close(); return; }
+          open = true;
+          arrow.style.transform = "rotate(180deg)";
+
+          layer = document.createElement("div");
+          layer.style.position = "fixed";
+          layer.style.minWidth = el.getBoundingClientRect().width + "px";
+          layer.style.maxHeight = "280px";
+          layer.style.overflow = "auto";
+          layer.style.zIndex = "10001";
+          layer.style.padding = "4px";
+          layer.style.borderRadius = "12px";
+          layer.style.border = "1px solid var(--border)";
+          layer.style.background = "var(--panel-2)";
+          layer.style.boxShadow = "var(--shadow)";
+          layer.style.backdropFilter = "blur(18px)";
+          layer.style.transition = "opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, border-color 0.3s ease";
+
+          options.forEach(opt => {
+            const row = document.createElement("div");
+            row.style.padding = "9px 12px";
+            row.style.borderRadius = "8px";
+            row.style.fontSize = "12.5px";
+            row.style.color = "var(--text)";
+            row.style.cursor = "pointer";
+            row.style.transition = "background 0.15s ease";
+            row.textContent = opt.label;
+            row.onmouseenter = () => { row.style.background = "var(--hover)"; };
+            row.onmouseleave = () => { row.style.background = ""; };
+            row.onclick = (ev) => {
+              ev.stopPropagation();
+              setLabel(opt.value);
+              onChange(opt.value);
+              close();
+            };
+            layer.appendChild(row);
+          });
+
+          document.body.appendChild(layer);
+          reposition();
+          // 入场动画
+          layer.style.opacity = "0";
+          layer.style.transform = "scale(0.95) translateY(-6px)";
+          requestAnimationFrame(() => {
+            layer.style.opacity = "1";
+            layer.style.transform = "scale(1) translateY(0)";
+          });
+
+          setTimeout(() => {
+            document.addEventListener("click", onOutside, true);
+            window.addEventListener("scroll", onScroll, true);
+          }, 0);
+        };
+
+        return { el, setValue: (val) => { setLabel(val); onChange(val); } };
+      }
+
       function fieldText(label, value, placeholder, onChange, listId) {
         const field = document.createElement("div");
         field.className = "field";
@@ -3063,14 +3542,8 @@
         input.value = value || "";
         input.oninput = (e) => { onChange(e.target.value); notifyChange(); };
         if (listId === "dlItems") {
-          const row = document.createElement("div");
-          row.className = "input-row";
-          const { box, img } = createIconBox();
-          row.appendChild(box);
-          row.appendChild(input);
-          bindDebouncedIcon(input, img);
           attachAutocomplete(input, "item");
-          field.appendChild(row);
+          field.appendChild(input);
         } else {
           field.appendChild(input);
         }
@@ -3201,6 +3674,8 @@
           if (json.status === "missing_cache" || !json.items) {
             state.iconManifest = null;
             state.iconCacheMap.clear();
+            state.displayNameMap.clear();
+            state.tagIconMap.clear();
             state.iconCacheReady = false;
             console.log("[Editor] Icon cache not ready:", json.message);
             return;
@@ -3208,14 +3683,19 @@
 
           state.iconManifest = json;
           state.iconCacheMap.clear();
+          state.displayNameMap.clear();
+          state.tagIconMap.clear();
 
-          const base = window.location.origin; // same origin as the local server
+          const base = window.location.origin;
 
           if (Array.isArray(json.items)) {
             for (const it of json.items) {
               if (it.id && it.path) {
                 const url = base + it.path + "?token=" + encodeURIComponent(token);
                 state.iconCacheMap.set(it.id, url);
+              }
+              if (it.id && it.displayName) {
+                state.displayNameMap.set(it.id, it.displayName);
               }
             }
           }
@@ -3225,13 +3705,32 @@
                 const url = base + b.path + "?token=" + encodeURIComponent(token);
                 state.iconCacheMap.set(b.id, url);
               }
+              if (b.id && b.displayName) {
+                if (!state.displayNameMap.has(b.id)) {
+                  state.displayNameMap.set(b.id, b.displayName);
+                }
+              }
             }
+          }
+          // tag → 代表性图标
+          if (json.tagIcons && typeof json.tagIcons === "object") {
+            for (const [tagId, path] of Object.entries(json.tagIcons)) {
+              state.tagIconMap.set(tagId, base + path + "?token=" + encodeURIComponent(token));
+            }
+          }
+          // 完整 tag 列表覆盖 registry
+          if (Array.isArray(json.tags)) {
+            state.registry.tags = json.tags;
           }
           state.iconCacheReady = true;
           console.log("[Editor] Icon cache manifest loaded, items:", state.iconCacheMap.size);
+          // 素材就绪，加载动态背景
+          if (!bgParticlesSpawned) spawnBgParticles();
         } catch (e) {
           state.iconCacheReady = false;
           state.iconCacheMap.clear();
+          state.displayNameMap.clear();
+          state.tagIconMap.clear();
           console.warn("[Editor] Failed to load icon manifest:", e);
         }
       }
@@ -3302,6 +3801,7 @@
       state.theme = detectDefaultThemePref();
       applyI18nStatic();
       applyTheme();
+      initBgAnim();
       setSubtitle();
 
       $("btnLang").onclick = () => {
@@ -3391,6 +3891,9 @@
           const res = await apiSaveRules(payload);
           if (res && res.ok) {
             toast(t("saved", (res.savedPath || state.file)), "ok");
+            const btn = $("btnSave");
+            btn.classList.add("success-pulse");
+            setTimeout(() => btn.classList.remove("success-pulse"), 800);
           } else {
             toast(String((res && res.error) || t("saveFailed")), "bad");
           }
