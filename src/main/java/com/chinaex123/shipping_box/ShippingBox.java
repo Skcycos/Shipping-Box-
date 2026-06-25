@@ -10,6 +10,7 @@ import com.chinaex123.shipping_box.init.ModCreativeTabs;
 import com.chinaex123.shipping_box.init.ModItems;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
+import com.chinaex123.shipping_box.web.WebEditorLocalServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -102,6 +103,7 @@ public class ShippingBox {
      */
     private void onServerStopping(ServerStoppingEvent event) {
         DynamicPricingManager.saveData();
+        WebEditorLocalServer.stop();
     }
 
     /**

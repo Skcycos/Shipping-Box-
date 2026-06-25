@@ -128,5 +128,7 @@
   "command.shipping_box.rules.arrow": " → ",
   "command.shipping_box.rules.weight_suffix": " (权重)",
   "command.shipping_box.rules.dynamic_pricing_suffix": " (动态定价)",
-  "command.shipping_box.rules.ecliptic_seasons_suffix": " (节气联动)"
+  "command.shipping_box.rules.ecliptic_seasons_suffix": " (节气联动)",
+  "command.shipping_box.web.starting": "正在本机启动 Web 编辑器并打开浏览器...",
+  "command.shipping_box.web.started": "Web 编辑器: %s （点击打开）"
 }
