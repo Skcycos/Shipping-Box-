@@ -130,5 +130,10 @@
   "command.shipping_box.rules.dynamic_pricing_suffix": " (Dynamic Pricing)",
   "command.shipping_box.rules.ecliptic_seasons_suffix": " (Ecliptic Seasons)",
   "command.shipping_box.web.starting": "Starting web editor on localhost and opening browser...",
-  "command.shipping_box.web.started": "Web editor: %s (click to open)"
+  "command.shipping_box.web.started": "Web editor: %s (click to open)",
+  "command.shipping_box.editor.cache.start": "Icon cache task started.",
+  "command.shipping_box.editor.cache.running": "Icon cache is already running (%d/%d).",
+  "command.shipping_box.editor.cache.force": "Force icon cache regeneration started.",
+  "command.shipping_box.editor.cache.status": "Icon cache status: %s (%d/%d)",
+  "command.shipping_box.editor.cache.clear": "Icon cache cleared."
 }

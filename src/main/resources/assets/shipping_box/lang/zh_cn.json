@@ -130,5 +130,10 @@
   "command.shipping_box.rules.dynamic_pricing_suffix": " (动态定价)",
   "command.shipping_box.rules.ecliptic_seasons_suffix": " (节气联动)",
   "command.shipping_box.web.starting": "正在本机启动 Web 编辑器并打开浏览器...",
-  "command.shipping_box.web.started": "Web 编辑器: %s （点击打开）"
+  "command.shipping_box.web.started": "Web 编辑器: %s （点击打开）",
+  "command.shipping_box.editor.cache.start": "图标缓存任务已启动。",
+  "command.shipping_box.editor.cache.running": "图标缓存任务正在运行 (%d/%d)。",
+  "command.shipping_box.editor.cache.force": "强制重新生成图标缓存。",
+  "command.shipping_box.editor.cache.status": "图标缓存状态: %s (%d/%d)",
+  "command.shipping_box.editor.cache.clear": "图标缓存已清除。"
 }

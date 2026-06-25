@@ -227,7 +227,7 @@
         margin-top: 12px;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 16px;
         max-height: calc(100vh - 220px);
         overflow: auto;
         padding-right: 6px;
@@ -235,16 +235,55 @@
       .list::-webkit-scrollbar { width: 10px; }
       .list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; transition: background 0.3s ease; }
       .item {
-        padding: 12px 12px;
+        padding: 14px 14px;
         border: 1px solid var(--border);
         background: var(--item-bg);
         border-radius: var(--radius-sm);
-        cursor: pointer;
-        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        cursor: grab;
+        transition: background 0.2s ease, 
+                    border-color 0.2s ease, 
+                    transform 0.15s ease, 
+                    box-shadow 0.2s ease,
+                    opacity 0.2s ease;
+        user-select: none;
       }
-      .item:hover { background: var(--item-bg-hover); border-color: var(--border); }
-      .item.active { background: rgba(10, 132, 255, 0.16); border-color: rgba(10, 132, 255, 0.42); }
-      .item.drag-over { background: rgba(10, 132, 255, 0.12); border-color: rgba(10, 132, 255, 0.55); }
+      .item:hover { 
+        background: var(--item-bg-hover); 
+        border-color: var(--border); 
+        transform: translateY(-1px);
+      }
+      .item:active {
+        transform: scale(0.985);
+      }
+      .item.active { 
+        background: rgba(10, 132, 255, 0.16); 
+        border-color: rgba(10, 132, 255, 0.42); 
+        box-shadow: 0 0 0 1px rgba(10, 132, 255, 0.3);
+      }
+      .item.drag-over { 
+        background: rgba(10, 132, 255, 0.18); 
+        border-color: rgba(10, 132, 255, 0.6); 
+        transform: scale(1.01);
+        box-shadow: 0 4px 12px rgba(10, 132, 255, 0.2);
+      }
+      .item.dragging {
+        opacity: 0.6;
+        transform: scale(0.97);
+        cursor: grabbing;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+      }
+
+      /* 拖动排序后的列表动画 */
+      .list.just-reordered .item {
+        animation: reorderSettle 0.45s cubic-bezier(0.23, 1.0, 0.32, 1);
+      }
+
+      @keyframes reorderSettle {
+        0% { transform: scale(0.92); opacity: 0.7; }
+        40% { transform: scale(1.03); }
+        100% { transform: scale(1); opacity: 1; }
+      }
       .item-top {
         display: flex;
         align-items: center;
@@ -277,6 +316,25 @@
         line-height: 1.35;
         transition: color 0.3s ease;
       }
+
+      /* 规则匹配优先级徽章优化 */
+      .match-hint {
+        margin-left: 6px;
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--badge-bg);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        vertical-align: middle;
+      }
+      .match-hint.high { background: rgba(48, 209, 88, 0.15); border-color: #30d158; color: #30d158; }
+      .match-hint.medium { background: rgba(10, 132, 255, 0.12); border-color: #0a84ff; color: #0a84ff; }
+      .match-hint.low { background: rgba(255, 69, 58, 0.1); border-color: #ff453a; color: #ff453a; }
+
+      .badge.match-high { background: rgba(48, 209, 88, 0.18); border-color: #30d158; color: #30d158; }
+      .badge.match-medium { background: rgba(10, 132, 255, 0.15); border-color: #0a84ff; color: #0a84ff; }
+      .badge.match-low { background: rgba(255, 69, 58, 0.12); border-color: #ff453a; color: #ff453a; }
       .grid {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
@@ -389,6 +447,101 @@
         .main { grid-template-columns: 1fr; }
         .list { max-height: 280px; }
       }
+
+      /* JSON Sidebar */
+      .json-sidebar-toggle {
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+        padding: 14px 7px;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #a0a0a0;
+        cursor: pointer;
+        z-index: 9999;
+        user-select: none;
+        transition: all 0.2s ease;
+        box-shadow: -2px 0 8px rgba(0,0,0,0.3);
+      }
+      .json-sidebar-toggle:hover {
+        background: #1a1d26;
+        color: #fff;
+        padding-right: 10px;
+      }
+      .json-sidebar {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 420px;
+        max-width: 45vw;
+        background: #0f1117;
+        border-left: 1px solid var(--border);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.6);
+        z-index: 10000;
+        display: none;
+        flex-direction: column;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      .json-sidebar.open { display: flex; }
+      .json-sidebar-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #0b0d14;
+        flex-shrink: 0;
+      }
+      .json-sidebar-header .title {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text);
+      }
+      .json-sidebar-header .actions {
+        display: flex;
+        gap: 6px;
+      }
+      .json-sidebar-header button {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .json-sidebar-header button:hover {
+        background: var(--panel-2);
+        color: var(--text);
+      }
+      .json-sidebar-body {
+        flex: 1;
+        overflow: auto;
+        padding: 12px 16px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        background: #0f1117;
+      }
+      .json-sidebar-body pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      /* Basic JSON syntax highlight */
+      .json-key { color: #9cdcfe; }
+      .json-string { color: #ce9178; }
+      .json-number { color: #b5cea8; }
+      .json-boolean { color: #569cd6; font-weight: 500; }
+      .json-bracket { color: #858585; }
     </style>
   </head>
   <body>
@@ -434,12 +587,148 @@
       </div>
     </div>
 
+    <!-- JSON Sidebar -->
+    <div id="jsonSidebarToggle" class="json-sidebar-toggle" title="预览完整 JSON">JSON 预览</div>
+
+    <div id="jsonSidebar" class="json-sidebar">
+      <div class="json-sidebar-header">
+        <div class="title">完整 JSON 预览 (可直接复制保存)</div>
+        <div class="actions">
+          <button id="jsonRefreshBtn">刷新</button>
+          <button id="jsonCopyBtn">复制</button>
+          <button id="jsonCloseBtn">关闭</button>
+        </div>
+      </div>
+      <div class="json-sidebar-body">
+        <pre><code id="jsonPreviewCode" style="color:#ddd;"></code></pre>
+      </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
       const token = new URLSearchParams(location.search).get("token") || "";
       const initialFile = new URLSearchParams(location.search).get("file") || "editor.json";
       const $ = (id) => document.getElementById(id);
+
+      // ===== JSON Sidebar Logic =====
+      function highlightJSON(jsonStr) {
+        // Escape HTML
+        let str = jsonStr
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        // Keys ( "key": )
+        str = str.replace(/("([^"\\]|\\.)*"\s*:)/g, '<span class="json-key">$1</span>');
+
+        // Strings
+        str = str.replace(/("(?:[^"\\]|\\.)*")/g, (m, p1) => {
+          if (p1.endsWith('":') || p1.endsWith('": ')) return p1; // already handled as key
+          return '<span class="json-string">' + p1 + '</span>';
+        });
+
+        // Numbers
+        str = str.replace(/\b(-?\d+(\.\d+)?([eE][+-]?\d+)?)\b/g, '<span class="json-number">$1</span>');
+
+        // Booleans / null
+        str = str.replace(/\b(true|false|null)\b/g, '<span class="json-boolean">$1</span>');
+
+        // Brackets (optional)
+        str = str.replace(/([{}\[\]])/g, '<span class="json-bracket">$1</span>');
+
+        return str;
+      }
+
+      function getFullJson() {
+        try {
+          if (typeof toJsonRule !== 'function') {
+            return { rules: state.rules };
+          }
+          return {
+            rules: (state.rules || []).map(r => toJsonRule(r))
+          };
+        } catch (e) {
+          return { error: "序列化失败: " + e.message, rules: state.rules };
+        }
+      }
+
+      function updateJsonPreview() {
+        const codeEl = $("jsonPreviewCode");
+        if (!codeEl) return;
+
+        const full = getFullJson();
+        const pretty = JSON.stringify(full, null, 2);
+        codeEl.innerHTML = highlightJSON(pretty);
+      }
+
+      function toggleJsonSidebar(forceOpen) {
+        const sidebar = $("jsonSidebar");
+        const toggle = $("jsonSidebarToggle");
+        if (!sidebar) return;
+
+        const isOpen = sidebar.classList.contains("open");
+
+        if (forceOpen === true || (!isOpen && forceOpen !== false)) {
+          sidebar.classList.add("open");
+          if (toggle) toggle.style.opacity = "0.6";
+          // 打开时立即刷新一次
+          setTimeout(updateJsonPreview, 10);
+        } else {
+          sidebar.classList.remove("open");
+          if (toggle) toggle.style.opacity = "1";
+        }
+      }
+
+      function initJsonSidebar() {
+        const toggle = $("jsonSidebarToggle");
+        const sidebar = $("jsonSidebar");
+        const closeBtn = $("jsonCloseBtn");
+        const refreshBtn = $("jsonRefreshBtn");
+        const copyBtn = $("jsonCopyBtn");
+
+        if (toggle) {
+          toggle.onclick = () => toggleJsonSidebar();
+        }
+
+        if (closeBtn) closeBtn.onclick = () => toggleJsonSidebar(false);
+
+        if (refreshBtn) {
+          refreshBtn.onclick = () => updateJsonPreview();
+        }
+
+        if (copyBtn) {
+          copyBtn.onclick = async () => {
+            try {
+              const full = getFullJson();
+              const text = JSON.stringify(full, null, 2);
+              await navigator.clipboard.writeText(text);
+              const original = copyBtn.textContent;
+              copyBtn.textContent = "已复制!";
+              setTimeout(() => { copyBtn.textContent = original; }, 1200);
+            } catch (e) {
+              // fallback
+              const text = JSON.stringify(getFullJson(), null, 2);
+              prompt("复制失败，请手动复制：", text);
+            }
+          };
+        }
+
+        // 可选：点击侧边栏外部关闭（简单实现）
+        document.addEventListener("click", (e) => {
+          if (!sidebar || !sidebar.classList.contains("open")) return;
+          if (sidebar.contains(e.target) || (toggle && toggle.contains(e.target))) return;
+          toggleJsonSidebar(false);
+        });
+
+        // ESC 关闭
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && sidebar && sidebar.classList.contains("open")) {
+            toggleJsonSidebar(false);
+          }
+        });
+      }
+      // ===== End JSON Sidebar =====
 
       const state = {
         rules: [],
@@ -449,6 +738,10 @@
         registry: { items: [], tags: [] },
         registryItemsSet: new Set(),
         rulesVersion: 0,
+        iconManifest: null,           // from /manifest
+        iconCacheMap: new Map(),      // id -> full cached url with token
+        iconCacheReady: false,
+        componentHelperExpanded: false,  // 组件助手和品质全局折叠，默认折叠
         listCache: {
           version: -1,
           filter: "",
@@ -494,7 +787,7 @@
           itemSub: (count) => "输入 " + count + " 项 · 点击编辑",
           helpEmpty: "选择左侧规则，或点击“新建”开始。",
           inputsLabel: "输入",
-          inputsHelp: "支持 item 或 tag（#minecraft:logs）。components 可填 JSON 或字符串。",
+          inputsHelp: "支持 item 或 tag（#minecraft:logs）。components 支持原版 + 多联动mod组件（quality_food、tide、kaleidoscope_tavern等），可写完整JSON或用下方助手添加。",
           addInput: "添加输入",
           clearInputs: "清空输入",
           removeInput: "移除该输入",
@@ -529,7 +822,7 @@
           summarySeasons: "ecliptic_seasons",
           summaryOutput: "output",
           presetsLabel: "组件助手（Presets）",
-          presetsHelp: "点击快速注入常用 components（会与现有内容合并）。",
+          presetsHelp: "点击快速添加常用组件（支持 quality_food、tide、kaleidoscope_tavern 等多联动 mod，会自动合并到现有 JSON）。",
           presetsApplied: (name) => "已注入组件 · " + name,
           presetsRemoved: (name) => "已移除组件 · " + name,
           presets: {
@@ -537,9 +830,25 @@
               name: "Tide（鱼类长度）",
               inject: { "tide:fish_length": "[40.0, 50.0)" }
             },
+            tide_time: {
+              name: "Tide（捕获时间）",
+              inject: { "tide:catch_timestamp": "[2000, 3000)" }
+            },
             brewing: {
               name: "Brewing（酿酒等级）",
               inject: { "kaleidoscope_tavern:brew_level": 7 }
+            },
+            potion: {
+              name: "药水（Potion）",
+              inject: { "potion_contents": { "potion": "minecraft:night_vision" } }
+            },
+            enchant: {
+              name: "附魔（Enchant）",
+              inject: { "enchantments": { "levels": { "minecraft:sharpness": 5 } } }
+            },
+            damage: {
+              name: "耐久（Damage）",
+              inject: { "damage": 100 }
             }
           },
           coinCount: "coin 数量",
@@ -568,6 +877,42 @@
           qualityGold: "金",
           qualityDiamond: "钻石",
           loadFailed: "加载失败",
+          addComponent: "添加组件",
+          selectComponentType: "选择组件类型",
+          componentMod: "所属模组",
+          vanilla: "原版 (Vanilla)",
+          qualityFood: "品质作物 (Quality Food)",
+          tide: "鱼类 (Tide)",
+          brewing: "酿酒 (Kaleidoscope Tavern)",
+          apply: "应用",
+          cancel: "取消",
+          componentKey: "组件 Key",
+          componentValue: "组件值",
+          minValue: "最小值",
+          maxValue: "最大值",
+          potionType: "药水类型",
+          enchantName: "附魔名称",
+          enchantLevel: "附魔等级",
+          damageValue: "耐久值",
+          customName: "自定义名称",
+          addComponent: "添加组件",
+          selectComponentType: "选择组件类型",
+          componentMod: "所属模组",
+          vanilla: "原版 (Vanilla)",
+          qualityFood: "品质作物 (Quality Food)",
+          tide: "鱼类 (Tide)",
+          brewing: "酿酒 (Kaleidoscope Tavern)",
+          apply: "应用",
+          cancel: "取消",
+          componentKey: "组件 Key",
+          componentValue: "组件值",
+          minValue: "最小值",
+          maxValue: "最大值",
+          potionType: "药水类型",
+          enchantName: "附魔名称",
+          enchantLevel: "附魔等级",
+          damageValue: "耐久值",
+          customName: "自定义名称",
           loaded: (n, file) => "已加载 " + n + " 条规则 · " + file,
           confirmDelete: "确认删除当前规则？",
           saved: (path) => "已保存 · " + path,
@@ -640,6 +985,24 @@
           presetsHelp: "Click to inject common components (merged into existing JSON).",
           presetsApplied: (name) => "Injected · " + name,
           presetsRemoved: (name) => "Removed · " + name,
+          addComponent: "Add Component",
+          selectComponentType: "Select component type",
+          componentMod: "Mod",
+          vanilla: "Vanilla",
+          qualityFood: "Quality Food",
+          tide: "Tide",
+          brewing: "Brewing",
+          apply: "Apply",
+          cancel: "Cancel",
+          componentKey: "Component Key",
+          componentValue: "Value",
+          minValue: "Min",
+          maxValue: "Max",
+          potionType: "Potion",
+          enchantName: "Enchant ID",
+          enchantLevel: "Level",
+          damageValue: "Damage",
+          customName: "Name",
           presets: {
             tide: {
               name: "Tide (Fish length)",
@@ -788,6 +1151,33 @@
         return (inParts.join(" + ") || t("summaryEmpty")) + " → " + outText;
       }
 
+      // 新增：计算规则的匹配清晰度（用于UI提示）
+      function getInputMatchType(inp) {
+        if (inp && inp.componentsText && String(inp.componentsText).trim()) return 'component';
+        if (inp && inp.kind === 'item') return 'item';
+        return 'tag';
+      }
+
+      function getRuleMatchInfo(r) {
+        const inputs = (r && r.inputs) || [];
+        if (inputs.length === 0) {
+          return { level: 'low', label: '无输入条件', desc: '不会匹配任何物品' };
+        }
+        let hasComponent = false, hasExactItem = false;
+        inputs.forEach(inp => {
+          const t = getInputMatchType(inp);
+          if (t === 'component') hasComponent = true;
+          if (t === 'item') hasExactItem = true;
+        });
+        if (hasComponent) {
+          return { level: 'high', label: '组件匹配（最高优先级）', desc: '有具体组件要求的规则会优先于普通物品/标签规则' };
+        }
+        if (hasExactItem) {
+          return { level: 'medium', label: '精确物品匹配', desc: '指定具体物品的规则优先于标签规则' };
+        }
+        return { level: 'low', label: '标签匹配（通用）', desc: '使用标签的规则匹配范围最广，优先级最低' };
+      }
+
       function parseMaybeJson(text) {
         const t = (text || "").trim();
         if (!t) return null;
@@ -880,13 +1270,65 @@
       function renderPresetsField(getText, onApply) {
         const field = document.createElement("div");
         field.className = "field";
-        field.innerHTML = `<div class="label">${escapeHtml(t("presetsLabel"))}</div><div class="help">${escapeHtml(t("presetsHelp"))}</div>`;
+
+        // 全局可折叠的头部
+        const isExpanded = !!state.componentHelperExpanded;
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.justifyContent = "space-between";
+        header.style.cursor = "pointer";
+        header.style.userSelect = "none";
+        header.style.marginBottom = isExpanded ? "6px" : "0";
+        header.style.padding = "2px 4px";
+        header.style.borderRadius = "4px";
+        header.onmouseover = () => { header.style.background = "var(--panel-2)"; };
+        header.onmouseout = () => { header.style.background = ""; };
+        header.innerHTML = `
+          <div>
+            <span style="font-weight:600;">${escapeHtml(t("presetsLabel"))}</span>
+            <span style="font-size:11px; color:var(--muted); margin-left:6px;">(可折叠)</span>
+          </div>
+          <span style="font-size:14px; transition: transform 0.2s ease; transform: rotate(${isExpanded ? 90 : 0}deg);">▶</span>
+        `;
+        header.onclick = (e) => {
+          e.stopPropagation();
+          state.componentHelperExpanded = !state.componentHelperExpanded;
+          render();  // 全局刷新以更新所有实例
+        };
+        field.appendChild(header);
+
+        if (!isExpanded) {
+          // 折叠时只显示头部 + 提示
+          const hint = document.createElement("div");
+          hint.style.fontSize = "11px";
+          hint.style.color = "var(--muted)";
+          hint.style.marginTop = "2px";
+          hint.textContent = "点击展开常用组件预设";
+          field.appendChild(hint);
+          return field;
+        }
+
+        // 展开内容
+        const content = document.createElement("div");
+
+        const help = document.createElement("div");
+        help.className = "help";
+        help.style.marginBottom = "6px";
+        help.textContent = t("presetsHelp") || "点击快速添加常用组件（支持多联动 mod），会自动合并到现有 JSON。";
+        content.appendChild(help);
+
         const row = document.createElement("div");
+        row.style.marginBottom = "6px";
         row.className = "row";
 
         const presets = [
           { key: "tide", name: t("presets.tide.name"), inject: I18N[currentLang()]?.presets?.tide?.inject },
-          { key: "brewing", name: t("presets.brewing.name"), inject: I18N[currentLang()]?.presets?.brewing?.inject }
+          { key: "tide_time", name: t("presets.tide_time.name"), inject: I18N[currentLang()]?.presets?.tide_time?.inject },
+          { key: "brewing", name: t("presets.brewing.name"), inject: I18N[currentLang()]?.presets?.brewing?.inject },
+          { key: "potion", name: t("presets.potion.name"), inject: I18N[currentLang()]?.presets?.potion?.inject },
+          { key: "enchant", name: t("presets.enchant.name"), inject: I18N[currentLang()]?.presets?.enchant?.inject },
+          { key: "damage", name: t("presets.damage.name"), inject: I18N[currentLang()]?.presets?.damage?.inject }
         ];
 
         for (const p of presets) {
@@ -905,7 +1347,7 @@
           };
           row.appendChild(btn);
         }
-        field.appendChild(row);
+        content.appendChild(row);
 
         const qualityBlock = document.createElement("div");
         qualityBlock.className = "field";
@@ -931,8 +1373,489 @@
             toast(t("presetsApplied", name), "ok");
           }
         ));
-        field.appendChild(qualityBlock);
+        content.appendChild(qualityBlock);
+
+        field.appendChild(content);
         return field;
+      }
+
+      // 可视化组件构建器 (支持同时添加多个)
+      function createComponentBuilder(getCurrentText, onApply) {
+        const container = document.createElement("div");
+        container.style.border = "1px solid var(--border)";
+        container.style.padding = "10px";
+        container.style.borderRadius = "8px";
+        container.style.background = "var(--panel)";
+        container.style.marginTop = "8px";
+
+        const title = document.createElement("div");
+        title.style.fontWeight = "600";
+        title.style.marginBottom = "8px";
+        title.textContent = (t("addComponent") || "添加组件") + " (可添加多个)";
+        container.appendChild(title);
+
+        const modSelect = document.createElement("select");
+        modSelect.className = "input";
+        modSelect.style.marginBottom = "8px";
+        const options = [
+          { value: "", label: t("selectComponentType") || "选择组件类型" },
+          { value: "quality_food", label: t("qualityFood") || "品质作物 (Quality Food)" },
+          { value: "tide_length", label: t("tide") + " - 长度" },
+          { value: "tide_time", label: t("tide") + " - 捕获时间" },
+          { value: "brew_level", label: t("brewing") || "酿酒等级" },
+          { value: "potion", label: "药水 (Potion)" },
+          { value: "enchant", label: "附魔 (Enchant)" },
+          { value: "damage", label: "耐久 (Damage)" },
+          { value: "custom_name", label: "自定义名称" },
+          { value: "custom", label: "自定义组件" }
+        ];
+        options.forEach(opt => {
+          const o = document.createElement("option");
+          o.value = opt.value;
+          o.textContent = opt.label;
+          modSelect.appendChild(o);
+        });
+        container.appendChild(modSelect);
+
+        const formArea = document.createElement("div");
+        formArea.style.margin = "8px 0";
+        container.appendChild(formArea);
+
+        // 已添加组件列表 (美化版 + 支持编辑)
+        const addedList = document.createElement("div");
+        addedList.style.margin = "8px 0";
+        addedList.style.padding = "8px";
+        addedList.style.border = "1px solid var(--border)";
+        addedList.style.borderRadius = "8px";
+        addedList.style.background = "rgba(255,255,255,0.03)";
+        addedList.style.minHeight = "36px";
+        const addedTitle = document.createElement("div");
+        addedTitle.style.fontSize = "12px";
+        addedTitle.style.fontWeight = "600";
+        addedTitle.style.color = "var(--muted)";
+        addedTitle.style.marginBottom = "6px";
+        addedTitle.textContent = "已添加的组件 (可继续添加多个):";
+        addedList.appendChild(addedTitle);
+        const addedItems = document.createElement("div");
+        addedItems.style.display = "flex";
+        addedItems.style.flexDirection = "column";
+        addedItems.style.gap = "4px";
+        addedList.appendChild(addedItems);
+        container.appendChild(addedList);
+
+        let pending = [];  // [{type, comp}]
+
+        function getCompIcon(key) {
+          if (key.includes('quality')) return '🌾';
+          if (key.includes('tide')) return '🐟';
+          if (key.includes('brew') || key.includes('kaleidoscope')) return '🍷';
+          if (key.includes('potion')) return '🧪';
+          if (key.includes('enchant')) return '✨';
+          if (key.includes('damage')) return '🛡️';
+          if (key.includes('custom_name')) return '📝';
+          return '📦';
+        }
+
+        const renderAdded = () => {
+          addedItems.innerHTML = "";
+          if (pending.length === 0) {
+            const empty = document.createElement("div");
+            empty.style.fontSize = "12px";
+            empty.style.color = "var(--muted)";
+            empty.style.padding = "4px";
+            empty.textContent = "(暂无，添加后会出现在这里)";
+            addedItems.appendChild(empty);
+            return;
+          }
+          pending.forEach((item, idx) => {
+            const comp = item.comp;
+            const key = Object.keys(comp)[0];
+            const valStr = JSON.stringify(comp[key]);
+            const shortVal = valStr.length > 50 ? valStr.slice(0, 47) + "..." : valStr;
+
+            const row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.alignItems = "center";
+            row.style.gap = "8px";
+            row.style.padding = "4px 8px";
+            row.style.background = "var(--item-bg)";
+            row.style.borderRadius = "6px";
+            row.style.fontSize = "12px";
+
+            const icon = document.createElement("span");
+            icon.textContent = getCompIcon(key);
+            icon.style.fontSize = "14px";
+            icon.style.width = "18px";
+
+            const content = document.createElement("div");
+            content.style.flex = "1";
+            content.style.overflow = "hidden";
+            content.innerHTML = `<strong>${key}</strong>: <span style="opacity:0.85;font-family:monospace">${shortVal}</span>`;
+
+            const actions = document.createElement("div");
+            actions.style.display = "flex";
+            actions.style.gap = "4px";
+
+            const editBtn = document.createElement("span");
+            editBtn.textContent = "编辑";
+            editBtn.style.cursor = "pointer";
+            editBtn.style.color = "var(--accent)";
+            editBtn.style.fontSize = "11px";
+            editBtn.onclick = () => startEdit(idx);
+
+            const rm = document.createElement("span");
+            rm.textContent = "×";
+            rm.style.cursor = "pointer";
+            rm.style.color = "#ff453a";
+            rm.style.fontWeight = "bold";
+            rm.style.padding = "0 4px";
+            rm.onclick = (e) => {
+              e.stopImmediatePropagation();
+              pending.splice(idx, 1);
+              renderAdded();
+            };
+
+            actions.appendChild(editBtn);
+            actions.appendChild(rm);
+
+            row.appendChild(icon);
+            row.appendChild(content);
+            row.appendChild(actions);
+            addedItems.appendChild(row);
+          });
+        };
+        renderAdded();
+
+        const buttons = document.createElement("div");
+        buttons.className = "row";
+        buttons.style.marginTop = "8px";
+        buttons.style.flexWrap = "wrap";
+        buttons.style.gap = "6px";
+
+        let editingIndex = -1;
+
+        const addThisBtn = document.createElement("button");
+        addThisBtn.className = "btn";
+        addThisBtn.textContent = "添加此组件";
+        buttons.appendChild(addThisBtn);
+
+        const applyAllBtn = document.createElement("button");
+        applyAllBtn.className = "btn";
+        applyAllBtn.textContent = "应用全部";
+        buttons.appendChild(applyAllBtn);
+
+        const clearAllBtn = document.createElement("button");
+        clearAllBtn.className = "btn ghost";
+        clearAllBtn.textContent = "全部清空";
+        clearAllBtn.onclick = () => {
+          pending = [];
+          editingIndex = -1;
+          addThisBtn.textContent = "添加此组件";
+          renderAdded();
+          formArea.innerHTML = "";
+          modSelect.value = "";
+        };
+        buttons.appendChild(clearAllBtn);
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn ghost";
+        cancelBtn.textContent = t("cancel") || "取消";
+        buttons.appendChild(cancelBtn);
+
+        container.appendChild(buttons);
+
+        let currentType = "";
+        const renderForm = (type) => {
+          formArea.innerHTML = "";
+          currentType = type;
+          if (!type) return;
+
+          const fields = document.createElement("div");
+          fields.className = "grid";
+          fields.style.gridTemplateColumns = "repeat(12, 1fr)";
+
+          if (type === "quality_food") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">品质等级</div>`;
+
+            // 本地状态：支持点击切换，不依赖外部 render
+            let selectedQuality = "normal";  // 默认普通（可自由切换）
+
+            const chipContainer = document.createElement("div");
+            chipContainer.className = "row";
+
+            const qualityOptions = [
+              { label: "普通", value: "normal" },
+              { label: "铁", value: "iron" },
+              { label: "金", value: "gold" },
+              { label: "钻石", value: "diamond" }
+            ];
+
+            const chipEls = [];
+
+            qualityOptions.forEach(opt => {
+              const c = document.createElement("div");
+              c.className = "chip" + (opt.value === selectedQuality ? " active" : "");
+              c.textContent = opt.label;
+              c.style.cursor = "pointer";
+
+              c.onclick = () => {
+                selectedQuality = opt.value;
+                // 更新所有 chip 的 active 状态
+                chipEls.forEach(el => {
+                  el.classList.toggle("active", el.textContent === opt.label);
+                });
+              };
+
+              chipEls.push(c);
+              chipContainer.appendChild(c);
+            });
+
+            f.appendChild(chipContainer);
+            fields.appendChild(f);
+
+            // 提供给 _getValue 使用
+            f._getSelectedQuality = () => selectedQuality;
+
+            formArea._getValue = () => {
+              const val = f._getSelectedQuality ? f._getSelectedQuality() : "diamond";
+              const map = { "普通":"normal", "铁":"iron", "金":"gold", "钻石":"diamond", "normal":"normal", "iron":"iron", "gold":"gold", "diamond":"diamond" };
+              const mapped = map[val] || val || "diamond";
+              return { "quality_food:quality": qualityFoodComponent(mapped) };
+            };
+
+            // 如果是从编辑进入，尝试根据已有值设置选中
+            // (startEdit 会在 renderForm 后尝试额外设置，这里提供钩子)
+            formArea._setQuality = (val) => {
+              const m = { "normal":"普通", "iron":"铁", "gold":"金", "diamond":"钻石" };
+              selectedQuality = val;
+              chipEls.forEach(el => {
+                el.classList.toggle("active", el.textContent === (m[val] || val));
+              });
+            };
+
+          } else if (type === "tide_length" || type === "tide_time") {
+            const key = type === "tide_length" ? "tide:fish_length" : "tide:catch_timestamp";
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">范围 (如 40,60 或 [40.0,60.0) )</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.placeholder = type === "tide_length" ? "40,60" : "2000,3000";
+            input.value = "40,60";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => {
+              const parts = input.value.split(/[,\s]+/);
+              const min = parts[0] || "0";
+              const max = parts[1] || "100";
+              return { [key]: `[${min},${max})` };
+            };
+          } else if (type === "brew_level") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">酿酒等级 (数字)</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.type = "number";
+            input.value = "7";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => ({ "kaleidoscope_tavern:brew_level": Number(input.value) || 7 });
+          } else if (type === "potion") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">药水类型 (如 night_vision)</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.value = "minecraft:night_vision";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => ({ "potion_contents": { "potion": input.value } });
+          } else if (type === "enchant") {
+            const f1 = document.createElement("div");
+            f1.className = "field";
+            f1.style.gridColumn = "span 6";
+            f1.innerHTML = `<div class="label">附魔ID</div>`;
+            const enc = document.createElement("input");
+            enc.className = "input";
+            enc.value = "minecraft:sharpness";
+            f1.appendChild(enc);
+            fields.appendChild(f1);
+
+            const f2 = document.createElement("div");
+            f2.className = "field";
+            f2.style.gridColumn = "span 6";
+            f2.innerHTML = `<div class="label">等级</div>`;
+            const lvl = document.createElement("input");
+            lvl.className = "input";
+            lvl.type = "number";
+            lvl.value = "5";
+            f2.appendChild(lvl);
+            fields.appendChild(f2);
+
+            formArea._getValue = () => {
+              const levels = {};
+              levels[enc.value] = Number(lvl.value) || 1;
+              return { "enchantments": { "levels": levels } };
+            };
+          } else if (type === "damage") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">耐久值</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.type = "number";
+            input.value = "100";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => ({ "damage": Number(input.value) });
+          } else if (type === "custom_name") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">名称 (带引号转义)</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.value = "My Item";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => ({ "custom_name": JSON.stringify(input.value) });
+          } else if (type === "custom") {
+            const f1 = document.createElement("div");
+            f1.className = "field";
+            f1.style.gridColumn = "span 6";
+            f1.innerHTML = `<div class="label">${t("componentKey")}</div>`;
+            const keyIn = document.createElement("input");
+            keyIn.className = "input";
+            keyIn.placeholder = "modid:component";
+            f1.appendChild(keyIn);
+            fields.appendChild(f1);
+
+            const f2 = document.createElement("div");
+            f2.className = "field";
+            f2.style.gridColumn = "span 6";
+            f2.innerHTML = `<div class="label">${t("componentValue")}</div>`;
+            const valIn = document.createElement("input");
+            valIn.className = "input";
+            valIn.placeholder = "5 或 [1,10) 或 JSON";
+            f2.appendChild(valIn);
+            fields.appendChild(f2);
+
+            formArea._getValue = () => {
+              let val = valIn.value.trim();
+              try {
+                if (val.startsWith("{") || val.startsWith("[")) val = JSON.parse(val);
+                else if (!isNaN(Number(val))) val = Number(val);
+              } catch(e) {}
+              const obj = {};
+              if (keyIn.value.trim()) obj[keyIn.value.trim()] = val;
+              return obj;
+            };
+          }
+
+          formArea.appendChild(fields);
+        };
+
+        modSelect.onchange = () => renderForm(modSelect.value);
+
+        function startEdit(idx) {
+          const item = pending[idx];
+          if (!item) return;
+          editingIndex = idx;
+          addThisBtn.textContent = "更新此组件";
+          modSelect.value = item.type || "custom";
+          renderForm(modSelect.value);
+
+          // 尝试填充表单值 (简单反向填充)
+          setTimeout(() => {
+            const comp = item.comp;
+            const key = Object.keys(comp)[0];
+            const val = comp[key];
+            if (modSelect.value === "quality_food" && key.includes("quality")) {
+              const level = val && val.type ? (val.type.includes("diamond") ? "diamond" : val.type.includes("gold") ? "gold" : val.type.includes("iron") ? "iron" : "normal") : "diamond";
+              if (formArea._setQuality) {
+                formArea._setQuality(level);
+              } else {
+                // fallback
+                const chips = formArea.querySelectorAll(".chip");
+                chips.forEach(c => c.classList.toggle("active", c.textContent.includes(level === "diamond" ? "钻石" : level === "gold" ? "金" : level === "iron" ? "铁" : "普通")));
+              }
+            } else if ((modSelect.value === "tide_length" || modSelect.value === "tide_time") && typeof val === "string") {
+              const match = val.match(/\[?([0-9.]+),([0-9.]+)/);
+              if (match && formArea.querySelector("input")) {
+                formArea.querySelector("input").value = `${match[1]},${match[2]}`;
+              }
+            } else if (modSelect.value === "brew_level" && formArea.querySelector("input")) {
+              formArea.querySelector("input").value = val || 7;
+            } else if (modSelect.value === "potion" && val && val.potion && formArea.querySelector("input")) {
+              formArea.querySelector("input").value = val.potion;
+            } else if (modSelect.value === "enchant" && val && val.levels) {
+              const encInput = formArea.querySelector("input");
+              const lvlInput = formArea.querySelectorAll("input")[1];
+              const firstKey = Object.keys(val.levels)[0];
+              if (encInput) encInput.value = firstKey || "";
+              if (lvlInput) lvlInput.value = val.levels[firstKey] || 1;
+            } else if (modSelect.value === "damage" && formArea.querySelector("input")) {
+              formArea.querySelector("input").value = val || 100;
+            } else if (modSelect.value === "custom_name" && formArea.querySelector("input")) {
+              formArea.querySelector("input").value = val ? val.replace(/^"|"$/g, "") : "";
+            } else if (modSelect.value === "custom" ) {
+              const inputs = formArea.querySelectorAll("input");
+              if (inputs[0]) inputs[0].value = key;
+              if (inputs[1]) inputs[1].value = typeof val === "object" ? JSON.stringify(val) : val;
+            }
+          }, 50);
+        }
+
+        addThisBtn.onclick = () => {
+          if (!formArea._getValue) return;
+          const newComp = formArea._getValue();
+          if (!newComp || Object.keys(newComp).length === 0) return;
+
+          const currentType = modSelect.value;
+
+          if (editingIndex >= 0) {
+            // 更新模式
+            pending[editingIndex] = { type: currentType, comp: newComp };
+            editingIndex = -1;
+            addThisBtn.textContent = "添加此组件";
+            toast("已更新组件", "ok");
+          } else {
+            pending.push({ type: currentType, comp: newComp });
+            toast("已添加到列表，可继续选择其他组件", "ok");
+          }
+          renderAdded();
+          // 重置表单
+          modSelect.value = "";
+          formArea.innerHTML = "";
+        };
+
+        applyAllBtn.onclick = () => {
+          if (pending.length === 0) {
+            toast("请先添加至少一个组件", "bad");
+            return;
+          }
+          let current = getCurrentText();
+          pending.forEach(p => {
+            current = mergeComponentTemplate(current, p.comp);
+          });
+          onApply(current);
+          container.remove();
+          toast(`已应用 ${pending.length} 个组件`, "ok");
+        };
+
+        cancelBtn.onclick = () => {
+          container.remove();
+        };
+
+        return container;
       }
 
       function parseIntList(text) {
@@ -1110,6 +2033,9 @@
         top.id = "listTopSpacer";
         const host = document.createElement("div");
         host.id = "listItemsHost";
+        host.style.display = "flex";
+        host.style.flexDirection = "column";
+        host.style.gap = "16px";
         const bottom = document.createElement("div");
         bottom.id = "listBottomSpacer";
         list.appendChild(top);
@@ -1165,6 +2091,19 @@
         left.style.display = "flex";
         left.style.alignItems = "center";
         left.style.gap = "8px";
+
+        // 拖动把手提示
+        const grip = document.createElement("div");
+        grip.textContent = "⋮⋮";
+        grip.style.fontSize = "14px";
+        grip.style.color = "var(--muted)";
+        grip.style.cursor = "grab";
+        grip.style.paddingRight = "6px";
+        grip.style.opacity = "0.65";
+        grip.style.lineHeight = "1";
+        grip.style.userSelect = "none";
+        grip.style.transition = "opacity 0.2s ease";
+        left.appendChild(grip);
 
         const { box, img } = createIconBox();
         img.dataset.role = "ruleIcon";
@@ -1229,10 +2168,22 @@
         el.classList.toggle("active", r.id === state.selectedId);
         const title = el.querySelector('[data-role="ruleTitle"]');
         if (title) title.textContent = summarizeRule(r);
+
         const badge = el.querySelector('[data-role="ruleBadge"]');
-        if (badge) badge.textContent = r.output && r.output.mode ? modeLabel(r.output.mode) : t("badgeRule");
+        const matchInfo = getRuleMatchInfo(r);
+        if (badge) {
+          badge.textContent = r.output && r.output.mode ? modeLabel(r.output.mode) : t("badgeRule");
+          // 添加匹配优先级样式类
+          badge.className = 'badge match-' + matchInfo.level;
+        }
+
         const sub = el.querySelector('[data-role="ruleSub"]');
-        if (sub) sub.textContent = t("itemSub", (r.inputs || []).length);
+        if (sub) {
+          const info = matchInfo;
+          sub.innerHTML = t("itemSub", (r.inputs || []).length) + 
+            ` <span class="match-hint ${info.level}">${info.label}</span>`;
+        }
+
         const img = el.querySelector('img[data-role="ruleIcon"]');
         if (img) {
           const iconId = getRuleIconId(r);
@@ -1250,7 +2201,18 @@
         const insertAt = from < to ? to - 1 : to;
         state.rules.splice(insertAt, 0, item);
         state.rulesVersion++;
+
+        // 拖动排序后的小动画提示
         scheduleRenderList();
+
+        // 延迟添加一个临时高亮动画
+        setTimeout(() => {
+          const list = $("list");
+          if (list) {
+            list.classList.add("just-reordered");
+            setTimeout(() => list.classList.remove("just-reordered"), 600);
+          }
+        }, 50);
       }
 
       function renderListViewport(force) {
@@ -1360,6 +2322,13 @@
           img.src = TRANSPARENT_IMG;
           return;
         }
+
+        // Prefer disk cache if available (much faster, no on-the-fly extraction)
+        if (state.iconCacheReady && state.iconCacheMap.has(v)) {
+          img.src = state.iconCacheMap.get(v);
+          return;
+        }
+
         if (!state.registryItemsSet || !state.registryItemsSet.has(v)) {
           img.src = iconUrl("minecraft:barrier");
           return;
@@ -1706,15 +2675,66 @@
 
           const compField = document.createElement("div");
           compField.className = "field";
-          compField.innerHTML = `<div class="label">${escapeHtml(t("labelComponents"))}</div>`;
+          compField.innerHTML = `
+            <div class="label">${escapeHtml(t("labelComponents"))} <span style="font-size:11px;color:var(--muted)">（数据组件 / Data Components）</span></div>
+            <div class="help">支持原版和联动模组组件（如 quality_food、tide、kaleidoscope_tavern 等）。可直接写 JSON 或使用下方助手快速添加。多个组件会合并。</div>
+          `;
           const comp = document.createElement("textarea");
           comp.className = "textarea";
           comp.placeholder = t("placeholderComponentsExampleInput");
           comp.value = inp.componentsText || "";
-          comp.oninput = (e) => { inp.componentsText = e.target.value; };
+          comp.oninput = (e) => { inp.componentsText = e.target.value; render(); /* 实时刷新预览 */ };
           compField.appendChild(comp);
+
+          // 实时组件预览
+          const preview = document.createElement("div");
+          preview.style.fontSize = "11px";
+          preview.style.marginTop = "4px";
+          preview.style.color = "var(--muted)";
+          preview.style.whiteSpace = "pre-wrap";
+          preview.style.maxHeight = "60px";
+          preview.style.overflow = "auto";
+          const updatePreview = () => {
+            try {
+              const parsed = parseMaybeJson(comp.value);
+              if (parsed && typeof parsed === "object") {
+                preview.textContent = "当前组件: " + JSON.stringify(parsed, null, 0);
+              } else if (comp.value.trim()) {
+                preview.textContent = "当前: " + comp.value.trim();
+              } else {
+                preview.textContent = "（无组件）";
+              }
+            } catch (e) {
+              preview.textContent = "格式有误: " + e.message;
+            }
+          };
+          comp.oninput = (e) => { inp.componentsText = e.target.value; updatePreview(); };
+          updatePreview();
+          compField.appendChild(preview);
+
           const presetsField = renderPresetsField(() => inp.componentsText, (next) => { inp.componentsText = next; render(); });
           compField.appendChild(presetsField);
+
+          // 可视化组件构建器按钮
+          const addCompBtn = document.createElement("button");
+          addCompBtn.className = "btn";
+          addCompBtn.style.marginTop = "6px";
+          addCompBtn.textContent = t("addComponent") || "添加组件";
+          addCompBtn.onclick = () => {
+            const builder = createComponentBuilder(() => inp.componentsText, (newText) => {
+              inp.componentsText = newText;
+              render();
+            });
+            // 当面板关闭时恢复按钮
+            const origRemove = builder.remove.bind(builder);
+            builder.remove = () => {
+              origRemove();
+              addCompBtn.disabled = false;
+            };
+            compField.appendChild(builder);
+            addCompBtn.disabled = true;
+          };
+          compField.appendChild(addCompBtn);
 
           const removeRow = document.createElement("div");
           removeRow.className = "row";
@@ -1734,6 +2754,64 @@
           sep.style.gridColumn = "span 12";
           root.appendChild(sep);
         });
+
+        // 新增：规则匹配说明（解决“匹配不清晰”问题）
+        const matchInfo = getRuleMatchInfo(r);
+        const matchBox = document.createElement("div");
+        matchBox.className = "field";
+        matchBox.innerHTML = `
+          <div class="label">规则匹配优先级</div>
+          <div class="help">后端会按优先级选择最匹配的规则（组件 > 精确物品 > 标签）。</div>
+          <div style="margin-top:4px; padding:8px 10px; border-radius:8px; background:var(--panel); border:1px solid var(--border); font-size:12px;">
+            <strong class="match-hint ${matchInfo.level}" style="font-size:12px;">${matchInfo.label}</strong>
+            <div style="margin-top:4px; color:var(--muted);">${matchInfo.desc}</div>
+          </div>
+        `;
+        root.appendChild(matchBox);
+
+        const matchTest = document.createElement("div");
+        matchTest.className = "field";
+        matchTest.innerHTML = `
+          <div class="label">快速匹配测试</div>
+          <div class="help">输入一个物品 ID，快速检查当前规则的输入条件是否能匹配它（简化预览）。</div>
+          <div class="row" style="gap:8px; margin-top:6px;">
+            <input id="testItem" class="input" placeholder="minecraft:stone" style="flex:1;" />
+            <button id="testMatchBtn" class="btn">测试是否匹配</button>
+          </div>
+          <div id="testMatchResult" style="margin-top:6px; font-size:12px; min-height:18px;"></div>
+        `;
+        root.appendChild(matchTest);
+
+        // 绑定测试按钮（简单客户端预览）
+        setTimeout(() => {
+          const testInput = matchTest.querySelector('#testItem');
+          const btn = matchTest.querySelector('#testMatchBtn');
+          const result = matchTest.querySelector('#testMatchResult');
+          if (btn && testInput) {
+            btn.onclick = () => {
+              const testId = (testInput.value || '').trim();
+              if (!testId) {
+                result.textContent = '请输入物品ID';
+                return;
+              }
+              const matches = (r.inputs || []).some(inp => {
+                const val = (inp.value || '').trim();
+                if (!val) return false;
+                if (inp.kind === 'item') {
+                  return val === testId || (testId.startsWith(val + ':') === false && val === testId.split(':')[0]); // 简单匹配
+                } else {
+                  // tag 简化认为可能匹配
+                  return true;
+                }
+              });
+              const info = getRuleMatchInfo(r);
+              result.innerHTML = matches 
+                ? `<span style="color:#30d158">✓ 当前规则的输入条件可能匹配该物品</span>（实际以服务端精确匹配为准，优先级：${info.label}）`
+                : `<span style="color:#ff453a">✗ 当前输入条件无法匹配该物品</span>`;
+            };
+            testInput.onkeydown = (e) => { if (e.key === 'Enter') btn.click(); };
+          }
+        }, 0);
 
         const outHeader = document.createElement("div");
         outHeader.className = "field";
@@ -1794,10 +2872,45 @@
           const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; });
           count.classList.add("half");
           root.appendChild(count);
-          const comp = fieldTextarea(t("labelComponents"), o.componentsText, t("placeholderComponentsExampleOutput"), (v) => { o.componentsText = v; });
-          root.appendChild(comp);
+          const compWrap = document.createElement("div");
+          compWrap.className = "field";
+          compWrap.innerHTML = `<div class="label">${escapeHtml(t("labelComponents"))} <span style="font-size:11px;color:var(--muted)">（支持多联动 mod）</span></div>`;
+          const comp = document.createElement("textarea");
+          comp.className = "textarea";
+          comp.placeholder = t("placeholderComponentsExampleOutput");
+          comp.value = o.componentsText || "";
+          comp.oninput = (e) => { o.componentsText = e.target.value; render(); };
+          compWrap.appendChild(comp);
+
+          const prev = document.createElement("div");
+          prev.style.cssText = "font-size:11px;margin:4px 0;color:var(--muted);max-height:50px;overflow:auto;";
+          const up = () => {
+            try {
+              const p = parseMaybeJson(comp.value);
+              prev.textContent = p && typeof p === 'object' ? JSON.stringify(p) : (comp.value || "(无)");
+            } catch(e){ prev.textContent = "格式错误"; }
+          };
+          comp.oninput = (e)=>{ o.componentsText = e.target.value; up(); };
+          up();
+          compWrap.appendChild(prev);
+
           const presets = renderPresetsField(() => o.componentsText, (next) => { o.componentsText = next; render(); });
-          root.appendChild(presets);
+          compWrap.appendChild(presets);
+
+          const addBtn = document.createElement("button");
+          addBtn.className = "btn";
+          addBtn.style.marginTop = "6px";
+          addBtn.textContent = t("addComponent") || "添加组件";
+          addBtn.onclick = () => {
+            const b = createComponentBuilder(() => o.componentsText, (nt) => { o.componentsText = nt; render(); });
+            const orig = b.remove.bind(b);
+            b.remove = () => { orig(); addBtn.disabled = false; };
+            compWrap.appendChild(b);
+            addBtn.disabled = true;
+          };
+          compWrap.appendChild(addBtn);
+
+          root.appendChild(compWrap);
           return;
         }
 
@@ -1865,6 +2978,16 @@
             const presets = renderPresetsField(() => w.componentsText, (next) => { w.componentsText = next; render(); });
             root.appendChild(presets);
 
+            const addBtn = document.createElement("button");
+            addBtn.className = "btn";
+            addBtn.textContent = t("addComponent") || "添加组件";
+            addBtn.onclick = () => {
+              const b = createComponentBuilder(() => w.componentsText, (nt) => { w.componentsText = nt; render(); });
+              root.appendChild(b);
+              addBtn.disabled = true;
+            };
+            root.appendChild(addBtn);
+
             const remove = document.createElement("div");
             remove.className = "field";
             const rr = document.createElement("div");
@@ -1916,6 +3039,16 @@
           root.appendChild(comp);
           const presets = renderPresetsField(() => o.componentsText, (next) => { o.componentsText = next; render(); });
           root.appendChild(presets);
+
+          const addBtn = document.createElement("button");
+          addBtn.className = "btn";
+          addBtn.textContent = t("addComponent") || "添加组件";
+          addBtn.onclick = () => {
+            const b = createComponentBuilder(() => o.componentsText, (nt) => { o.componentsText = nt; render(); });
+            root.appendChild(b);
+            addBtn.disabled = true;
+          };
+          root.appendChild(addBtn);
           return;
         }
       }
@@ -2032,6 +3165,12 @@
       function render() {
         renderList();
         renderEditor();
+
+        // 如果 JSON 侧边栏打开，则自动刷新预览
+        const sidebar = $("jsonSidebar");
+        if (sidebar && sidebar.classList.contains("open")) {
+          updateJsonPreview();
+        }
       }
 
       function setSubtitle() {
@@ -2052,6 +3191,73 @@
         state.registry.tags = Array.isArray(json.tags) ? json.tags : [];
         state.registryItemsSet = new Set(state.registry.items.map((x) => String(x)));
       }
+
+      async function loadIconManifest() {
+        try {
+          const res = await fetch("/manifest?token=" + encodeURIComponent(token), { method: "GET" });
+          if (!res.ok) throw new Error("manifest http " + res.status);
+          const json = await res.json();
+
+          if (json.status === "missing_cache" || !json.items) {
+            state.iconManifest = null;
+            state.iconCacheMap.clear();
+            state.iconCacheReady = false;
+            console.log("[Editor] Icon cache not ready:", json.message);
+            return;
+          }
+
+          state.iconManifest = json;
+          state.iconCacheMap.clear();
+
+          const base = window.location.origin; // same origin as the local server
+
+          if (Array.isArray(json.items)) {
+            for (const it of json.items) {
+              if (it.id && it.path) {
+                const url = base + it.path + "?token=" + encodeURIComponent(token);
+                state.iconCacheMap.set(it.id, url);
+              }
+            }
+          }
+          if (Array.isArray(json.blocks)) {
+            for (const b of json.blocks) {
+              if (b.id && b.path) {
+                const url = base + b.path + "?token=" + encodeURIComponent(token);
+                state.iconCacheMap.set(b.id, url);
+              }
+            }
+          }
+          state.iconCacheReady = true;
+          console.log("[Editor] Icon cache manifest loaded, items:", state.iconCacheMap.size);
+        } catch (e) {
+          state.iconCacheReady = false;
+          state.iconCacheMap.clear();
+          console.warn("[Editor] Failed to load icon manifest:", e);
+        }
+      }
+
+      // 获取实时缓存进度（可用于前端轮询显示生成进度）
+      async function getCacheProgress() {
+        try {
+          const res = await fetch("/cache_status?token=" + encodeURIComponent(token));
+          if (!res.ok) return null;
+          return await res.json(); // {status, processed, total, error?}
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // 示例：轮询直到缓存完成，然后刷新 manifest
+      // async function waitForIconCacheAndReload() {
+      //   while (true) {
+      //     const p = await getCacheProgress();
+      //     if (!p) break;
+      //     if (p.status === 'done' || p.status === 'ready') break;
+      //     console.log(`Icon cache progress: ${p.processed}/${p.total}`);
+      //     await new Promise(r => setTimeout(r, 1200));
+      //   }
+      //   await loadIconManifest();
+      // }
 
       async function apiSaveRules(payload) {
         const res = await fetch("/api/save?token=" + encodeURIComponent(token) + "&file=" + encodeURIComponent(state.file || "editor.json"), {
@@ -2085,6 +3291,10 @@
         state.rulesVersion++;
         if (!state.selectedId && state.rules.length) state.selectedId = state.rules[0].id;
         render();
+
+        // Load icon cache manifest (non-blocking, best effort)
+        loadIconManifest().catch(() => {});
+
         toast(t("loaded", state.rules.length, (state.file || "editor.json")), "ok");
       }
 
@@ -2207,6 +3417,9 @@
           .catch((e) => toast(String(e.message || e), "bad"))
           .finally(() => refresh().catch((e) => toast(String(e.message || e), "bad")));
       }
+
+      // 初始化 JSON 侧边栏
+      initJsonSidebar();
     </script>
   </body>
 </html>
