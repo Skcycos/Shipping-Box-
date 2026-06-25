@@ -66,8 +66,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         List<ExchangeRule> rules = new ArrayList<>();
         List<String> currentErrors = new ArrayList<>();
 
-        // 首先加载外部配置目录中的规则（config/shipping_box/exchange_rules 或 KubeJS 对应目录）
-        loadConfigRules(rules, currentErrors);
+        // 加载外部配置目录中的规则（仅当 KubeJS 不存在时，KubeJS 的 kubejs/data/ 目录
+        // 会被 resourceManager 作为数据包自动扫描，无需额外加载，否则会导致规则加倍）
+        if (!net.neoforged.fml.ModList.get().isLoaded("kubejs")) {
+            loadConfigRules(rules, currentErrors);
+        }
 
         try {
             // 遍历所有匹配的资源配置文件（数据包）
