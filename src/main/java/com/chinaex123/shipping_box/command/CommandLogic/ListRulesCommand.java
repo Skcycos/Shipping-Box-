@@ -14,9 +14,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.List;
 
-/**
- * 列出兑换规则命令的执行器
- */
+/** 列出兑换规则命令的执行器 **/
 public class ListRulesCommand {
 
     private static final int RULES_PER_PAGE = 5;

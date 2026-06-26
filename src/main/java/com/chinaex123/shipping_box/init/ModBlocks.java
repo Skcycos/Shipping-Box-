@@ -17,9 +17,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Supplier;
 
 public class ModBlocks {
-    // 创建方块注册器实例
-    public static final DeferredRegister.Blocks BLOCK_REGISTER =
-            DeferredRegister.createBlocks(ShippingBox.MOD_ID);
+    public static final DeferredRegister.Blocks BLOCK_REGISTER = DeferredRegister.createBlocks(ShippingBox.MOD_ID);
 
 
     public static final DeferredBlock<Block> SHIPPING_BOX =

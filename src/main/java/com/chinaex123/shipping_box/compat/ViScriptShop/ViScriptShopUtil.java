@@ -2,6 +2,7 @@ package com.chinaex123.shipping_box.compat.ViScriptShop;
 
 import net.minecraft.server.level.ServerPlayer;
 
+/** ViScriptShop兼容工具类 **/
 public class ViScriptShopUtil {
     private static Class<?> viScriptShopClass = null;
     private static java.lang.reflect.Method getMoneyMethod = null;

@@ -131,9 +131,16 @@
   "command.shipping_box.rules.ecliptic_seasons_suffix": " (Ecliptic Seasons)",
   "command.shipping_box.web.starting": "Starting web editor on localhost and opening browser...",
   "command.shipping_box.web.started": "Web editor: %s (click to open)",
+  "command.shipping_box.web.not_player": "This command must be executed by a player.",
   "command.shipping_box.editor.cache.start": "Icon cache task started.",
   "command.shipping_box.editor.cache.running": "Icon cache is already running (%d/%d).",
   "command.shipping_box.editor.cache.force": "Force icon cache regeneration started.",
   "command.shipping_box.editor.cache.status": "Icon cache status: %s (%d/%d)",
-  "command.shipping_box.editor.cache.clear": "Icon cache cleared."
+  "command.shipping_box.editor.cache.clear": "Icon cache cleared.",
+  "command.shipping_box.editor.cache_icons.started": "Icon cache task started (or already running). Use /shipping_box editor cache_status to check.",
+  "command.shipping_box.editor.cache_icons.force_started": "Force icon cache regeneration started.",
+  "command.shipping_box.editor.cache_status": "Icon cache status: %s (%d/%d)",
+  "command.shipping_box.editor.cache_status.with_error": "Icon cache status: %s (%d/%d) error: %s",
+  "command.shipping_box.editor.cache_clear.success": "Icon cache cleared.",
+  "command.shipping_box.icon_cache.bossbar.title": "Caching icons... (%s / %s)"
 }

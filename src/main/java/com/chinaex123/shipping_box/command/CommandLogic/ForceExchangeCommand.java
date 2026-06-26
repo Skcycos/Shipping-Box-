@@ -11,14 +11,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-/**
- * 强制兑换命令
- */
+/** 强制兑换命令 **/
 public class ForceExchangeCommand {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ForceExchangeCommand.class);
 
     /**
      * 执行强制兑换命令
@@ -67,7 +62,6 @@ public class ForceExchangeCommand {
 
         } catch (Exception e) {
             context.getSource().sendFailure(Component.literal("Error executing command: " + e.getMessage()));
-            LOGGER.error("[Shipping Box] 执行强制兑换命令时出错：{}", e.getMessage());
             return 0;
         }
     }

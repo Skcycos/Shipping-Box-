@@ -2,7 +2,7 @@ package com.chinaex123.shipping_box.event.strategy;
 
 import com.chinaex123.shipping_box.event.ExchangeRule;
 
-/* 物品 + 动态定价*/
+/** 物品 + 动态定价 **/
 public class ExchangeStrategyFactory {
     public static ExchangeStrategy getStrategy(ExchangeRule rule) {
         ExchangeRule.OutputItem output = rule.getOutputItem();

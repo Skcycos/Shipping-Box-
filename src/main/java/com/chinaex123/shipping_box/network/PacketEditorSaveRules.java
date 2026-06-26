@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+/** 编辑器保存规则包 **/
 public record PacketEditorSaveRules(String requestId, String relativePath, String rulesJson) implements CustomPacketPayload {
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketEditorSaveRules.class);
 

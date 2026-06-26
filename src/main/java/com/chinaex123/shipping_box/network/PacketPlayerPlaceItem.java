@@ -11,13 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/**
- * 玩家放置物品的数据包记录类
- * 用于在网络上传输玩家在售货箱中放置物品的信息
- *
- * @param pos 方块位置
- * @param slot 槽位索引
- */
+/** 玩家放置物品的数据包记录类 **/
 public record PacketPlayerPlaceItem(BlockPos pos, int slot) implements CustomPacketPayload {
     public static final Type<PacketPlayerPlaceItem> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "player_place_item")

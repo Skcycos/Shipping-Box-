@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/* 虚拟货币 + 动态定价 */
+/** 虚拟货币 + 动态定价 **/
 public class CoinDynamicPricingStrategy implements ExchangeStrategy {
     @Override
     public void execute(ExchangeRule rule, int maxExchanges, Level level, UUID playerUUID, List<ItemStack> results, AtomicInteger totalVirtualCurrency) {

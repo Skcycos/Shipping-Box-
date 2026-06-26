@@ -8,6 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+/** 编辑器重新加载请求包 **/
 public record PacketEditorReloadRequest() implements CustomPacketPayload {
     public static final Type<PacketEditorReloadRequest> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_reload_request")

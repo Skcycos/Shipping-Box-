@@ -1,6 +1,6 @@
 package com.chinaex123.shipping_box.event;
 
-import com.chinaex123.shipping_box.config.ServerConfig;
+import com.chinaex123.shipping_box.config.CommonConfig;
 import net.minecraft.world.level.Level;
 
 /**
@@ -13,7 +13,7 @@ public class TimeScheduler {
 
         long dayTime = level.getDayTime();
         long timeOfDay = dayTime % 24000;
-        int configExchangeTime = ServerConfig.EXCHANGE_TIME.get();
+        int configExchangeTime = CommonConfig.EXCHANGE_TIME.get();
         // 设置一个合理的时间窗口（例如180 ticks = 9秒）
         int windowEnd = configExchangeTime + 180;
         

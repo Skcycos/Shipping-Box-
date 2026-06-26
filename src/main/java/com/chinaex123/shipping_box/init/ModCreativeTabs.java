@@ -11,8 +11,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Supplier;
 
 public class ModCreativeTabs {
-    public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TAB =
-            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ShippingBox.MOD_ID);
+    public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TAB = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ShippingBox.MOD_ID);
 
     public static final Supplier<CreativeModeTab> SHIPPING_BOX_TAB =
             CREATIVE_MODE_TAB.register("shipping_box_tab", () -> CreativeModeTab.builder()
@@ -35,7 +34,6 @@ public class ModCreativeTabs {
                     })
                     .build());
 
-    // 注册到NeoForge事件总线里
     public static void register(IEventBus eventBus) {
         CREATIVE_MODE_TAB.register(eventBus);
     }

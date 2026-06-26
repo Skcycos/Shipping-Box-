@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.tooltip;
+package com.chinaex123.client.tooltip;
 
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;

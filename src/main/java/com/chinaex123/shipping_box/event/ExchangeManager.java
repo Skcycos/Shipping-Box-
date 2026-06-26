@@ -2,7 +2,7 @@ package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.api.ShippingBoxAPI;
 import com.chinaex123.shipping_box.attribute.ModAttributes;
-import com.chinaex123.shipping_box.config.ServerConfig;
+import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategy;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategyFactory;
 import com.chinaex123.shipping_box.compat.EclipticSeasons.EclipticSeasonsUtil;
@@ -209,14 +209,14 @@ public class ExchangeManager {
                     PacketDistributor.sendToPlayer(player, new PacketShowSuccessMessage());
                     
                     // 只有启用特效时才发送特效数据包
-                    if (ServerConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
+                    if (CommonConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
                         PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(totalVirtualCurrency));
                     }
                 }
             }
 
             // 记录交易日志（如果启用）
-            if (ServerConfig.ENABLE_TRANSACTION_LOGGING.get()) {
+            if (CommonConfig.ENABLE_TRANSACTION_LOGGING.get()) {
                 String playerName = "Unknown";
                 if (boundPlayerUUID != null) {
                     ServerPlayer logPlayer = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);

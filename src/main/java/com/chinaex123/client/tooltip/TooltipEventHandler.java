@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.tooltip;
+package com.chinaex123.client.tooltip;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -10,13 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-/**
- * 工具提示事件处理器
- * 监听物品工具提示事件，添加兑换信息
- */
+/**工具提示事件处理器 **/
 @EventBusSubscriber
 public class TooltipEventHandler {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TooltipEventHandler.class);
 
     /**
      * 物品工具提示事件处理器
@@ -62,7 +58,6 @@ public class TooltipEventHandler {
             }
         } catch (Exception e) {
             // 静默处理异常，避免游戏崩溃
-            LOGGER.error("[Shipping Box]Tooltip处理程序出错: {}", e.getMessage());
         }
     }
 }

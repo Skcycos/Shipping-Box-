@@ -266,7 +266,6 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         }
 
         // ========== 第四阶段：更新兑换轮次和状态 ==========
-        
         // 先清空所有相关槽位的兑换状态（后续会根据实际情况重新设置）
         for (int slot : slotsWithItems) {
             slotIsExchanged.put(slot, false);

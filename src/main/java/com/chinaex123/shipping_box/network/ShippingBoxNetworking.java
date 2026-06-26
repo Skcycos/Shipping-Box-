@@ -7,10 +7,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
-/**
- * 售货箱网络通信管理类
- * 处理多人协作时的数据同步
- */
+/** 售货箱网络通信管理类 **/
 public class ShippingBoxNetworking {
 
     /**

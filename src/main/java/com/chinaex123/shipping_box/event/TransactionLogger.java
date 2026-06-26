@@ -1,6 +1,6 @@
 package com.chinaex123.shipping_box.event;
 
-import com.chinaex123.shipping_box.config.ServerConfig;
+import com.chinaex123.shipping_box.config.CommonConfig;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -18,10 +18,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/**
- * 时间调度器；
- * 检测游戏时间窗口并触发定时兑换逻辑
- */
+/** 交易日志记录器 **/
 public class TransactionLogger {
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionLogger.class.getName());
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -43,7 +40,7 @@ public class TransactionLogger {
     public static void logTransaction(String playerName, List<ItemStack> inputs, List<ItemStack> outputs, int virtualCurrency, Level level, ExchangeRule rule) {
         try {
             // 检查配置是否启用日志
-            if (!ServerConfig.ENABLE_TRANSACTION_LOGGING.get()) {
+            if (!CommonConfig.ENABLE_TRANSACTION_LOGGING.get()) {
                 return; // 日志已禁用，直接返回
             }
 

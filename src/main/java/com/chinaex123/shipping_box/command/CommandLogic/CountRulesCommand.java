@@ -9,9 +9,7 @@ import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
-/**
- * 统计兑换规则数量命令的执行器
- */
+/** 统计兑换规则数量命令的执行器 **/
 public class CountRulesCommand {
 
     /**

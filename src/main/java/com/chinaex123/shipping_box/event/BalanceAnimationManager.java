@@ -9,7 +9,7 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import java.util.*;
 
 /**
- * 虚拟货币余额动画管理器
+ * 虚拟货币余额动画管理器；
  * 专门处理ViScriptShop余额增加时的动画效果
  */
 @EventBusSubscriber

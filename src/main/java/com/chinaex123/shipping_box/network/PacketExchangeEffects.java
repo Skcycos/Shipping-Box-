@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box.network;
 
 import com.chinaex123.shipping_box.ShippingBox;
-import com.chinaex123.shipping_box.config.ServerConfig;
+import com.chinaex123.shipping_box.config.CommonConfig;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -12,6 +12,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+/** 兑换特效包 **/
 public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
     public static final Type<PacketExchangeEffects> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_effects")
@@ -39,7 +40,7 @@ public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
      */
     public static void handle(PacketExchangeEffects packet, IPayloadContext context) {
         // 检查配置是否启用特效
-        if (!ServerConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
+        if (!CommonConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
             return; // 特效已禁用，直接返回
         }
 

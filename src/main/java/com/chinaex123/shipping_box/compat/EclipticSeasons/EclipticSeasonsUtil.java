@@ -10,10 +10,11 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.List;
 
+/** 节气兼容工具类 **/
 public class EclipticSeasonsUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(EclipticSeasonsUtil.class);
 
-    // 静态常量类引用（可能为 null）
+    // 静态常量类引用
     static final Class<?> eclipticUtilClass;
     static final Class<?> solarTermEnumClass;
     static final Class<?> seasonClass;
@@ -131,11 +132,8 @@ public class EclipticSeasonsUtil {
             }
             tempGetNowSolarDayHandle = solarDayHandle;
 
-            LOGGER.info("[Shipping Box] 成功加载节气模组联动！");
-
         } catch (Exception e) {
             // 所有反射初始化失败，设置为 null
-            LOGGER.info("[Shipping Box] 节气模组未安装，联动功能已禁用");
         }
 
         // 将临时变量赋值给 final 字段

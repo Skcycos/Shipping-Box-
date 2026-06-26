@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/* 物品 + 权重随机*/
+/** 物品 + 权重随机 **/
 public class ItemWeightedStrategy implements ExchangeStrategy {
     @Override
     public void execute(ExchangeRule rule, int maxExchanges, Level level, UUID playerUUID, List<ItemStack> results, AtomicInteger totalVirtualCurrency) {

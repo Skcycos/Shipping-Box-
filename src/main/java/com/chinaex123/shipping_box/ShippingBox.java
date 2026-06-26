@@ -4,12 +4,12 @@ import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.init.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
 import com.chinaex123.shipping_box.init.ModBlockEntities;
-import com.chinaex123.shipping_box.config.ServerConfig;
+import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.init.ModCreativeTabs;
 import com.chinaex123.shipping_box.init.ModItems;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
-import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
+import com.chinaex123.client.tooltip.TooltipEventHandler;
 import com.chinaex123.shipping_box.web.WebEditorLocalServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.config.ModConfig;
@@ -41,7 +41,7 @@ public class ShippingBox {
         modEventBus.addListener(this::registerCapabilities); // 能力注册事件
         modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
         // 注册配置文件
-        modContainer.registerConfig(ModConfig.Type.COMMON, ServerConfig.SPEC);
+        modContainer.registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
 
         ModCreativeTabs.register(modEventBus); // 注册自定义创造模式物品栏
         ModBlocks.register(modEventBus); // 注册方块

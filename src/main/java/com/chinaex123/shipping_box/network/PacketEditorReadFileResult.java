@@ -9,6 +9,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+/** 编辑器读取文件结果包 **/
 public record PacketEditorReadFileResult(String requestId, boolean ok, String content, String error) implements CustomPacketPayload {
     public static final Type<PacketEditorReadFileResult> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_read_file_result")

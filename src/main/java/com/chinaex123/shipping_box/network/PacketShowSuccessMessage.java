@@ -8,10 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/**
- * 显示成功消息的数据包记录类
- * 用于在网络上传输兑换成功的通知消息
- */
+/** 显示成功消息的数据包记录类 **/
 public record PacketShowSuccessMessage() implements CustomPacketPayload {
     public static final Type<PacketShowSuccessMessage> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "show_success_message")

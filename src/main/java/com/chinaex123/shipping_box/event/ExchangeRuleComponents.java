@@ -14,20 +14,14 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.core.Holder;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.core.RegistryAccess;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * 组件匹配器；
- * 解析和验证物品组件（如药水、附魔、区间值等）的匹配规则
- */
+/** 组件匹配器 **/
 public class ExchangeRuleComponents {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeRuleComponents.class.getName());
 
     // 缓存附魔注册表，避免重复查找
     private static Registry<Enchantment> enchantmentRegistry = null;
@@ -51,7 +45,7 @@ public class ExchangeRuleComponents {
                 return enchantmentRegistry;
             }
         } catch (Exception e) {
-            LOGGER.warn("[Shipping Box] 无法从服务器获取附魔注册表：{}", e.getMessage());
+            // 忽略异常
         }
         
         return null;
@@ -466,7 +460,6 @@ public class ExchangeRuleComponents {
             // 获取组件类型
             DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
             if (componentType == null) {
-                // 组件类型不存在，宽松匹配
                 return true;
             }
 
@@ -526,7 +519,7 @@ public class ExchangeRuleComponents {
      * @return 标准化的ResourceLocation对象，无效时返回null
      */
     public static ResourceLocation normalizeComponentId(String componentName) {
-        // 标准化组件ID（添加minecraft:前缀如果需要）
+        // 标准化组件ID
         if (componentName.contains(":")) {
             return ResourceLocation.tryParse(componentName);
         }
@@ -780,7 +773,7 @@ public class ExchangeRuleComponents {
             stack.set(DataComponents.STORED_ENCHANTMENTS, finalEnchants);
 
         } catch (Exception e) {
-            LOGGER.error("[Shipping Box] 应用存储附魔失败：{}", e.getMessage());
+            // 应用失败时静默处理
         }
     }
 

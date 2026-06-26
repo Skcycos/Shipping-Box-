@@ -12,8 +12,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Supplier;
 
 public class ModBlockEntities {
-    public static DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
-            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, ShippingBox.MOD_ID);
+    public static DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, ShippingBox.MOD_ID);
 
     public static final Supplier<BlockEntityType<ShippingBoxBlockEntity>> SHIPPING_BOX =
             BLOCK_ENTITY_TYPES.register("shipping_box",

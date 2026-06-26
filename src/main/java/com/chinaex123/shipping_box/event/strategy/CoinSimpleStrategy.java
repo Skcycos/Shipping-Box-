@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/* 普通虚拟货币*/
+/** 普通虚拟货币 **/
 public class CoinSimpleStrategy implements ExchangeStrategy {
     @Override
     public void execute(ExchangeRule rule, int maxExchanges, Level level, UUID playerUUID, List<ItemStack> results, AtomicInteger totalVirtualCurrency) {

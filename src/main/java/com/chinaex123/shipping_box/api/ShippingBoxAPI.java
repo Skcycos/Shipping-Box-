@@ -12,10 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-/**
- * 售货箱通用 API
- * 为其他模组提供访问和操作售货箱（包括普通和自动）的接口
- */
+/** 售货箱通用 API **/
 public class ShippingBoxAPI {
     
     // 存储兑换事件处理器列表

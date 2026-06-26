@@ -15,13 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-/**
- * 配方同步数据包记录类
- * 用于将服务端的兑换配方同步到客户端
- * 使用GZIP压缩传输以突破字符串长度限制
- *
- * @param rulesJson 配方规则列表的JSON字符串表示
- */
+/** 配方同步数据包记录类 **/
 public record PacketSyncRecipes(String rulesJson) implements CustomPacketPayload {
     public static final Type<PacketSyncRecipes> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "sync_recipes")

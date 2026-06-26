@@ -12,7 +12,6 @@ import net.minecraft.commands.Commands;
 public class ModCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // 注册主命令
         dispatcher.register(Commands.literal("shipping_box")
                 .requires(source -> source.hasPermission(2))
 

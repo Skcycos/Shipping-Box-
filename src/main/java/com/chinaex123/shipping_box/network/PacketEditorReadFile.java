@@ -11,15 +11,13 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/** 编辑器读取文件包 **/
 public record PacketEditorReadFile(String requestId, String relativePath) implements CustomPacketPayload {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PacketEditorReadFile.class);
 
     public static final Type<PacketEditorReadFile> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_read_file")
@@ -54,7 +52,6 @@ public record PacketEditorReadFile(String requestId, String relativePath) implem
                 if (relPath.isAbsolute() || !target.startsWith(base)) {
                     ok = false;
                     error = "Invalid path";
-                    LOGGER.warn("Web editor read blocked by path validation. base={}, rel={}", base, rel);
                 } else if (Files.exists(target) && Files.isRegularFile(target)) {
                     content = Files.readString(target, StandardCharsets.UTF_8);
                 }

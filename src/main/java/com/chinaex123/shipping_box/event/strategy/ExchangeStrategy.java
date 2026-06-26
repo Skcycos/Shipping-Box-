@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/** 兑换策略接口 **/
 public interface ExchangeStrategy {
     /**
      * 执行兑换策略

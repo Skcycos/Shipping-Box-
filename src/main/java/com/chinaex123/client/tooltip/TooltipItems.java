@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.tooltip;
+package com.chinaex123.client.tooltip;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
@@ -10,10 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Supplier;
 
-/**
- * 提示物品基类
- * 为物品添加自定义tooltip显示
- */
+/** 提示物品基类 **/
 public class TooltipItems extends Item {
     private final Supplier<List<Component>> tooltipSupplier;
 

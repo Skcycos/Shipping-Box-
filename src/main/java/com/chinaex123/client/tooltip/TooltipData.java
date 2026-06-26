@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.tooltip;
+package com.chinaex123.client.tooltip;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -15,7 +15,7 @@ public class TooltipData {
     private final ItemStack outputStack;
     private final int inputCount;
     private final int outputCount;
-    private final List<Component> additionalLines; // 新增：额外的行组件
+    private final List<Component> additionalLines;
 
     public TooltipData(List<Component> exchangeInfo, ItemStack inputStack, ItemStack outputStack, int inputCount, int outputCount) {
         this(exchangeInfo, inputStack, outputStack, inputCount, outputCount, null);

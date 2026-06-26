@@ -97,6 +97,13 @@
         ]
       }
       ```
+ - **Visual Editing System**
+ - Execute `/shipping_box editor cache_icons` and wait for the icon cache to finish building. 
+ - After the cache is ready, execute `/shipping_box web` to launch the visual editor in your browser. 
+ - If any mods are added, removed, or updated, you will need to re-run the cache command to regenerate the icon cache. 
+ - All cached assets are saved under the `config/shipping_box` directory.
+ - Use the /shipping_box editor cache_clear command to clear the icon cache.
+
 ### Item Attribute System
 
 #### Selling Price Boost Attribute
@@ -162,13 +169,14 @@ Used for numerical range matching (such as durability, fish length, etc.):
 }
 ```
 
-[MOD] Tide - The weight and length of the fish
+[MOD] Tide - The length of the fish
+  **If Fintastic Supreme is installed, the weight component can be used.**
 - Support input and output
 ```json
 {
   "components": {
     "tide:fish_length": "[40.0,50.0)",
-    "tide:catch_timestamp": "[5000,6000]"
+    "fintastic_supreme:fish_weight": "[500,1000]"
   }
 }
 ```
@@ -178,7 +186,7 @@ Used for numerical range matching (such as durability, fish length, etc.):
 ```json
 {
   "components": {
-    "kaleidoscope_tavern:brew_level": 7
+    "kaleidoscope_tavern:brew_level": 6
   }
 }
 ```
@@ -187,6 +195,9 @@ Used for numerical range matching (such as durability, fish length, etc.):
 - `shipping_box force_exchange`: Allows the player to point at a shipping box and immediately trigger its shipping logic, ignoring time restrictions.
 - `shipping_box rules count`: Counts and displays the number of rules by category
 - `shipping_box rules list [page]`: View all exchange rules page by page
+- `shipping_box editor cache_clear`: Clears all cached icons.
+- `shipping_box editor cache_icons`: Builds the icon cache for all items and blocks.
+- `shipping_box editor cache_status`: Shows the current progress of the cache generation.
 
 
 ## V. Integrated Mod
@@ -386,6 +397,13 @@ Used for numerical range matching (such as durability, fish length, etc.):
         ]
       }
       ```
+- **可视化编写系统**
+  - 使用 /shipping_box editor cache_icons 命令等待图标缓存完成； 
+  - 缓存完成后使用 /shipping_box web 命令打开浏览器使用可视化编写； 
+  - 当模组改动(包括删除/加入和更新mod)时，需要重新输入命令等待图标缓存； 
+  - 缓存的内容在 config/shipping_box 文件夹内；
+  - 输入 /shipping_box editor cache_clear 命令可以清除图标缓存
+
 ### 物品属性系统
 
 #### 售价加成属性
@@ -451,13 +469,14 @@ Used for numerical range matching (such as durability, fish length, etc.):
 }
 ```
 
-[MOD]潮汐 - 鱼的重量和长度
+[MOD]潮汐 - 鱼的长度
+  **如果安装Fintastic Supreme，则可以使用重量组件**
 - 支持输入输出
 ```json
 {
   "components": {
     "tide:fish_length": "[40.0,50.0)",
-    "tide:catch_timestamp": "[5000,6000]"
+    "fintastic_supreme:fish_weight": "[500,1000]"
   }
 }
 ```
@@ -467,7 +486,7 @@ Used for numerical range matching (such as durability, fish length, etc.):
 ```json
 {
   "components": {
-    "kaleidoscope_tavern:brew_level": 7
+    "kaleidoscope_tavern:brew_level": 6
   }
 }
 ```
@@ -476,6 +495,9 @@ Used for numerical range matching (such as durability, fish length, etc.):
 - shipping_box force_exchange：允许玩家指向售货箱并立即触发其出货逻辑，忽略时间限制。
 - shipping_box rules count：统计并显示规则数量分类
 - shipping_box rules list [page]：分页查看所有兑换规则
+- shipping_box editor cache_clear：用于清除图标缓存
+- shipping_box editor cache_icons：用于图标缓存
+- shipping_box editor cache_status：用于查看图标缓存进度
 
 ## 五、联动模组
 
