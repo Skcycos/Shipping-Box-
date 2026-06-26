@@ -14,6 +14,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
@@ -22,7 +23,10 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -62,8 +66,14 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         List<ExchangeRule> rules = new ArrayList<>();
         List<String> currentErrors = new ArrayList<>();
 
+        // 加载外部配置目录中的规则（仅当 KubeJS 不存在时，KubeJS 的 kubejs/data/ 目录
+        // 会被 resourceManager 作为数据包自动扫描，无需额外加载，否则会导致规则加倍）
+        if (!net.neoforged.fml.ModList.get().isLoaded("kubejs")) {
+            loadConfigRules(rules, currentErrors);
+        }
+
         try {
-            // 遍历所有匹配的资源配置文件
+            // 遍历所有匹配的资源配置文件（数据包）
             var resources = resourceManager.listResources(CONFIG_FOLDER, path -> path.getPath().endsWith(".json"));
 
             for (ResourceLocation resourceLocation : resources.keySet()) {
@@ -1613,6 +1623,89 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         }
 
         return weightedItem;
+    }
+
+    // ==================== 外部配置目录规则加载支持（网页编辑器使用） ====================
+
+    private void loadConfigRules(List<ExchangeRule> rules, List<String> errors) {
+        try {
+            Path dir = getExternalRulesDir();
+            if (!Files.exists(dir) || !Files.isDirectory(dir)) {
+                return;
+            }
+
+            try (var stream = Files.walk(dir)) {
+                List<Path> files = stream
+                        .filter(p -> Files.isRegularFile(p) && p.getFileName().toString().endsWith(".json"))
+                        .sorted(Comparator.comparing(Path::toString))
+                        .toList();
+
+                for (Path file : files) {
+                    try {
+                        String raw = Files.readString(file, StandardCharsets.UTF_8);
+                        JsonObject json = JsonParser.parseString(raw).getAsJsonObject();
+                        loadRulesFromJson(json, file.toString(), rules, errors);
+                    } catch (JsonParseException e) {
+                        errors.add(String.format("error.shipping_box.json_parse_error|%s|%s",
+                                file.toString(), e.getMessage()));
+                    } catch (Exception e) {
+                        errors.add(String.format("error.shipping_box.resource_load_error|%s|%s",
+                                file.toString(), e.getMessage()));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            errors.add(String.format("error.shipping_box.resource_load_error|%s|%s",
+                    getExternalRulesDir().toString(), e.getMessage()));
+        }
+    }
+
+    private Path getExternalRulesDir() {
+        // 如果 KubeJS 存在，优先从 KubeJS 数据目录读取（与保存逻辑保持一致）
+        if (net.neoforged.fml.ModList.get().isLoaded("kubejs")) {
+            return FMLPaths.GAMEDIR.get().resolve("kubejs/data/shipping_box/exchange_rules");
+        }
+        return FMLPaths.CONFIGDIR.get().resolve("shipping_box/exchange_rules");
+    }
+
+    /**
+     * 从 JSON 对象加载规则（供外部目录加载和数据包共用）
+     */
+    private void loadRulesFromJson(JsonObject json, String source, List<ExchangeRule> rules, List<String> errors) {
+        if (json.has("rules") && json.get("rules").isJsonArray()) {
+            JsonArray rulesArray = json.getAsJsonArray("rules");
+
+            int ruleIndex = 0;
+            for (JsonElement element : rulesArray) {
+                try {
+                    JsonObject ruleObj = element.getAsJsonObject();
+
+                    ExchangeRule rule = parseRule(ruleObj);
+
+                    if (validateRule(rule)) {
+                        rules.add(rule);
+                    } else {
+                        String validationError = getValidationErrorDetails(rule);
+                        if (validationError != null && !validationError.isEmpty()) {
+                            errors.add(String.format("error.shipping_box.rule_validation_failed|%d|%s|%s",
+                                    ruleIndex + 1, source, validationError));
+                        } else {
+                            errors.add(String.format("error.shipping_box.rule_validation_failed|%d|%s|%s",
+                                    ruleIndex + 1, source, "unknown_error"));
+                        }
+                    }
+                } catch (JsonParseException e) {
+                    errors.add(String.format("error.shipping_box.json_parse_error|%s|%s",
+                            source, e.getMessage()));
+                } catch (Exception e) {
+                    errors.add(String.format("error.shipping_box.rule_parse_error|%s|%s",
+                            source, e.getMessage()));
+                }
+                ruleIndex++;
+            }
+        } else {
+            errors.add(String.format("error.shipping_box.missing_rules_array|%s", source));
+        }
     }
 
     /**

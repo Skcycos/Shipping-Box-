@@ -1,0 +1,3928 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title></title>
+    <style>
+      :root {
+        --bg: #0b0c0f;
+        --bg-g1: rgba(10, 132, 255, 0.22);
+        --bg-g2: rgba(48, 209, 88, 0.12);
+        --bg-g3: rgba(255, 69, 58, 0.10);
+
+        --panel: rgba(255, 255, 255, 0.06);
+        --panel-2: rgba(255, 255, 255, 0.08);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.62);
+        --muted-2: rgba(255, 255, 255, 0.46);
+        --accent: #0a84ff;
+        --danger: #ff453a;
+        --ok: #30d158;
+        --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        --topbar-bg1: rgba(255,255,255,0.08);
+        --topbar-bg2: rgba(255,255,255,0.05);
+        --hover: rgba(255, 255, 255, 0.10);
+        --item-bg: rgba(255, 255, 255, 0.04);
+        --item-bg-hover: rgba(255, 255, 255, 0.07);
+        --badge-bg: rgba(255,255,255,0.06);
+        --placeholder: rgba(255,255,255,0.35);
+        --input-bg: rgba(255, 255, 255, 0.06);
+        --chip-bg: rgba(255,255,255,0.06);
+        --chip-border: rgba(255,255,255,0.14);
+        --icon-bg: rgba(255, 255, 255, 0.06);
+        --icon-border: rgba(255,255,255,0.14);
+        --sep: rgba(255,255,255,0.10);
+        --scrollbar-thumb: rgba(255,255,255,0.12);
+        --toast-bg: rgba(20, 20, 24, 0.88);
+        --toast-text: rgba(255,255,255,0.9);
+        --toast-border: rgba(255,255,255,0.14);
+      }
+
+      :root[data-theme="light"] {
+        --bg: #f5f6f8;
+        --bg-g1: rgba(10, 132, 255, 0.14);
+        --bg-g2: rgba(48, 209, 88, 0.10);
+        --bg-g3: rgba(255, 69, 58, 0.08);
+
+        --panel: rgba(255, 255, 255, 0.56);
+        --panel-2: rgba(255, 255, 255, 0.66);
+        --border: rgba(0, 0, 0, 0.10);
+        --text: rgba(0, 0, 0, 0.88);
+        --muted: rgba(0, 0, 0, 0.60);
+        --muted-2: rgba(0, 0, 0, 0.44);
+        --accent: #0a84ff;
+        --danger: #d70015;
+        --ok: #1f8a3b;
+        --shadow: 0 18px 55px rgba(0, 0, 0, 0.12);
+        --topbar-bg1: rgba(255,255,255,0.74);
+        --topbar-bg2: rgba(255,255,255,0.56);
+        --hover: rgba(0, 0, 0, 0.06);
+        --item-bg: rgba(255, 255, 255, 0.54);
+        --item-bg-hover: rgba(255, 255, 255, 0.70);
+        --badge-bg: rgba(255,255,255,0.56);
+        --placeholder: rgba(0,0,0,0.35);
+        --input-bg: rgba(255, 255, 255, 0.74);
+        --chip-bg: rgba(255,255,255,0.60);
+        --chip-border: rgba(0,0,0,0.10);
+        --icon-bg: rgba(255, 255, 255, 0.70);
+        --icon-border: rgba(0,0,0,0.10);
+        --sep: rgba(0,0,0,0.08);
+        --scrollbar-thumb: rgba(0,0,0,0.16);
+        --toast-bg: rgba(255, 255, 255, 0.78);
+        --toast-text: rgba(0,0,0,0.86);
+        --toast-border: rgba(0,0,0,0.10);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { min-height: 100vh; }
+      body {
+        margin: 0;
+        font-family: var(--font);
+        color: var(--text);
+        background:
+          radial-gradient(1200px 600px at 20% -10%, var(--bg-g1), transparent 60%),
+          radial-gradient(900px 700px at 100% 0%, var(--bg-g2), transparent 55%),
+          radial-gradient(700px 600px at 0% 100%, var(--bg-g3), transparent 60%),
+          var(--bg);
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        transition: background 0.3s ease, color 0.3s ease;
+      }
+      .app {
+        position: relative;
+        z-index: 1;
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 28px 18px 32px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, var(--topbar-bg1), var(--topbar-bg2));
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+        transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 220px;
+      }
+      .brand-title {
+        font-size: 15px;
+        letter-spacing: 0.2px;
+        font-weight: 650;
+      }
+      .brand-sub {
+        font-size: 12px;
+        color: var(--muted);
+        transition: color 0.3s ease;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .file {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        padding: 9px 12px;
+        border-radius: 999px;
+        font-size: 12.5px;
+        outline: none;
+        width: 260px;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+      }
+      .file::placeholder { color: var(--placeholder); }
+      .btn {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        padding: 9px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 12.5px;
+        line-height: 1;
+        transition: transform 120ms ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        user-select: none;
+      }
+      .btn.icon {
+        width: 38px;
+        padding: 9px 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .btn:hover {
+        background: var(--hover);
+        transform: translateY(-1px);
+      }
+      @keyframes btnPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.5); }
+        50% { box-shadow: 0 0 0 8px rgba(48, 209, 88, 0); }
+      }
+      .btn.success-pulse {
+        animation: btnPulse 0.8s ease;
+      }
+      .btn {
+        transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+      }
+      .btn:active {
+        transform: scale(0.94);
+      }
+      .btn.primary {
+        border-color: rgba(10, 132, 255, 0.55);
+        background: rgba(10, 132, 255, 0.18);
+      }
+      .btn.danger {
+        border-color: rgba(255, 69, 58, 0.55);
+        background: rgba(255, 69, 58, 0.14);
+      }
+      .btn.ghost {
+        background: transparent;
+      }
+      .main {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .panel {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+        overflow: hidden;
+        transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+      .panel-header {
+        padding: 14px 14px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        transition: border-color 0.3s ease;
+      }
+      .panel-title {
+        font-size: 13px;
+        font-weight: 650;
+        color: var(--text);
+      }
+      .panel-body {
+        padding: 12px 14px 14px;
+      }
+      .search {
+        width: 100%;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 999px;
+        font-size: 12.5px;
+        outline: none;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+      }
+      .search::placeholder { color: var(--placeholder); }
+      .list {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-height: calc(100vh - 220px);
+        overflow: auto;
+        padding-right: 6px;
+      }
+      .list::-webkit-scrollbar { width: 10px; }
+      .list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; transition: background 0.3s ease; }
+      .item {
+        position: relative;
+        overflow: hidden;
+        padding: 14px 14px;
+        border: 1px solid var(--border);
+        background: var(--item-bg);
+        border-radius: var(--radius-sm);
+        cursor: grab;
+        transition: background 0.2s ease,
+                    border-color 0.2s ease,
+                    transform 0.15s ease,
+                    box-shadow 0.2s ease,
+                    opacity 0.2s ease;
+        user-select: none;
+      }
+      .item-icon-bg {
+        position: absolute;
+        right: -16px;
+        top: -16px;
+        height: calc(100% + 32px);
+        width: auto;
+        opacity: 0.50;
+        image-rendering: pixelated;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .item:hover {
+        background: var(--item-bg-hover);
+        border-color: var(--border);
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      }
+      .item:hover .item-icon-bg {
+        opacity: 0.65 !important;
+      }
+      .item:active {
+        transform: scale(0.98);
+      }
+      .item.active { 
+        background: rgba(10, 132, 255, 0.16); 
+        border-color: rgba(10, 132, 255, 0.42); 
+        box-shadow: 0 0 0 1px rgba(10, 132, 255, 0.3);
+      }
+      .item.drag-over { 
+        background: rgba(10, 132, 255, 0.18); 
+        border-color: rgba(10, 132, 255, 0.6); 
+        transform: scale(1.01);
+        box-shadow: 0 4px 12px rgba(10, 132, 255, 0.2);
+      }
+      .item.entering {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      .item.removing {
+        opacity: 0;
+        transform: scale(0.9);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        pointer-events: none;
+      }
+      .item.dragging {
+        opacity: 0.6;
+        transform: scale(0.97);
+        cursor: grabbing;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+      }
+
+      /* 拖动排序后的列表动画 */
+      .list.just-reordered .item {
+        animation: reorderSettle 0.45s cubic-bezier(0.23, 1.0, 0.32, 1);
+      }
+
+      @keyframes reorderSettle {
+        0% { transform: scale(0.92); opacity: 0.7; }
+        40% { transform: scale(1.03); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      .item-top {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .item-title {
+        flex: 1;
+        min-width: 0;
+        font-weight: 650;
+        font-size: 12.5px;
+        letter-spacing: 0.15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .badge {
+        flex-shrink: 0;
+        font-size: 11px;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        background: var(--badge-bg);
+        padding: 4px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+      }
+      .item-sub {
+        position: relative;
+        z-index: 1;
+        margin-top: 6px;
+        font-size: 11.5px;
+        color: var(--muted);
+        line-height: 1.35;
+        transition: color 0.3s ease;
+      }
+
+      /* 规则匹配优先级徽章优化 */
+      .match-hint {
+        margin-left: 6px;
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--badge-bg);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        vertical-align: middle;
+      }
+      .match-hint.high { background: rgba(48, 209, 88, 0.15); border-color: #30d158; color: #30d158; }
+      .match-hint.medium { background: rgba(10, 132, 255, 0.12); border-color: #0a84ff; color: #0a84ff; }
+      .match-hint.low { background: rgba(255, 69, 58, 0.1); border-color: #ff453a; color: #ff453a; }
+
+      .badge.match-high { background: rgba(48, 209, 88, 0.18); border-color: #30d158; color: #30d158; }
+      .badge.match-medium { background: rgba(10, 132, 255, 0.15); border-color: #0a84ff; color: #0a84ff; }
+      .badge.match-low { background: rgba(255, 69, 58, 0.12); border-color: #ff453a; color: #ff453a; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+      }
+      .field {
+        grid-column: span 12;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .field.half { grid-column: span 6; }
+      .field.third { grid-column: span 4; }
+      .label {
+        font-size: 12px;
+        color: var(--muted);
+        transition: color 0.3s ease;
+      }
+      .input, .select, .textarea {
+        border: 1px solid var(--border);
+        background: var(--input-bg);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        outline: none;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+      }
+      .input-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .input-row .input { flex: 1; }
+      .iconbox {
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        border: 1px solid var(--icon-border);
+        background: var(--icon-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex: 0 0 24px;
+        transition: background 0.3s ease, border-color 0.3s ease;
+      }
+      .iconbox img {
+        width: 24px;
+        height: 24px;
+        display: block;
+        image-rendering: pixelated;
+      }
+      .textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
+      .help {
+        font-size: 11.5px;
+        color: var(--muted-2);
+        transition: color 0.3s ease;
+      }
+      .sep {
+        height: 1px;
+        background: var(--sep);
+        margin: 12px 0;
+        transition: background 0.3s ease;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .mini {
+        font-size: 11.5px;
+        color: var(--muted);
+        transition: color 0.3s ease;
+      }
+      .chip {
+        border: 1px solid var(--chip-border);
+        background: var(--chip-bg);
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+      }
+      .chip.active {
+        border-color: rgba(10, 132, 255, 0.55);
+        background: rgba(10, 132, 255, 0.18);
+      }
+      @keyframes toastIn {
+        0% { transform: translateY(50px); opacity: 0; }
+        60% { transform: translateY(-6px); opacity: 1; }
+        80% { transform: translateY(3px); }
+        100% { transform: translateY(0); opacity: 1; }
+      }
+      @keyframes toastOut {
+        0% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(20px); opacity: 0; }
+      }
+      .toast {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--toast-border);
+        background: var(--toast-bg);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+        font-size: 12.5px;
+        color: var(--toast-text);
+        max-width: 360px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(50px);
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        z-index: 10002;
+      }
+      .toast.show {
+        animation: toastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        pointer-events: auto;
+      }
+      .toast.hide {
+        animation: toastOut 0.3s ease forwards;
+      }
+      .toast.ok { border-color: rgba(48,209,88,0.40); }
+      .toast.bad { border-color: rgba(255,69,58,0.45); }
+      @media (max-width: 980px) {
+        .main { grid-template-columns: 1fr; }
+        .list { max-height: 280px; }
+      }
+
+      /* JSON Sidebar */
+      .json-sidebar-toggle {
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+        padding: 14px 7px;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #a0a0a0;
+        cursor: pointer;
+        z-index: 9999;
+        user-select: none;
+        transition: opacity 0.3s ease, background 0.2s ease, color 0.2s ease, padding 0.2s ease;
+        box-shadow: -2px 0 8px rgba(0,0,0,0.3);
+      }
+      .json-sidebar-toggle:hover {
+        background: #1a1d26;
+        color: #fff;
+        padding-right: 10px;
+      }
+      .json-sidebar {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 420px;
+        max-width: 45vw;
+        background: #0f1117;
+        border-left: 1px solid var(--border);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.6);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        transform: translateX(100%);
+        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .json-sidebar.open { transform: translateX(0); }
+      .json-sidebar-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #0b0d14;
+        flex-shrink: 0;
+      }
+      .json-sidebar-header .title {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text);
+      }
+      .json-sidebar-header .actions {
+        display: flex;
+        gap: 6px;
+      }
+      .json-sidebar-header button {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .json-sidebar-header button:hover {
+        background: var(--panel-2);
+        color: var(--text);
+      }
+      .json-sidebar-body {
+        flex: 1;
+        overflow: auto;
+        padding: 12px 16px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        background: #0f1117;
+      }
+      .json-sidebar-body pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      /* Basic JSON syntax highlight */
+      .json-key { color: #9cdcfe; }
+      .json-string { color: #ce9178; }
+      .json-number { color: #b5cea8; }
+      .json-boolean { color: #569cd6; font-weight: 500; }
+      .json-bracket { color: #858585; }
+
+      /* ===== 动态物品贴图背景 ===== */
+      .bg-particles {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .bg-particle {
+        position: absolute;
+        filter: blur(4px) brightness(1.0);
+        transition: opacity 0.8s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-particles" id="bgParticles"></div>
+    <div class="app">
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-title" id="brandTitle"></div>
+          <div class="brand-sub" id="subTitle"></div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost icon" id="btnTheme"></button>
+          <button class="btn ghost icon" id="btnBgAnim" title="切换动态背景"></button>
+          <button class="btn ghost" id="btnLang"></button>
+          <input class="file" id="filePath" placeholder="" />
+          <button class="btn" id="btnOpenFile"></button>
+          <button class="btn ghost" id="btnReloadFromGame"></button>
+          <button class="btn" id="btnRefresh"></button>
+          <button class="btn" id="btnNew"></button>
+          <button class="btn" id="btnDuplicate"></button>
+          <button class="btn danger" id="btnDelete"></button>
+          <button class="btn primary" id="btnSave"></button>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title" id="rulesPanelTitle"></div>
+            <div class="mini" id="ruleCount">0</div>
+          </div>
+          <div class="panel-body">
+            <input class="search" id="search" placeholder="" />
+            <div class="list" id="list"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title" id="editorTitle"></div>
+            <div class="mini" id="editorMeta"></div>
+          </div>
+          <div class="panel-body" id="editor"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JSON Sidebar -->
+    <div id="jsonSidebarToggle" class="json-sidebar-toggle" title="预览完整 JSON">JSON 预览</div>
+
+    <div id="jsonSidebar" class="json-sidebar">
+      <div class="json-sidebar-header">
+        <div class="title">完整 JSON 预览 (可直接复制保存)</div>
+        <div class="actions">
+          <button id="jsonRefreshBtn">刷新</button>
+          <button id="jsonCopyBtn">复制</button>
+          <button id="jsonCloseBtn">关闭</button>
+        </div>
+      </div>
+      <div class="json-sidebar-body">
+        <pre><code id="jsonPreviewCode" style="color:#ddd;"></code></pre>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const token = new URLSearchParams(location.search).get("token") || "";
+      const initialFile = new URLSearchParams(location.search).get("file") || "editor.json";
+      const $ = (id) => document.getElementById(id);
+
+      // ===== JSON Sidebar Logic =====
+      function highlightJSON(jsonStr) {
+        // Escape HTML
+        let str = jsonStr
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        // Keys ( "key": )
+        str = str.replace(/("([^"\\]|\\.)*"\s*:)/g, '<span class="json-key">$1</span>');
+
+        // Strings
+        str = str.replace(/("(?:[^"\\]|\\.)*")/g, (m, p1) => {
+          if (p1.endsWith('":') || p1.endsWith('": ')) return p1; // already handled as key
+          return '<span class="json-string">' + p1 + '</span>';
+        });
+
+        // Numbers
+        str = str.replace(/\b(-?\d+(\.\d+)?([eE][+-]?\d+)?)\b/g, '<span class="json-number">$1</span>');
+
+        // Booleans / null
+        str = str.replace(/\b(true|false|null)\b/g, '<span class="json-boolean">$1</span>');
+
+        // Brackets (optional)
+        str = str.replace(/([{}\[\]])/g, '<span class="json-bracket">$1</span>');
+
+        return str;
+      }
+
+      function getFullJson() {
+        try {
+          if (typeof toJsonRule !== 'function') {
+            return { rules: state.rules };
+          }
+          return {
+            rules: (state.rules || []).map(r => toJsonRule(r))
+          };
+        } catch (e) {
+          return { error: "序列化失败: " + e.message, rules: state.rules };
+        }
+      }
+
+      function updateJsonPreview() {
+        const codeEl = $("jsonPreviewCode");
+        if (!codeEl) return;
+
+        const full = getFullJson();
+        const pretty = JSON.stringify(full, null, 2);
+        codeEl.innerHTML = highlightJSON(pretty);
+      }
+
+      function toggleJsonSidebar(forceOpen) {
+        const sidebar = $("jsonSidebar");
+        const toggle = $("jsonSidebarToggle");
+        if (!sidebar) return;
+
+        const isOpen = sidebar.classList.contains("open");
+
+        if (forceOpen === true || (!isOpen && forceOpen !== false)) {
+          sidebar.classList.add("open");
+          if (toggle) toggle.style.opacity = "0.6";
+          // 打开时立即刷新一次
+          setTimeout(updateJsonPreview, 10);
+        } else {
+          sidebar.classList.remove("open");
+          if (toggle) toggle.style.opacity = "1";
+        }
+      }
+
+      function initJsonSidebar() {
+        const toggle = $("jsonSidebarToggle");
+        const sidebar = $("jsonSidebar");
+        const closeBtn = $("jsonCloseBtn");
+        const refreshBtn = $("jsonRefreshBtn");
+        const copyBtn = $("jsonCopyBtn");
+
+        if (toggle) {
+          toggle.onclick = () => toggleJsonSidebar();
+        }
+
+        if (closeBtn) closeBtn.onclick = () => toggleJsonSidebar(false);
+
+        if (refreshBtn) {
+          refreshBtn.onclick = () => updateJsonPreview();
+        }
+
+        if (copyBtn) {
+          copyBtn.onclick = async () => {
+            try {
+              const full = getFullJson();
+              const text = JSON.stringify(full, null, 2);
+              await navigator.clipboard.writeText(text);
+              const original = copyBtn.textContent;
+              copyBtn.textContent = "已复制!";
+              setTimeout(() => { copyBtn.textContent = original; }, 1200);
+            } catch (e) {
+              // fallback
+              const text = JSON.stringify(getFullJson(), null, 2);
+              prompt("复制失败，请手动复制：", text);
+            }
+          };
+        }
+
+        // 可选：点击侧边栏外部关闭（简单实现）
+        document.addEventListener("click", (e) => {
+          if (!sidebar || !sidebar.classList.contains("open")) return;
+          if (sidebar.contains(e.target) || (toggle && toggle.contains(e.target))) return;
+          toggleJsonSidebar(false);
+        });
+
+        // ESC 关闭
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && sidebar && sidebar.classList.contains("open")) {
+            toggleJsonSidebar(false);
+          }
+        });
+      }
+      // ===== End JSON Sidebar =====
+
+      const state = {
+        rules: [],
+        selectedId: null,
+        filter: "",
+        file: initialFile,
+        registry: { items: [], tags: [] },
+        registryItemsSet: new Set(),
+        rulesVersion: 0,
+        iconManifest: null,           // from /manifest
+        iconCacheMap: new Map(),      // id -> full cached url with token
+        displayNameMap: new Map(),    // id -> displayName from manifest
+        tagIconMap: new Map(),        // tag id -> icon URL from manifest
+        iconCacheReady: false,
+        componentHelperExpanded: false,  // 组件助手和品质全局折叠，默认折叠
+        listCache: {
+          version: -1,
+          filter: "",
+          view: [],
+          byId: new Map(),
+          dirtyIds: new Set(),
+          rowH: 104,
+          measured: false,
+          range: { start: 0, end: 0 },
+          renderedEls: new Map(),
+          raf: null,
+          forceNext: false
+        },
+        lang: "zh-CN",
+        theme: "system",
+        bgAnimEnabled: true
+      };
+
+      const TRANSPARENT_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5WvKsAAAAASUVORK5CYII=";
+      const STORAGE_LANG = "shipping_box_web_lang";
+      const STORAGE_THEME = "shipping_box_web_theme";
+
+      const I18N = {
+        "zh-CN": {
+          appTitle: "Shipping Box · 兑换规则编辑器",
+          subTitle: (file) => "本地编辑 · " + file,
+          subTitleFallback: (file) => "本地编辑 · kubejs/data/shipping_box/exchange_rules（如无KubeJS则 config/shipping_box/exchange_rules）/" + file,
+          btnThemeLight: "☀︎",
+          btnThemeDark: "☾",
+          btnLang: "EN",
+          filePlaceholder: "规则文件：editor.json（可带子目录）",
+          btnOpenFile: "打开",
+          btnReload: "从游戏重载",
+          btnRefresh: "刷新",
+          btnNew: "新建",
+          btnDuplicate: "复制",
+          btnDelete: "删除",
+          btnSave: "保存",
+          rulesList: "规则列表",
+          searchPlaceholder: "搜索：物品ID / 标签 / 类型",
+          editor: "编辑",
+          editorRule: "编辑规则",
+          editorMeta: (inputs, mode) => "输入 " + inputs + " 项 · 输出 " + mode,
+          itemSub: (count) => "输入 " + count + " 项 · 点击编辑",
+          helpEmpty: "选择左侧规则，或点击“新建”开始。",
+          inputsLabel: "输入",
+          inputsHelp: "支持物品或标签（#minecraft:logs）。数据组件支持原版 + 多联动模组组件（quality_food、tide、kaleidoscope_tavern等），可写完整JSON或用下方助手添加。",
+          addInput: "添加输入",
+          clearInputs: "清空输入",
+          removeInput: "移除该输入",
+          outputLabel: "输出",
+          outputHelp: "选择输出模式：物品 / 虚拟货币 / 动态定价 / 抽奖 / 节气",
+          jsonPreview: "JSON 预览",
+          jsonHelp: "保存时会写入当前文件，并可通过“从游戏重载”立即生效。",
+          labelType: "类型",
+          labelItemId: "物品（命名空间ID）",
+          labelTagId: "标签（命名空间ID）",
+          labelCount: "数量",
+          labelComponents: "数据组件（可选）",
+          placeholderItemId: "minecraft:diamond",
+          placeholderTagId: "#minecraft:logs",
+          placeholderComponentsExampleInput: `{"minecraft:enchantments":{"levels":{"minecraft:sharpness":5}}}`,
+          placeholderComponentsExampleOutput: `{"minecraft:custom_name":"\\\"My Item\\\""}`,
+          placeholderThresholdExample: "0, 100, 250, 500",
+          placeholderValueExample: "8, 6, 4, 2",
+          placeholderSeasonExample: "spring, summer, autumn, winter",
+          kindItem: "item",
+          kindTag: "tag",
+          modeItem: "物品",
+          modeCoin: "虚拟货币",
+          modeDynamicPricing: "动态定价",
+          modeWeight: "抽奖",
+          modeEclipticSeasons: "节气",
+          badgeRule: "规则",
+          summaryEmpty: "空",
+          summaryCoin: (n) => "虚拟货币×" + n,
+          summaryDynamicPricing: (isCoin) => "动态定价" + (isCoin ? " (虚拟货币)" : ""),
+          summaryWeight: (n) => "抽奖 (" + n + " 项)",
+          summarySeasons: "节气",
+          summaryOutput: "输出",
+          kindItem: "物品",
+          kindTag: "标签",
+          presetsLabel: "组件助手",
+          presetsHelp: "点击快速添加常用组件（支持 quality_food、tide、kaleidoscope_tavern 等多联动模组，会自动合并到现有 JSON）。",
+          presetsApplied: (name) => "已注入组件 · " + name,
+          presetsRemoved: (name) => "已移除组件 · " + name,
+          presets: {
+            tide: {
+              name: "鱼类长度（Tide）",
+              inject: { "tide:fish_length": "[40.0, 50.0)" }
+            },
+            tide_time: {
+              name: "捕获时间（Tide）",
+              inject: { "tide:catch_timestamp": "[2000, 3000)" }
+            },
+            brewing: {
+              name: "酿酒等级（Brewing）",
+              inject: { "kaleidoscope_tavern:brew_level": 7 }
+            },
+            potion: {
+              name: "药水（Potion）",
+              inject: { "potion_contents": { "potion": "minecraft:night_vision" } }
+            },
+            enchant: {
+              name: "附魔（Enchant）",
+              inject: { "enchantments": { "levels": { "minecraft:sharpness": 5 } } }
+            },
+            damage: {
+              name: "耐久（Damage）",
+              inject: { "damage": 100 }
+            }
+          },
+          coinCount: "虚拟货币数量",
+          outputCoin: "输出为虚拟货币",
+          yes: "是",
+          no: "否",
+          outputItemLabel: "输出物品（命名空间ID）",
+          candidateItemLabel: "候选物品（命名空间ID）",
+          weightLabel: "权重",
+          weightedList: "权重物品列表",
+          weightedHelp: "权重越大，被抽中的概率越高。",
+          addCandidate: "添加候选",
+          clearCandidates: "清空候选",
+          removeCandidate: "移除该候选",
+          seasonLabel: "季节（逗号分隔：spring/summer/autumn/winter/all）",
+          seasonalOnlyLabel: "仅限指定季节出售",
+          addBonusLabel: "应季加成百分比",
+          reduceBonusLabel: "非应季减益百分比",
+          dynamicDayLabel: "重置天数（-1 永不重置，0 每日，>0 周期）",
+          dynamicThresholdLabel: "阈值（数组）",
+          dynamicValueLabel: "价值（数组）",
+          qualityLabel: "品质",
+          qualityHelp: "普通 / 铁 / 金 / 钻石",
+          qualityNormal: "普通",
+          qualityIron: "铁",
+          qualityGold: "金",
+          qualityDiamond: "钻石",
+          loadFailed: "加载失败",
+          addComponent: "添加组件",
+          selectComponentType: "选择组件类型",
+          componentMod: "所属模组",
+          vanilla: "原版",
+          qualityFood: "品质作物",
+          tide: "鱼类",
+          brewing: "酿酒",
+          apply: "应用",
+          cancel: "取消",
+          componentKey: "组件键",
+          componentValue: "组件值",
+          minValue: "最小值",
+          maxValue: "最大值",
+          potionType: "药水类型",
+          enchantName: "附魔名称",
+          enchantLevel: "附魔等级",
+          damageValue: "耐久值",
+          customName: "自定义名称",
+          loaded: (n, file) => "已加载 " + n + " 条规则 · " + file,
+          confirmDelete: "确认删除当前规则？",
+          saved: (path) => "已保存 · " + path,
+          saveFailed: "保存失败",
+          reloadQueued: "已触发 /reload（稍等片刻）",
+          missingToken: "缺少 token，无法访问 API。请从游戏内命令打开。",
+          apiLoadFailed: (status) => "加载失败（HTTP " + status + "）",
+          apiRegistryFailed: (status) => "获取注册表失败（HTTP " + status + "）",
+          apiSaveFailed: (status) => "保存失败（HTTP " + status + "）",
+          apiReloadFailed: (status) => "重载失败（HTTP " + status + "）"
+        },
+        "en-US": {
+          appTitle: "Shipping Box · Exchange Rules Editor",
+          subTitle: (file) => "Local edit · " + file,
+          subTitleFallback: (file) => "Local edit · kubejs/data/shipping_box/exchange_rules (fallback: config/shipping_box/exchange_rules)/" + file,
+          btnThemeLight: "☀︎",
+          btnThemeDark: "☾",
+          btnLang: "中文",
+          filePlaceholder: "Rules file: editor.json (subdirs ok)",
+          btnOpenFile: "Open",
+          btnReload: "Reload from game",
+          btnRefresh: "Refresh",
+          btnNew: "New",
+          btnDuplicate: "Duplicate",
+          btnDelete: "Delete",
+          btnSave: "Save",
+          rulesList: "Rules",
+          searchPlaceholder: "Search: item id / tag / type",
+          editor: "Editor",
+          editorRule: "Edit rule",
+          editorMeta: (inputs, mode) => "Inputs " + inputs + " · Output " + mode,
+          itemSub: (count) => "Inputs: " + count + " · Click to edit",
+          helpEmpty: "Select a rule on the left, or click “New” to start.",
+          inputsLabel: "Inputs",
+          inputsHelp: "Supports item or tag (#minecraft:logs). components can be JSON or a string.",
+          addInput: "Add input",
+          clearInputs: "Clear inputs",
+          removeInput: "Remove input",
+          outputLabel: "Output",
+          outputHelp: "Choose an output mode: item / coin / dynamic_pricing / weight / ecliptic_seasons",
+          jsonPreview: "JSON preview",
+          jsonHelp: "Save writes to the current file and “Reload from game” applies it.",
+          labelType: "Type",
+          labelItemId: "item (namespaced id)",
+          labelTagId: "tag (namespaced id)",
+          labelCount: "Count",
+          labelComponents: "components (optional)",
+          placeholderItemId: "minecraft:diamond",
+          placeholderTagId: "#minecraft:logs",
+          placeholderComponentsExampleInput: `{"minecraft:enchantments":{"levels":{"minecraft:sharpness":5}}}`,
+          placeholderComponentsExampleOutput: `{"minecraft:custom_name":"\\\"My Item\\\""}`,
+          placeholderThresholdExample: "0, 100, 250, 500",
+          placeholderValueExample: "8, 6, 4, 2",
+          placeholderSeasonExample: "spring, summer, autumn, winter",
+          kindItem: "item",
+          kindTag: "tag",
+          modeItem: "item",
+          modeCoin: "coin",
+          modeDynamicPricing: "dynamic_pricing",
+          modeWeight: "weight",
+          modeEclipticSeasons: "ecliptic_seasons",
+          badgeRule: "rule",
+          summaryEmpty: "Empty",
+          summaryCoin: (n) => "coin×" + n,
+          summaryDynamicPricing: (isCoin) => "dynamic_pricing" + (isCoin ? " (coin)" : ""),
+          summaryWeight: (n) => "weight (" + n + ")",
+          summarySeasons: "ecliptic_seasons",
+          summaryOutput: "output",
+          presetsLabel: "Components presets",
+          presetsHelp: "Click to inject common components (merged into existing JSON).",
+          presetsApplied: (name) => "Injected · " + name,
+          presetsRemoved: (name) => "Removed · " + name,
+          addComponent: "Add Component",
+          selectComponentType: "Select component type",
+          componentMod: "Mod",
+          vanilla: "Vanilla",
+          qualityFood: "Quality Food",
+          tide: "Tide",
+          brewing: "Brewing",
+          apply: "Apply",
+          cancel: "Cancel",
+          componentKey: "Component Key",
+          componentValue: "Value",
+          minValue: "Min",
+          maxValue: "Max",
+          potionType: "Potion",
+          enchantName: "Enchant ID",
+          enchantLevel: "Level",
+          damageValue: "Damage",
+          customName: "Name",
+          presets: {
+            tide: {
+              name: "Tide (Fish length)",
+              inject: { "tide:fish_length": "[40.0, 50.0)" }
+            },
+            brewing: {
+              name: "Brewing (Brew level)",
+              inject: { "kaleidoscope_tavern:brew_level": 7 }
+            }
+          },
+          coinCount: "coin amount",
+          outputCoin: "Output as virtual coin",
+          yes: "Yes",
+          no: "No",
+          outputItemLabel: "Output item (namespaced id)",
+          candidateItemLabel: "Candidate item (namespaced id)",
+          weightLabel: "Weight",
+          weightedList: "Weighted items",
+          weightedHelp: "Higher weight means higher probability.",
+          addCandidate: "Add candidate",
+          clearCandidates: "Clear candidates",
+          removeCandidate: "Remove candidate",
+          seasonLabel: "season (comma separated: spring/summer/autumn/winter/all)",
+          seasonalOnlyLabel: "seasonal_only (sell only in specified seasons)",
+          addBonusLabel: "add_season_bonus (in-season bonus %)",
+          reduceBonusLabel: "reduce_season_bonus (off-season penalty %)",
+          dynamicDayLabel: "day (-1 never, 0 daily, >0 period)",
+          dynamicThresholdLabel: "threshold (array)",
+          dynamicValueLabel: "value (array)",
+          qualityLabel: "Quality (Quality Food)",
+          qualityHelp: "Normal / Iron / Gold / Diamond (writes quality_food:quality)",
+          qualityNormal: "Normal",
+          qualityIron: "Iron",
+          qualityGold: "Gold",
+          qualityDiamond: "Diamond",
+          loadFailed: "Load failed",
+          loaded: (n, file) => "Loaded " + n + " rules · " + file,
+          confirmDelete: "Delete this rule?",
+          saved: (path) => "Saved · " + path,
+          saveFailed: "Save failed",
+          reloadQueued: "Reload queued (wait a moment)",
+          missingToken: "Missing token. Please open from the in-game command.",
+          apiLoadFailed: (status) => "Load failed (HTTP " + status + ")",
+          apiRegistryFailed: (status) => "Registry fetch failed (HTTP " + status + ")",
+          apiSaveFailed: (status) => "Save failed (HTTP " + status + ")",
+          apiReloadFailed: (status) => "Reload failed (HTTP " + status + ")"
+        }
+      };
+
+      function currentLang() {
+        return I18N[state.lang] ? state.lang : "en-US";
+      }
+
+      function t(key, ...args) {
+        const dict = I18N[currentLang()];
+        const path = String(key || "").split(".").filter(Boolean);
+        let v = dict;
+        for (const part of path) {
+          if (v && typeof v === "object" && part in v) v = v[part];
+          else { v = undefined; break; }
+        }
+        if (typeof v === "function") return v(...args);
+        return v || "";
+      }
+
+      function detectDefaultLang() {
+        const stored = localStorage.getItem(STORAGE_LANG);
+        if (stored === "zh-CN" || stored === "en-US") return stored;
+        const nav = (navigator.language || "").toLowerCase();
+        if (nav.startsWith("zh")) return "zh-CN";
+        return "en-US";
+      }
+
+      function detectDefaultThemePref() {
+        const stored = localStorage.getItem(STORAGE_THEME);
+        if (stored === "light" || stored === "dark" || stored === "system") return stored;
+        return "system";
+      }
+
+      function getSystemTheme() {
+        return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+
+      // ===== 动态物品贴图背景 =====
+      let bgParticlesSpawned = false;
+      let bgParticlesRotationTimer = null;
+      let bgPhysicsRaf = null;
+      let bgPhysicsParticles = []; // { el, x, y, vx, vy, size, rot, omega }
+
+      function spawnBgParticles() {
+        const container = $("bgParticles");
+        if (!container) return false;
+
+        const candidates = [];
+        if (state.iconCacheMap.size > 0) {
+          for (const [, url] of state.iconCacheMap) {
+            candidates.push(url);
+          }
+        }
+        if (candidates.length === 0) return false;
+
+        container.innerHTML = "";
+        bgPhysicsParticles = [];
+
+        const shuffledAll = [...candidates].sort(() => Math.random() - 0.5);
+        const count = Math.min(10 + Math.floor(Math.random() * 9), shuffledAll.length);
+        const vw = window.innerWidth, vh = window.innerHeight;
+
+        // 创建粒子，初始位置用泊松盘采样避免重叠
+        const placed = [];
+        const minDist = 120; // 最小间距
+        let attempts = 0;
+
+        while (placed.length < count && attempts < count * 30) {
+          attempts++;
+          const size = 70 + Math.random() * 100;
+          const x = size + Math.random() * (vw - size * 2);
+          const y = size + Math.random() * (vh - size * 2);
+
+          // 检查是否与已放置的粒子重叠
+          let overlap = false;
+          for (const o of placed) {
+            const dx = x - o.x, dy = y - o.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < (size + o.size) / 2 + minDist * 0.4) { overlap = true; break; }
+          }
+          if (overlap) continue;
+
+          const p = document.createElement("img");
+          p.className = "bg-particle";
+          p.src = shuffledAll[placed.length % shuffledAll.length];
+          p.style.width = size + "px";
+          p.style.height = size + "px";
+          p.style.opacity = (0.10 + Math.random() * 0.14);
+          p.style.left = "0";
+          p.style.top = "0";
+          p.style.transform = `translate(${x}px, ${y}px) rotate(${Math.random() * 360}deg)`;
+          p.onerror = () => { p.remove(); };
+          container.appendChild(p);
+
+          placed.push({ x, y, size });
+          bgPhysicsParticles.push({
+            el: p,
+            x, y,
+            vx: (Math.random() - 0.5) * 80,
+            vy: (Math.random() - 0.5) * 80,
+            size,
+            rot: Math.random() * 360,
+            omega: (Math.random() - 0.5) * 4
+          });
+        }
+
+        // 物理循环
+        if (bgPhysicsRaf) cancelAnimationFrame(bgPhysicsRaf);
+        let lastT = performance.now();
+        const tick = (now) => {
+          if (!state.bgAnimEnabled) { lastT = now; bgPhysicsRaf = requestAnimationFrame(tick); return; }
+          const dt = Math.min((now - lastT) / 1000, 0.1); // cap to 100ms
+          lastT = now;
+          const w = window.innerWidth, h = window.innerHeight;
+
+          for (let i = 0; i < bgPhysicsParticles.length; i++) {
+            const a = bgPhysicsParticles[i];
+            // 移动
+            a.x += a.vx * dt;
+            a.y += a.vy * dt;
+            a.rot += a.omega * dt;
+
+            // 边界反弹
+            const r = a.size / 2;
+            if (a.x - r < 0) { a.x = r; a.vx *= -0.7; }
+            if (a.x + r > w) { a.x = w - r; a.vx *= -0.7; }
+            if (a.y - r < 0) { a.y = r; a.vy *= -0.7; }
+            if (a.y + r > h) { a.y = h - r; a.vy *= -0.7; }
+
+            // 粒子间碰撞（简化：推离 + 交换部分动量）
+            for (let j = i + 1; j < bgPhysicsParticles.length; j++) {
+              const b = bgPhysicsParticles[j];
+              const dx = b.x - a.x, dy = b.y - a.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              const minD = (a.size + b.size) / 2;
+              if (dist < minD && dist > 0.001) {
+                // 推离重叠
+                const overlap = (minD - dist) / 2;
+                const nx = dx / dist, ny = dy / dist;
+                a.x -= nx * overlap;
+                a.y -= ny * overlap;
+                b.x += nx * overlap;
+                b.y += ny * overlap;
+                // 交换径向速度分量
+                const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
+                const dvn = dvx * nx + dvy * ny;
+                if (dvn > 0) {
+                  a.vx -= dvn * nx * 0.5;
+                  a.vy -= dvn * ny * 0.5;
+                  b.vx += dvn * nx * 0.5;
+                  b.vy += dvn * ny * 0.5;
+                }
+              }
+            }
+
+            // 阻尼
+            a.vx *= 0.998;
+            a.vy *= 0.998;
+
+            // 同步 DOM
+            a.el.style.transform = `translate(${a.x}px, ${a.y}px) rotate(${a.rot}deg)`;
+            a.el.style.left = "0";
+            a.el.style.top = "0";
+          }
+          bgPhysicsRaf = requestAnimationFrame(tick);
+        };
+        bgPhysicsRaf = requestAnimationFrame(tick);
+
+        // 每 30 秒轮换图标（保留物理状态）
+        if (bgParticlesRotationTimer) clearInterval(bgParticlesRotationTimer);
+        bgParticlesRotationTimer = setInterval(() => {
+          if (!state.bgAnimEnabled || bgPhysicsParticles.length === 0) return;
+          const freshShuffled = [...candidates].sort(() => Math.random() - 0.5);
+          bgPhysicsParticles.forEach(p => { p.el.style.opacity = "0"; });
+          setTimeout(() => {
+            bgPhysicsParticles.forEach((p, i) => {
+              p.el.src = freshShuffled[i % freshShuffled.length];
+              p.el.style.opacity = (0.10 + Math.random() * 0.14);
+            });
+          }, 800);
+        }, 30000);
+
+        bgParticlesSpawned = true;
+        return true;
+      }
+
+      function toggleBgAnim() {
+        state.bgAnimEnabled = !state.bgAnimEnabled;
+        const btn = $("btnBgAnim");
+        if (btn) btn.textContent = state.bgAnimEnabled ? "✦" : "✧";
+      }
+
+      function initBgAnim() {
+        const btn = $("btnBgAnim");
+        if (btn) {
+          btn.textContent = state.bgAnimEnabled ? "✦" : "✧";
+          btn.onclick = () => toggleBgAnim();
+        }
+        // 立即尝试，没有素材则等 manifest 加载后再试
+        if (!spawnBgParticles() && !bgParticlesSpawned) {
+          // manifest 还没加载，等它加载后自动触发
+          // 最多等 5 秒，之后用 api/icon 兜底
+          let retries = 0;
+          const ival = setInterval(() => {
+            retries++;
+            if (spawnBgParticles() || retries > 10) clearInterval(ival);
+          }, 500);
+        }
+      }
+
+      function applyTheme() {
+        const pref = state.theme || "system";
+        const actual = pref === "system" ? getSystemTheme() : pref;
+        document.documentElement.dataset.theme = actual;
+        const btn = $("btnTheme");
+        if (btn) btn.textContent = actual === "light" ? t("btnThemeDark") : t("btnThemeLight");
+      }
+
+      function applyI18nStatic() {
+        document.documentElement.lang = currentLang();
+        document.title = t("appTitle");
+        $("brandTitle").textContent = t("appTitle");
+        $("btnLang").textContent = t("btnLang");
+        $("filePath").placeholder = t("filePlaceholder");
+        $("btnOpenFile").textContent = t("btnOpenFile");
+        $("btnReloadFromGame").textContent = t("btnReload");
+        $("btnRefresh").textContent = t("btnRefresh");
+        $("btnNew").textContent = t("btnNew");
+        $("btnDuplicate").textContent = t("btnDuplicate");
+        $("btnDelete").textContent = t("btnDelete");
+        $("btnSave").textContent = t("btnSave");
+        $("rulesPanelTitle").textContent = t("rulesList");
+        $("search").placeholder = t("searchPlaceholder");
+        if (!$("editorMeta").textContent) $("editorTitle").textContent = t("editor");
+      }
+
+      function toast(message, kind = "ok") {
+        const el = $("toast");
+        el.classList.remove("show", "hide");
+        void el.offsetWidth;
+        el.className = "toast " + (kind === "bad" ? "bad" : "ok") + " show";
+        el.textContent = message;
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(() => {
+          el.classList.add("hide");
+          el.classList.remove("show");
+          el._hideTimer = setTimeout(() => { el.classList.remove("hide"); }, 300);
+        }, 2600);
+      }
+
+      function modeLabel(mode) {
+        const m = String(mode || "");
+        if (m === "item") return t("modeItem");
+        if (m === "coin") return t("modeCoin");
+        if (m === "dynamic_pricing") return t("modeDynamicPricing");
+        if (m === "weight") return t("modeWeight");
+        if (m === "ecliptic_seasons") return t("modeEclipticSeasons");
+        return m || t("badgeRule");
+      }
+
+      /** 将 raw item ID 解析为友好名称（manifest 中的 displayName，否则返回原 ID） */
+      function resolveDisplayName(rawId) {
+        const id = String(rawId || "").trim();
+        if (!id) return "";
+        const dn = state.displayNameMap.get(id);
+        return dn || id;
+      }
+
+      function summarizeRule(r) {
+        const inParts = (r.inputs || []).map((i) => {
+          let name = (i.value || "").trim();
+          if (i.kind === "tag") {
+            if (name && !name.startsWith("#")) name = "#" + name;
+            // 缩短 tag 名：省略 minecraft: 命名空间
+            name = name.replace(/^#minecraft:/, "#");
+          } else if (i.kind === "item") {
+            name = resolveDisplayName(name);
+          }
+          const count = Number(i.count || 1);
+          return name + (count !== 1 ? "×" + count : "");
+        }).filter(Boolean);
+
+        const o = r.output || {};
+        let outText = "";
+        if (o.mode === "coin") outText = t("summaryCoin", Number(o.count || 0));
+        else if (o.mode === "item") outText = resolveDisplayName((o.item || "").trim()) + "×" + Number(o.count || 1);
+        else if (o.mode === "dynamic_pricing") {
+          if (!o.coin && o.item) outText = "dynamic: " + resolveDisplayName((o.item || "").trim());
+          else outText = t("summaryDynamicPricing", Boolean(o.coin));
+        } else if (o.mode === "weight") outText = t("summaryWeight", (o.items || []).length);
+        else if (o.mode === "ecliptic_seasons") {
+          if (o.item) outText = resolveDisplayName((o.item || "").trim()) + " (seasons)";
+          else outText = t("summarySeasons");
+        } else outText = t("summaryOutput");
+
+        return (inParts.join(" + ") || t("summaryEmpty")) + " → " + outText;
+      }
+
+      // 新增：计算规则的匹配清晰度（用于UI提示）
+      function getInputMatchType(inp) {
+        if (inp && inp.componentsText && String(inp.componentsText).trim()) return 'component';
+        if (inp && inp.kind === 'item') return 'item';
+        return 'tag';
+      }
+
+      function getRuleMatchInfo(r) {
+        const inputs = (r && r.inputs) || [];
+        if (inputs.length === 0) {
+          return { level: 'low', label: '无输入条件', desc: '不会匹配任何物品' };
+        }
+        let hasComponent = false, hasExactItem = false;
+        inputs.forEach(inp => {
+          const t = getInputMatchType(inp);
+          if (t === 'component') hasComponent = true;
+          if (t === 'item') hasExactItem = true;
+        });
+        if (hasComponent) {
+          return { level: 'high', label: '组件匹配（最高优先级）', desc: '有具体组件要求的规则会优先于普通物品/标签规则' };
+        }
+        if (hasExactItem) {
+          return { level: 'medium', label: '精确物品匹配', desc: '指定具体物品的规则优先于标签规则' };
+        }
+        return { level: 'low', label: '标签匹配（通用）', desc: '使用标签的规则匹配范围最广，优先级最低' };
+      }
+
+      function parseMaybeJson(text) {
+        const t = (text || "").trim();
+        if (!t) return null;
+        if (t.startsWith("{") || t.startsWith("[")) {
+          try { return JSON.parse(t); } catch (_) { return t; }
+        }
+        return t;
+      }
+
+      function qualityFoodComponent(value) {
+        if (value === "diamond") return { level: 3, type: "quality_food:diamond" };
+        if (value === "gold") return { level: 2, type: "quality_food:gold" };
+        if (value === "iron") return { level: 1, type: "quality_food:iron" };
+        return null;
+      }
+
+      function componentsObjectFromText(text) {
+        const parsed = parseMaybeJson(text);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed;
+        }
+        return null;
+      }
+
+      function mergeComponentTemplate(currentText, newJson) {
+        const base = componentsObjectFromText(currentText) || {};
+        const merged = Object.assign({}, base, (newJson && typeof newJson === "object" ? newJson : {}));
+        const keys = Object.keys(merged);
+        if (keys.length === 0) return "";
+        return JSON.stringify(merged, null, 2);
+      }
+
+      function removeComponentKeys(currentText, keys) {
+        const base = componentsObjectFromText(currentText) || {};
+        for (const k of (Array.isArray(keys) ? keys : [])) {
+          delete base[k];
+        }
+        const left = Object.keys(base);
+        if (left.length === 0) return "";
+        return JSON.stringify(base, null, 2);
+      }
+
+      function removeComponentKey(currentText, key) {
+        const base = componentsObjectFromText(currentText) || {};
+        delete base[key];
+        const keys = Object.keys(base);
+        if (keys.length === 0) return "";
+        return JSON.stringify(base, null, 2);
+      }
+
+      function getQualityFoodFromComponentsText(text) {
+        const obj = componentsObjectFromText(text);
+        if (!obj) return "normal";
+        const q = obj["quality_food:quality"];
+        if (!q || typeof q !== "object") return "normal";
+        const type = String(q.type || "");
+        if (type === "quality_food:diamond") return "diamond";
+        if (type === "quality_food:gold") return "gold";
+        if (type === "quality_food:iron") return "iron";
+        return "normal";
+      }
+
+      function setQualityFoodInComponentsText(text, quality) {
+        if (quality === "normal") {
+          return removeComponentKey(text, "quality_food:quality");
+        } else {
+          const q = qualityFoodComponent(quality);
+          if (q) return mergeComponentTemplate(text, { "quality_food:quality": q });
+        }
+        return String(text || "");
+      }
+
+      function renderQualityFoodField(currentComponentsText, onSelect) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(t("qualityLabel"))}</div><div class="help">${escapeHtml(t("qualityHelp"))}</div>`;
+        field.appendChild(chipGroup(
+          [
+            { label: t("qualityNormal"), value: "normal" },
+            { label: t("qualityIron"), value: "iron" },
+            { label: t("qualityGold"), value: "gold" },
+            { label: t("qualityDiamond"), value: "diamond" }
+          ],
+          getQualityFoodFromComponentsText(currentComponentsText),
+          onSelect
+        ));
+        return field;
+      }
+
+      function renderPresetsField(getText, onApply) {
+        const field = document.createElement("div");
+        field.className = "field";
+
+        // 全局可折叠的头部
+        const isExpanded = !!state.componentHelperExpanded;
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.justifyContent = "space-between";
+        header.style.cursor = "pointer";
+        header.style.userSelect = "none";
+        header.style.marginBottom = isExpanded ? "6px" : "0";
+        header.style.padding = "2px 4px";
+        header.style.borderRadius = "4px";
+        header.onmouseover = () => { header.style.background = "var(--panel-2)"; };
+        header.onmouseout = () => { header.style.background = ""; };
+        header.innerHTML = `
+          <div>
+            <span style="font-weight:600;">${escapeHtml(t("presetsLabel"))}</span>
+            <span style="font-size:11px; color:var(--muted); margin-left:6px;">(可折叠)</span>
+          </div>
+          <span style="font-size:14px; transition: transform 0.2s ease; transform: rotate(${isExpanded ? 90 : 0}deg);">▶</span>
+        `;
+        header.onclick = (e) => {
+          e.stopPropagation();
+          state.componentHelperExpanded = !state.componentHelperExpanded;
+          render();  // 全局刷新以更新所有实例
+        };
+        field.appendChild(header);
+
+        if (!isExpanded) {
+          // 折叠时只显示头部 + 提示
+          const hint = document.createElement("div");
+          hint.style.fontSize = "11px";
+          hint.style.color = "var(--muted)";
+          hint.style.marginTop = "2px";
+          hint.textContent = "点击展开常用组件预设";
+          field.appendChild(hint);
+          return field;
+        }
+
+        // 展开内容
+        const content = document.createElement("div");
+
+        const help = document.createElement("div");
+        help.className = "help";
+        help.style.marginBottom = "6px";
+        help.textContent = t("presetsHelp") || "点击快速添加常用组件（支持多联动 mod），会自动合并到现有 JSON。";
+        content.appendChild(help);
+
+        const row = document.createElement("div");
+        row.style.marginBottom = "6px";
+        row.className = "row";
+
+        const presets = [
+          { key: "tide", name: t("presets.tide.name"), inject: I18N[currentLang()]?.presets?.tide?.inject },
+          { key: "tide_time", name: t("presets.tide_time.name"), inject: I18N[currentLang()]?.presets?.tide_time?.inject },
+          { key: "brewing", name: t("presets.brewing.name"), inject: I18N[currentLang()]?.presets?.brewing?.inject },
+          { key: "potion", name: t("presets.potion.name"), inject: I18N[currentLang()]?.presets?.potion?.inject },
+          { key: "enchant", name: t("presets.enchant.name"), inject: I18N[currentLang()]?.presets?.enchant?.inject },
+          { key: "damage", name: t("presets.damage.name"), inject: I18N[currentLang()]?.presets?.damage?.inject }
+        ];
+
+        for (const p of presets) {
+          const inject = (p.inject && typeof p.inject === "object") ? p.inject : {};
+          const injectKeys = Object.keys(inject);
+          const obj = componentsObjectFromText(getText()) || {};
+          const active = injectKeys.length > 0 && injectKeys.every((k) => k in obj);
+          const btn = document.createElement("div");
+          btn.className = "chip" + (active ? " active" : "");
+          btn.textContent = p.name;
+          btn.onclick = () => {
+            const current = getText();
+            const next = active ? removeComponentKeys(current, injectKeys) : mergeComponentTemplate(current, inject);
+            onApply(next);
+            toast(active ? t("presetsRemoved", p.name) : t("presetsApplied", p.name), "ok");
+          };
+          row.appendChild(btn);
+        }
+        content.appendChild(row);
+
+        const qualityBlock = document.createElement("div");
+        qualityBlock.className = "field";
+        qualityBlock.innerHTML = `<div class="label">${escapeHtml(t("qualityLabel"))}</div><div class="help">${escapeHtml(t("qualityHelp"))}</div>`;
+        const qualityActive = getQualityFoodFromComponentsText(getText());
+        qualityBlock.appendChild(chipGroup(
+          [
+            { label: t("qualityNormal"), value: "normal" },
+            { label: t("qualityIron"), value: "iron" },
+            { label: t("qualityGold"), value: "gold" },
+            { label: t("qualityDiamond"), value: "diamond" }
+          ],
+          qualityActive,
+          (v) => {
+            const next = setQualityFoodInComponentsText(getText(), v);
+            onApply(next);
+            const name = t("qualityLabel") + " - " + (
+              v === "iron" ? t("qualityIron") :
+              v === "gold" ? t("qualityGold") :
+              v === "diamond" ? t("qualityDiamond") :
+              t("qualityNormal")
+            );
+            toast(t("presetsApplied", name), "ok");
+          }
+        ));
+        content.appendChild(qualityBlock);
+
+        field.appendChild(content);
+        return field;
+      }
+
+      // 可视化组件构建器 (支持同时添加多个)
+      function createComponentBuilder(getCurrentText, onApply) {
+        const container = document.createElement("div");
+        container.style.border = "1px solid var(--border)";
+        container.style.padding = "10px";
+        container.style.borderRadius = "8px";
+        container.style.background = "var(--panel)";
+        container.style.marginTop = "8px";
+
+        const title = document.createElement("div");
+        title.style.fontWeight = "600";
+        title.style.marginBottom = "8px";
+        title.textContent = (t("addComponent") || "添加组件") + " (可添加多个)";
+        container.appendChild(title);
+
+        const options = [
+          { value: "", label: t("selectComponentType") || "选择组件类型" },
+          { value: "quality_food", label: t("qualityFood") || "品质作物" },
+          { value: "tide_length", label: t("tide") + " - 长度" },
+          { value: "tide_time", label: t("tide") + " - 捕获时间" },
+          { value: "brew_level", label: t("brewing") || "酿酒等级" },
+          { value: "potion", label: "药水" },
+          { value: "enchant", label: "附魔" },
+          { value: "damage", label: "耐久" },
+          { value: "custom_name", label: "自定义名称" },
+          { value: "custom", label: "自定义组件" }
+        ];
+        const { el: modSelect, setValue } = customSelect(options, "", (val) => {
+          modSelect.dataset.value = val;
+          renderForm(val);
+        });
+        modSelect.style.marginBottom = "8px";
+        container.appendChild(modSelect);
+        container._getSelectValue = () => modSelect.dataset.value || "";
+
+        const formArea = document.createElement("div");
+        formArea.style.margin = "8px 0";
+        container.appendChild(formArea);
+
+        // 已添加组件列表 (美化版 + 支持编辑)
+        const addedList = document.createElement("div");
+        addedList.style.margin = "8px 0";
+        addedList.style.padding = "8px";
+        addedList.style.border = "1px solid var(--border)";
+        addedList.style.borderRadius = "8px";
+        addedList.style.background = "rgba(255,255,255,0.03)";
+        addedList.style.minHeight = "36px";
+        const addedTitle = document.createElement("div");
+        addedTitle.style.fontSize = "12px";
+        addedTitle.style.fontWeight = "600";
+        addedTitle.style.color = "var(--muted)";
+        addedTitle.style.marginBottom = "6px";
+        addedTitle.textContent = "已添加的组件 (可继续添加多个):";
+        addedList.appendChild(addedTitle);
+        const addedItems = document.createElement("div");
+        addedItems.style.display = "flex";
+        addedItems.style.flexDirection = "column";
+        addedItems.style.gap = "4px";
+        addedList.appendChild(addedItems);
+        container.appendChild(addedList);
+
+        let pending = [];  // [{type, comp}]
+
+        function getCompIcon(key) {
+          if (key.includes('quality')) return '🌾';
+          if (key.includes('tide')) return '🐟';
+          if (key.includes('brew') || key.includes('kaleidoscope')) return '🍷';
+          if (key.includes('potion')) return '🧪';
+          if (key.includes('enchant')) return '✨';
+          if (key.includes('damage')) return '🛡️';
+          if (key.includes('custom_name')) return '📝';
+          return '📦';
+        }
+
+        const renderAdded = () => {
+          addedItems.innerHTML = "";
+          if (pending.length === 0) {
+            const empty = document.createElement("div");
+            empty.style.fontSize = "12px";
+            empty.style.color = "var(--muted)";
+            empty.style.padding = "4px";
+            empty.textContent = "(暂无，添加后会出现在这里)";
+            addedItems.appendChild(empty);
+            return;
+          }
+          pending.forEach((item, idx) => {
+            const comp = item.comp;
+            const key = Object.keys(comp)[0];
+            const valStr = JSON.stringify(comp[key]);
+            const shortVal = valStr.length > 50 ? valStr.slice(0, 47) + "..." : valStr;
+
+            const row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.alignItems = "center";
+            row.style.gap = "8px";
+            row.style.padding = "4px 8px";
+            row.style.background = "var(--item-bg)";
+            row.style.borderRadius = "6px";
+            row.style.fontSize = "12px";
+
+            const icon = document.createElement("span");
+            icon.textContent = getCompIcon(key);
+            icon.style.fontSize = "14px";
+            icon.style.width = "18px";
+
+            const content = document.createElement("div");
+            content.style.flex = "1";
+            content.style.overflow = "hidden";
+            content.innerHTML = `<strong>${key}</strong>: <span style="opacity:0.85;font-family:monospace">${shortVal}</span>`;
+
+            const actions = document.createElement("div");
+            actions.style.display = "flex";
+            actions.style.gap = "4px";
+
+            const editBtn = document.createElement("span");
+            editBtn.textContent = "编辑";
+            editBtn.style.cursor = "pointer";
+            editBtn.style.color = "var(--accent)";
+            editBtn.style.fontSize = "11px";
+            editBtn.onclick = () => startEdit(idx);
+
+            const rm = document.createElement("span");
+            rm.textContent = "×";
+            rm.style.cursor = "pointer";
+            rm.style.color = "#ff453a";
+            rm.style.fontWeight = "bold";
+            rm.style.padding = "0 4px";
+            rm.onclick = (e) => {
+              e.stopImmediatePropagation();
+              pending.splice(idx, 1);
+              renderAdded();
+            };
+
+            actions.appendChild(editBtn);
+            actions.appendChild(rm);
+
+            row.appendChild(icon);
+            row.appendChild(content);
+            row.appendChild(actions);
+            addedItems.appendChild(row);
+          });
+        };
+        renderAdded();
+
+        const buttons = document.createElement("div");
+        buttons.className = "row";
+        buttons.style.marginTop = "8px";
+        buttons.style.flexWrap = "wrap";
+        buttons.style.gap = "6px";
+
+        let editingIndex = -1;
+
+        const addThisBtn = document.createElement("button");
+        addThisBtn.className = "btn";
+        addThisBtn.textContent = "添加此组件";
+        buttons.appendChild(addThisBtn);
+
+        const applyAllBtn = document.createElement("button");
+        applyAllBtn.className = "btn";
+        applyAllBtn.textContent = "应用全部";
+        buttons.appendChild(applyAllBtn);
+
+        const clearAllBtn = document.createElement("button");
+        clearAllBtn.className = "btn ghost";
+        clearAllBtn.textContent = "全部清空";
+        clearAllBtn.onclick = () => {
+          pending = [];
+          editingIndex = -1;
+          addThisBtn.textContent = "添加此组件";
+          renderAdded();
+          formArea.innerHTML = "";
+          modSelect.value = "";
+        };
+        buttons.appendChild(clearAllBtn);
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn ghost";
+        cancelBtn.textContent = t("cancel") || "取消";
+        buttons.appendChild(cancelBtn);
+
+        container.appendChild(buttons);
+
+        let currentType = "";
+        const renderForm = (type) => {
+          formArea.innerHTML = "";
+          currentType = type;
+          if (!type) return;
+
+          const fields = document.createElement("div");
+          fields.className = "grid";
+          fields.style.gridTemplateColumns = "repeat(12, 1fr)";
+
+          if (type === "quality_food") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">品质等级</div>`;
+
+            // 本地状态：支持点击切换，不依赖外部 render
+            let selectedQuality = "normal";  // 默认普通（可自由切换）
+
+            const chipContainer = document.createElement("div");
+            chipContainer.className = "row";
+
+            const qualityOptions = [
+              { label: "普通", value: "normal" },
+              { label: "铁", value: "iron" },
+              { label: "金", value: "gold" },
+              { label: "钻石", value: "diamond" }
+            ];
+
+            const chipEls = [];
+
+            qualityOptions.forEach(opt => {
+              const c = document.createElement("div");
+              c.className = "chip" + (opt.value === selectedQuality ? " active" : "");
+              c.textContent = opt.label;
+              c.style.cursor = "pointer";
+
+              c.onclick = () => {
+                selectedQuality = opt.value;
+                // 更新所有 chip 的 active 状态
+                chipEls.forEach(el => {
+                  el.classList.toggle("active", el.textContent === opt.label);
+                });
+              };
+
+              chipEls.push(c);
+              chipContainer.appendChild(c);
+            });
+
+            f.appendChild(chipContainer);
+            fields.appendChild(f);
+
+            // 提供给 _getValue 使用
+            f._getSelectedQuality = () => selectedQuality;
+
+            formArea._getValue = () => {
+              const val = f._getSelectedQuality ? f._getSelectedQuality() : "diamond";
+              const map = { "普通":"normal", "铁":"iron", "金":"gold", "钻石":"diamond", "normal":"normal", "iron":"iron", "gold":"gold", "diamond":"diamond" };
+              const mapped = map[val] || val || "diamond";
+              return { "quality_food:quality": qualityFoodComponent(mapped) };
+            };
+
+            // 如果是从编辑进入，尝试根据已有值设置选中
+            // (startEdit 会在 renderForm 后尝试额外设置，这里提供钩子)
+            formArea._setQuality = (val) => {
+              const m = { "normal":"普通", "iron":"铁", "gold":"金", "diamond":"钻石" };
+              selectedQuality = val;
+              chipEls.forEach(el => {
+                el.classList.toggle("active", el.textContent === (m[val] || val));
+              });
+            };
+
+          } else if (type === "tide_length" || type === "tide_time") {
+            const key = type === "tide_length" ? "tide:fish_length" : "tide:catch_timestamp";
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">范围 (如 40,60 或 [40.0,60.0) )</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.placeholder = type === "tide_length" ? "40,60" : "2000,3000";
+            input.value = "40,60";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => {
+              const parts = input.value.split(/[,\s]+/);
+              const min = parts[0] || "0";
+              const max = parts[1] || "100";
+              return { [key]: `[${min},${max})` };
+            };
+          } else if (type === "brew_level") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">酿酒等级 (数字)</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.type = "number";
+            input.value = "7";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => ({ "kaleidoscope_tavern:brew_level": Number(input.value) || 7 });
+          } else if (type === "potion") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">药水类型 (如 night_vision)</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.value = "minecraft:night_vision";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => ({ "potion_contents": { "potion": input.value } });
+          } else if (type === "enchant") {
+            const f1 = document.createElement("div");
+            f1.className = "field";
+            f1.style.gridColumn = "span 6";
+            f1.innerHTML = `<div class="label">附魔ID</div>`;
+            const enc = document.createElement("input");
+            enc.className = "input";
+            enc.value = "minecraft:sharpness";
+            f1.appendChild(enc);
+            fields.appendChild(f1);
+
+            const f2 = document.createElement("div");
+            f2.className = "field";
+            f2.style.gridColumn = "span 6";
+            f2.innerHTML = `<div class="label">等级</div>`;
+            const lvl = document.createElement("input");
+            lvl.className = "input";
+            lvl.type = "number";
+            lvl.value = "5";
+            f2.appendChild(lvl);
+            fields.appendChild(f2);
+
+            formArea._getValue = () => {
+              const levels = {};
+              levels[enc.value] = Number(lvl.value) || 1;
+              return { "enchantments": { "levels": levels } };
+            };
+          } else if (type === "damage") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">耐久值</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.type = "number";
+            input.value = "100";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => ({ "damage": Number(input.value) });
+          } else if (type === "custom_name") {
+            const f = document.createElement("div");
+            f.className = "field";
+            f.style.gridColumn = "span 12";
+            f.innerHTML = `<div class="label">名称 (带引号转义)</div>`;
+            const input = document.createElement("input");
+            input.className = "input";
+            input.value = "My Item";
+            f.appendChild(input);
+            fields.appendChild(f);
+            formArea._getValue = () => ({ "custom_name": JSON.stringify(input.value) });
+          } else if (type === "custom") {
+            const f1 = document.createElement("div");
+            f1.className = "field";
+            f1.style.gridColumn = "span 6";
+            f1.innerHTML = `<div class="label">${t("componentKey")}</div>`;
+            const keyIn = document.createElement("input");
+            keyIn.className = "input";
+            keyIn.placeholder = "modid:component";
+            f1.appendChild(keyIn);
+            fields.appendChild(f1);
+
+            const f2 = document.createElement("div");
+            f2.className = "field";
+            f2.style.gridColumn = "span 6";
+            f2.innerHTML = `<div class="label">${t("componentValue")}</div>`;
+            const valIn = document.createElement("input");
+            valIn.className = "input";
+            valIn.placeholder = "5 或 [1,10) 或 JSON";
+            f2.appendChild(valIn);
+            fields.appendChild(f2);
+
+            formArea._getValue = () => {
+              let val = valIn.value.trim();
+              try {
+                if (val.startsWith("{") || val.startsWith("[")) val = JSON.parse(val);
+                else if (!isNaN(Number(val))) val = Number(val);
+              } catch(e) {}
+              const obj = {};
+              if (keyIn.value.trim()) obj[keyIn.value.trim()] = val;
+              return obj;
+            };
+          }
+
+          formArea.appendChild(fields);
+        };
+
+        function startEdit(idx) {
+          const item = pending[idx];
+          if (!item) return;
+          editingIndex = idx;
+          addThisBtn.textContent = "更新此组件";
+          const type = item.type || "custom";
+          modSelect.dataset.value = type;
+          setValue(type);
+          renderForm(type);
+
+          // 尝试填充表单值 (简单反向填充)
+          setTimeout(() => {
+            const comp = item.comp;
+            const key = Object.keys(comp)[0];
+            const val = comp[key];
+            const selVal = modSelect.dataset.value || "";
+            if (selVal === "quality_food" && key.includes("quality")) {
+              const level = val && val.type ? (val.type.includes("diamond") ? "diamond" : val.type.includes("gold") ? "gold" : val.type.includes("iron") ? "iron" : "normal") : "diamond";
+              if (formArea._setQuality) {
+                formArea._setQuality(level);
+              } else {
+                // fallback
+                const chips = formArea.querySelectorAll(".chip");
+                chips.forEach(c => c.classList.toggle("active", c.textContent.includes(level === "diamond" ? "钻石" : level === "gold" ? "金" : level === "iron" ? "铁" : "普通")));
+              }
+            } else if ((selVal === "tide_length" || selVal === "tide_time") && typeof val === "string") {
+              const match = val.match(/\[?([0-9.]+),([0-9.]+)/);
+              if (match && formArea.querySelector("input")) {
+                formArea.querySelector("input").value = `${match[1]},${match[2]}`;
+              }
+            } else if (selVal === "brew_level" && formArea.querySelector("input")) {
+              formArea.querySelector("input").value = val || 7;
+            } else if (selVal === "potion" && val && val.potion && formArea.querySelector("input")) {
+              formArea.querySelector("input").value = val.potion;
+            } else if (selVal === "enchant" && val && val.levels) {
+              const encInput = formArea.querySelector("input");
+              const lvlInput = formArea.querySelectorAll("input")[1];
+              const firstKey = Object.keys(val.levels)[0];
+              if (encInput) encInput.value = firstKey || "";
+              if (lvlInput) lvlInput.value = val.levels[firstKey] || 1;
+            } else if (selVal === "damage" && formArea.querySelector("input")) {
+              formArea.querySelector("input").value = val || 100;
+            } else if (selVal === "custom_name" && formArea.querySelector("input")) {
+              formArea.querySelector("input").value = val ? val.replace(/^"|"$/g, "") : "";
+            } else if (selVal === "custom" ) {
+              const inputs = formArea.querySelectorAll("input");
+              if (inputs[0]) inputs[0].value = key;
+              if (inputs[1]) inputs[1].value = typeof val === "object" ? JSON.stringify(val) : val;
+            }
+          }, 50);
+        }
+
+        addThisBtn.onclick = () => {
+          if (!formArea._getValue) return;
+          const newComp = formArea._getValue();
+          if (!newComp || Object.keys(newComp).length === 0) return;
+
+          const currentType = modSelect.dataset.value || "";
+
+          if (editingIndex >= 0) {
+            // 更新模式
+            pending[editingIndex] = { type: currentType, comp: newComp };
+            editingIndex = -1;
+            addThisBtn.textContent = "添加此组件";
+            toast("已更新组件", "ok");
+          } else {
+            pending.push({ type: currentType, comp: newComp });
+            toast("已添加到列表，可继续选择其他组件", "ok");
+          }
+          renderAdded();
+          // 重置表单
+          modSelect.dataset.value = "";
+          setValue("");
+          formArea.innerHTML = "";
+        };
+
+        applyAllBtn.onclick = () => {
+          if (pending.length === 0) {
+            toast("请先添加至少一个组件", "bad");
+            return;
+          }
+          let current = getCurrentText();
+          pending.forEach(p => {
+            current = mergeComponentTemplate(current, p.comp);
+          });
+          onApply(current);
+          container.remove();
+          toast(`已应用 ${pending.length} 个组件`, "ok");
+        };
+
+        cancelBtn.onclick = () => {
+          container.remove();
+        };
+
+        return container;
+      }
+
+      function parseIntList(text) {
+        const parts = String(text || "")
+          .split(/[\s,]+/g)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const nums = [];
+        for (const p of parts) {
+          const n = Number(p);
+          if (!Number.isFinite(n)) continue;
+          nums.push(Math.trunc(n));
+        }
+        return nums;
+      }
+
+      function fromJsonRule(rule, idx) {
+        const id = "r_" + (Date.now().toString(36)) + "_" + idx + "_" + Math.random().toString(16).slice(2);
+        const inputRaw = rule.input;
+        const inputsArr = Array.isArray(inputRaw) ? inputRaw : (inputRaw ? [inputRaw] : []);
+        const inputs = inputsArr.map((i) => ({
+          kind: i.tag ? "tag" : "item",
+          value: i.tag ? (String(i.tag || "").startsWith("#") ? String(i.tag) : ("#" + String(i.tag || ""))) : (i.item || ""),
+          count: Number(i.count || 1),
+          componentsText: (typeof i.components === "object") ? JSON.stringify(i.components, null, 2) : (i.components || "")
+        }));
+
+        const out = rule.output || {};
+        let output = { mode: "item", item: "", count: 1, componentsText: "" };
+        if (out.type === "dynamic_pricing") {
+          output = {
+            mode: "dynamic_pricing",
+            coin: Boolean(out.coin),
+            item: out.item || "",
+            day: out.dynamic_properties && Number.isFinite(Number(out.dynamic_properties.day)) ? Number(out.dynamic_properties.day) : 0,
+            thresholdText: out.dynamic_properties && Array.isArray(out.dynamic_properties.threshold) ? out.dynamic_properties.threshold.join(", ") : "",
+            valueText: out.dynamic_properties && Array.isArray(out.dynamic_properties.value) ? out.dynamic_properties.value.join(", ") : ""
+          };
+        } else if (out.type === "weight") {
+          output = {
+            mode: "weight",
+            items: (out.items || []).map((w) => ({
+              item: w.item || "",
+              count: Number(w.count || 1),
+              weight: Number(w.weight || 1),
+              componentsText: (typeof w.components === "object") ? JSON.stringify(w.components, null, 2) : (w.components || "")
+            }))
+          };
+        } else if (out.type === "ecliptic_seasons") {
+          const ecs = out.ecliptic_seasons || {};
+          output = {
+            mode: "ecliptic_seasons",
+            item: out.item || "",
+            count: Number(out.count || 1),
+            componentsText: (typeof out.components === "object") ? JSON.stringify(out.components, null, 2) : (out.components || ""),
+            seasonalOnly: Boolean(ecs.seasonal_only),
+            seasonText: Array.isArray(ecs.season) ? ecs.season.join(", ") : "",
+            addBonus: Number.isFinite(Number(ecs.add_season_bonus)) ? Number(ecs.add_season_bonus) : 0,
+            reduceBonus: Number.isFinite(Number(ecs.reduce_season_bonus)) ? Number(ecs.reduce_season_bonus) : 0
+          };
+        } else if (out.coin) {
+          output = { mode: "coin", count: Number(out.count || 0) };
+        } else {
+          output = {
+            mode: "item",
+            item: out.item || "",
+            count: Number(out.count || 1),
+            componentsText: (typeof out.components === "object") ? JSON.stringify(out.components, null, 2) : (out.components || "")
+          };
+        }
+
+        return { id, inputs, output };
+      }
+
+      function toJsonRule(model) {
+        const input = (model.inputs || []).map((i) => {
+          const obj = { count: Math.max(1, Math.trunc(Number(i.count || 1))) };
+          const value = (i.value || "").trim();
+          if (i.kind === "tag") obj.tag = value.startsWith("#") ? value : ("#" + value);
+          else obj.item = value;
+          const comp = parseMaybeJson(i.componentsText);
+          if (comp !== null && comp !== "") obj.components = comp;
+          return obj;
+        });
+
+        const o = model.output || {};
+        let output = {};
+        if (o.mode === "coin") {
+          output = { coin: true, count: Math.max(0, Math.trunc(Number(o.count || 0))) };
+        } else if (o.mode === "dynamic_pricing") {
+          output = {
+            type: "dynamic_pricing",
+            dynamic_properties: {
+              threshold: parseIntList(o.thresholdText),
+              value: parseIntList(o.valueText),
+              day: Math.trunc(Number(o.day || 0))
+            }
+          };
+          if (o.coin) output.coin = true;
+          else output.item = (o.item || "").trim();
+        } else if (o.mode === "weight") {
+          output = {
+            type: "weight",
+            items: (o.items || []).map((w) => {
+              const itemObj = {
+                item: (w.item || "").trim(),
+                count: Math.max(1, Math.trunc(Number(w.count || 1))),
+                weight: Math.max(1, Math.trunc(Number(w.weight || 1)))
+              };
+              const comp = parseMaybeJson(w.componentsText);
+              if (comp !== null && comp !== "") itemObj.components = comp;
+              return itemObj;
+            })
+          };
+        } else if (o.mode === "ecliptic_seasons") {
+          output = {
+            type: "ecliptic_seasons",
+            item: (o.item || "").trim(),
+            count: Math.max(1, Math.trunc(Number(o.count || 1))),
+            ecliptic_seasons: {
+              season: String(o.seasonText || "").split(/[\s,]+/g).map((s) => s.trim()).filter(Boolean),
+              seasonal_only: Boolean(o.seasonalOnly),
+              add_season_bonus: Math.trunc(Number(o.addBonus || 0)),
+              reduce_season_bonus: Math.trunc(Number(o.reduceBonus || 0))
+            }
+          };
+          const comp = parseMaybeJson(o.componentsText);
+          if (comp !== null && comp !== "") output.components = comp;
+        } else {
+          output = {
+            item: (o.item || "").trim(),
+            count: Math.max(1, Math.trunc(Number(o.count || 1)))
+          };
+          const comp = parseMaybeJson(o.componentsText);
+          if (comp !== null && comp !== "") output.components = comp;
+        }
+
+        return { input, output };
+      }
+
+      function selectedRule() {
+        return state.rules.find((r) => r.id === state.selectedId) || null;
+      }
+
+      function setSelected(id) {
+        const prev = state.selectedId;
+        state.selectedId = id;
+        if (state.listCache) {
+          if (prev) state.listCache.dirtyIds.add(prev);
+          if (id) state.listCache.dirtyIds.add(id);
+        }
+        render();
+      }
+
+      function getRuleIconId(r) {
+        const o = r.output || {};
+        if (o.mode === "item" && o.item) return { id: String(o.item), type: "item" };
+        if (o.mode === "ecliptic_seasons" && o.item) return { id: String(o.item), type: "item" };
+        if (o.mode === "dynamic_pricing" && !o.coin && o.item) return { id: String(o.item), type: "item" };
+        // 优先取第一个物品输入，其次取第一个 tag 输入
+        const inItem = (r.inputs || []).find((i) => i && i.kind === "item" && i.value);
+        if (inItem) return { id: String(inItem.value), type: "item" };
+        const inTag = (r.inputs || []).find((i) => i && i.kind === "tag" && i.value);
+        if (inTag) {
+          const v = String(inTag.value).trim();
+          return { id: v.startsWith("#") ? v : ("#" + v), type: "tag" };
+        }
+        return null;
+      }
+
+      /** 根据 icon 信息获取实际 URL（item 或 tag） */
+      function resolveIconUrl(iconInfo) {
+        if (!iconInfo) return null;
+        if (iconInfo.type === "tag" && state.tagIconMap.has(iconInfo.id)) {
+          return state.tagIconMap.get(iconInfo.id);
+        }
+        if (state.iconCacheReady && state.iconCacheMap.has(iconInfo.id)) {
+          return state.iconCacheMap.get(iconInfo.id);
+        }
+        return null;
+      }
+
+      function ensureListStructure() {
+        const list = $("list");
+        if (!list) return null;
+        if (list.dataset.vlist === "1") {
+          return { list, top: document.getElementById("listTopSpacer"), host: document.getElementById("listItemsHost"), bottom: document.getElementById("listBottomSpacer") };
+        }
+        list.dataset.vlist = "1";
+        list.style.position = "relative";
+        list.innerHTML = "";
+        const top = document.createElement("div");
+        top.id = "listTopSpacer";
+        const host = document.createElement("div");
+        host.id = "listItemsHost";
+        host.style.display = "flex";
+        host.style.flexDirection = "column";
+        host.style.gap = "16px";
+        const bottom = document.createElement("div");
+        bottom.id = "listBottomSpacer";
+        list.appendChild(top);
+        list.appendChild(host);
+        list.appendChild(bottom);
+        list.addEventListener("scroll", () => requestListViewport(false));
+        return { list, top, host, bottom };
+      }
+
+      function requestListViewport(force) {
+        const cache = state.listCache;
+        if (force) cache.forceNext = true;
+        if (cache.raf) return;
+        cache.raf = requestAnimationFrame(() => {
+          cache.raf = null;
+          renderListViewport(cache.forceNext);
+          cache.forceNext = false;
+        });
+      }
+
+      function buildRuleListItem(r, idx) {
+        const el = document.createElement("div");
+        el.className = "item entering" + (r.id === state.selectedId ? " active" : "");
+        el.dataset.id = r.id;
+        // 交错入场
+        el.style.transition = "opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)";
+        el.style.transitionDelay = ((idx || 0) * 0.04) + "s";
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.classList.remove("entering");
+          });
+        });
+        el.onclick = () => setSelected(r.id);
+        el.draggable = true;
+
+        // 左侧背景图标（半透明像素风）
+        const bgImg = document.createElement("img");
+        bgImg.className = "item-icon-bg";
+        bgImg.alt = "";
+        bgImg.dataset.role = "ruleIconBg";
+        bgImg.src = TRANSPARENT_IMG;
+        el.appendChild(bgImg);
+        el.addEventListener("dragstart", (e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", r.id);
+          el.classList.add("dragging");
+        });
+        el.addEventListener("dragend", () => {
+          el.classList.remove("dragging");
+        });
+        el.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          el.classList.add("drag-over");
+        });
+        el.addEventListener("dragleave", () => {
+          el.classList.remove("drag-over");
+        });
+        el.addEventListener("drop", (e) => {
+          e.preventDefault();
+          el.classList.remove("drag-over");
+          const dragId = e.dataTransfer.getData("text/plain");
+          moveRuleBefore(dragId, r.id);
+        });
+
+        const top = document.createElement("div");
+        top.className = "item-top";
+
+        const left = document.createElement("div");
+        left.style.display = "flex";
+        left.style.alignItems = "center";
+        left.style.gap = "8px";
+
+        // 拖动把手提示
+        const grip = document.createElement("div");
+        grip.textContent = "⋮⋮";
+        grip.style.fontSize = "14px";
+        grip.style.color = "var(--muted)";
+        grip.style.cursor = "grab";
+        grip.style.paddingRight = "6px";
+        grip.style.opacity = "0.5";
+        grip.style.lineHeight = "1";
+        grip.style.userSelect = "none";
+        grip.style.transition = "opacity 0.2s ease, color 0.2s ease";
+        grip.onmouseenter = () => { grip.style.opacity = "1"; grip.style.color = "var(--accent)"; };
+        grip.onmouseleave = () => { grip.style.opacity = "0.5"; grip.style.color = "var(--muted)"; };
+        left.appendChild(grip);
+
+        const titleDiv = document.createElement("div");
+        titleDiv.className = "item-title";
+        titleDiv.dataset.role = "ruleTitle";
+        left.appendChild(titleDiv);
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.dataset.role = "ruleBadge";
+
+        top.appendChild(left);
+        top.appendChild(badge);
+
+        const sub = document.createElement("div");
+        sub.className = "item-sub";
+        sub.dataset.role = "ruleSub";
+
+        const actions = document.createElement("div");
+        actions.className = "row";
+        actions.style.marginTop = "10px";
+        const dup = document.createElement("div");
+        dup.className = "chip";
+        dup.textContent = t("btnDuplicate");
+        dup.onclick = (ev) => {
+          ev.stopPropagation();
+          const copy = JSON.parse(JSON.stringify(r));
+          copy.id = "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2);
+          const idx = state.rules.findIndex(x => x.id === r.id);
+          state.rules.splice(idx + 1, 0, copy);
+          state.rulesVersion++;
+          state.selectedId = copy.id;
+          scheduleRenderList();
+          renderEditor();
+        };
+        const del = document.createElement("div");
+        del.className = "chip";
+        del.textContent = t("btnDelete");
+        del.onclick = (ev) => {
+          ev.stopPropagation();
+          el.classList.add("removing");
+          setTimeout(() => {
+            const idx = state.rules.findIndex(x => x.id === r.id);
+            if (idx >= 0) state.rules.splice(idx, 1);
+            state.rulesVersion++;
+            state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
+            scheduleRenderList();
+            renderEditor();
+          }, 250);
+        };
+        actions.appendChild(dup);
+        actions.appendChild(del);
+
+        el.appendChild(top);
+        el.appendChild(sub);
+        el.appendChild(actions);
+        updateRuleListItem(el, r);
+        return el;
+      }
+
+      function updateRuleListItem(el, r) {
+        if (!el || !r) return;
+        el.classList.toggle("active", r.id === state.selectedId);
+        const title = el.querySelector('[data-role="ruleTitle"]');
+        if (title) title.textContent = summarizeRule(r);
+
+        const badge = el.querySelector('[data-role="ruleBadge"]');
+        const matchInfo = getRuleMatchInfo(r);
+        if (badge) {
+          badge.textContent = r.output && r.output.mode ? modeLabel(r.output.mode) : t("badgeRule");
+          // 添加匹配优先级样式类
+          badge.className = 'badge match-' + matchInfo.level;
+        }
+
+        const sub = el.querySelector('[data-role="ruleSub"]');
+        if (sub) {
+          const info = matchInfo;
+          sub.innerHTML = t("itemSub", (r.inputs || []).length) + 
+            ` <span class="match-hint ${info.level}">${info.label}</span>`;
+        }
+
+        // 背景图标：左侧半透明物品/tag 图标
+        const bgImg = el.querySelector('img[data-role="ruleIconBg"]');
+        if (bgImg) {
+          const iconInfo = getRuleIconId(r);
+          const url = resolveIconUrl(iconInfo);
+          if (url) {
+            bgImg.src = url;
+            bgImg.style.display = "";
+          } else {
+            bgImg.src = TRANSPARENT_IMG;
+          }
+        }
+      }
+
+      function moveRuleBefore(dragId, targetId) {
+        if (!dragId || !targetId || dragId === targetId) return;
+        const from = state.rules.findIndex(x => x.id === dragId);
+        const to = state.rules.findIndex(x => x.id === targetId);
+        if (from < 0 || to < 0) return;
+        const [item] = state.rules.splice(from, 1);
+        const insertAt = from < to ? to - 1 : to;
+        state.rules.splice(insertAt, 0, item);
+        state.rulesVersion++;
+
+        // 拖动排序后的小动画提示
+        scheduleRenderList();
+
+        // 延迟添加一个临时高亮动画
+        setTimeout(() => {
+          const list = $("list");
+          if (list) {
+            list.classList.add("just-reordered");
+            setTimeout(() => list.classList.remove("just-reordered"), 600);
+          }
+        }, 50);
+      }
+
+      function renderListViewport(force) {
+        const parts = ensureListStructure();
+        if (!parts) return;
+        const { list, top, host, bottom } = parts;
+        const cache = state.listCache;
+        const view = cache.view || [];
+        const total = view.length;
+        const rowH = Math.max(48, Math.trunc(cache.rowH || 104));
+        const overscan = 6;
+        const scrollTop = list.scrollTop || 0;
+        const vh = list.clientHeight || 0;
+        let start = Math.floor(scrollTop / rowH) - overscan;
+        let end = Math.ceil((scrollTop + vh) / rowH) + overscan;
+        if (start < 0) start = 0;
+        if (end > total) end = total;
+        const sameRange = cache.range.start === start && cache.range.end === end;
+        if (!force && sameRange && cache.dirtyIds.size === 0) return;
+        cache.range = { start, end };
+
+        const nextEls = new Map();
+        const frag = document.createDocumentFragment();
+        for (let i = start; i < end; i++) {
+          const r = view[i];
+          const el = buildRuleListItem(r, i);
+          nextEls.set(r.id, el);
+          frag.appendChild(el);
+        }
+
+        host.innerHTML = "";
+        host.appendChild(frag);
+        cache.renderedEls = nextEls;
+        top.style.height = (start * rowH) + "px";
+        bottom.style.height = ((total - end) * rowH) + "px";
+
+        if (!cache.measured && host.firstElementChild) {
+          requestAnimationFrame(() => {
+            const h = host.firstElementChild.getBoundingClientRect().height;
+            if (h && Number.isFinite(h) && h >= 60 && h <= 220) {
+              cache.rowH = Math.round(h + 8);
+              cache.measured = true;
+              requestListViewport(true);
+            } else {
+              cache.measured = true;
+            }
+          });
+        }
+
+        if (cache.dirtyIds.size) cache.dirtyIds.clear();
+      }
+
+      function renderList() {
+        const cache = state.listCache;
+        const q = state.filter.trim().toLowerCase();
+        const needRecalc = cache.version !== state.rulesVersion || cache.filter !== q;
+        if (needRecalc) {
+          cache.byId = new Map(state.rules.map((r) => [r.id, r]));
+          cache.filter = q;
+          cache.version = state.rulesVersion;
+          cache.measured = false;
+          cache.view = state.rules.filter((r) => {
+            if (!q) return true;
+            const text = summarizeRule(r).toLowerCase();
+            const type = (r.output && r.output.mode) ? String(r.output.mode) : "";
+            return text.includes(q) || type.includes(q);
+          });
+          cache.dirtyIds.clear();
+        }
+
+        $("ruleCount").textContent = String(cache.view.length);
+        requestListViewport(needRecalc);
+        if (!needRecalc && cache.dirtyIds.size) requestListViewport(false);
+      }
+
+      function escapeHtml(s) {
+        return String(s || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function isValidNamespaceId(value) {
+        return /^[a-z0-9_.-]+:[a-z0-9_./-]+$/.test(String(value || "").trim());
+      }
+
+      function iconUrl(id) {
+        return "/api/icon?token=" + encodeURIComponent(token) + "&id=" + encodeURIComponent(id);
+      }
+
+      function createIconBox() {
+        const box = document.createElement("div");
+        box.className = "iconbox";
+        const img = document.createElement("img");
+        img.alt = "";
+        img.decoding = "async";
+        img.src = TRANSPARENT_IMG;
+        img.onerror = () => { img.src = TRANSPARENT_IMG; };
+        box.appendChild(img);
+        return { box, img };
+      }
+
+      function updateIconForValue(img, value) {
+        const v = String(value || "").trim();
+        if (!isValidNamespaceId(v)) {
+          img.src = TRANSPARENT_IMG;
+          return;
+        }
+
+        // Prefer disk cache if available (much faster, no on-the-fly extraction)
+        if (state.iconCacheReady && state.iconCacheMap.has(v)) {
+          img.src = state.iconCacheMap.get(v);
+          return;
+        }
+
+        if (!state.registryItemsSet || !state.registryItemsSet.has(v)) {
+          img.src = iconUrl("minecraft:barrier");
+          return;
+        }
+        img.src = iconUrl(v);
+      }
+
+      /** tag 输入框：根据 tagIconMap 显示对应图标 */
+      function bindTagIcon(input, img) {
+        const update = () => {
+          const v = String(input.value || "").trim();
+          const tagId = v.startsWith("#") ? v : ("#" + v);
+          const url = state.tagIconMap.get(tagId);
+          if (url) {
+            img.src = url;
+          } else {
+            img.src = TRANSPARENT_IMG;
+          }
+        };
+        input.addEventListener("input", update);
+        update();
+      }
+
+      function bindDebouncedIcon(input, img) {
+        let timer = null;
+        const update = () => updateIconForValue(img, input.value);
+        input.addEventListener("input", () => {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(update, 300);
+        });
+        update();
+      }
+
+      const ac = {
+        layer: null,
+        input: null,
+        type: null,
+        items: [],
+        index: -1,
+        hideTimer: null
+      };
+
+      function ensureAutocompleteLayer() {
+        if (ac.layer) return ac.layer;
+        const layer = document.createElement("div");
+        layer.id = "acLayer";
+        layer.style.display = "none";
+        layer.style.position = "absolute";
+        layer.style.zIndex = "9999";
+        layer.style.minWidth = "240px";
+        layer.style.maxWidth = "520px";
+        layer.style.maxHeight = "320px";
+        layer.style.overflow = "auto";
+        layer.style.padding = "6px";
+        layer.style.borderRadius = "14px";
+        layer.style.border = "1px solid var(--border)";
+        layer.style.background = "var(--panel-2)";
+        layer.style.boxShadow = "var(--shadow)";
+        layer.style.backdropFilter = "blur(18px)";
+        layer.style.userSelect = "none";
+        layer.style.transition = "opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease";
+
+        layer.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+        });
+
+        document.body.appendChild(layer);
+        ac.layer = layer;
+
+        const reposition = () => {
+          if (!ac.input || !ac.layer || ac.layer.style.display === "none") return;
+          const rect = ac.input.getBoundingClientRect();
+          ac.layer.style.left = (window.scrollX + rect.left) + "px";
+          ac.layer.style.top = (window.scrollY + rect.bottom + 6) + "px";
+          ac.layer.style.minWidth = rect.width + "px";
+        };
+
+        window.addEventListener("scroll", reposition, true);
+        window.addEventListener("resize", reposition);
+        return layer;
+      }
+
+      function hideAutocompleteNow() {
+        if (ac.hideTimer) clearTimeout(ac.hideTimer);
+        ac.hideTimer = null;
+        if (ac.layer) {
+          ac.layer.style.opacity = "0";
+          ac.layer.style.transform = "scale(0.95) translateY(-6px)";
+          const l = ac.layer;
+          setTimeout(() => { l.style.display = "none"; }, 150);
+        }
+        ac.input = null;
+        ac.type = null;
+        ac.items = [];
+        ac.index = -1;
+      }
+
+      function scheduleHideAutocomplete() {
+        if (ac.hideTimer) clearTimeout(ac.hideTimer);
+        ac.hideTimer = setTimeout(() => hideAutocompleteNow(), 120);
+      }
+
+      function normalizeTagId(v) {
+        const s = String(v || "").trim();
+        return s.startsWith("#") ? s.slice(1) : s;
+      }
+
+      function formatTagValue(v) {
+        const s = String(v || "").trim();
+        if (!s) return "";
+        return s.startsWith("#") ? s : ("#" + s);
+      }
+
+      function getSuggestions(type, query) {
+        const q = String(query || "").trim().toLowerCase();
+        if (type === "tag") {
+          const qn = normalizeTagId(q);
+          const src = Array.isArray(state.registry.tags) ? state.registry.tags : [];
+          const out = [];
+          for (const raw of src) {
+            const id = normalizeTagId(raw);
+            const hay = id.toLowerCase();
+            if (!qn || hay.includes(qn)) {
+              const iconId = state.tagIconMap.get(formatTagValue(id)) || "";
+              out.push({ type: "tag", value: formatTagValue(id), label: formatTagValue(id), iconId: iconId });
+              if (out.length >= 60) break;
+            }
+          }
+          return out;
+        }
+        // item 类型：优先用 manifest 中的 displayName，并支持按 displayName 搜索
+        const src = Array.isArray(state.registry.items) ? state.registry.items : [];
+        const exact = [];  // query is prefix of displayName or id
+        const fuzzy = [];  // query appears anywhere in displayName or id
+        for (const id of src) {
+          const idLower = String(id || "").toLowerCase();
+          const dn = state.displayNameMap.get(id) || "";
+          const dnLower = dn.toLowerCase();
+          const matchId = idLower.includes(q);
+          const matchDn = dnLower.includes(q);
+          if ((!q) || matchId || matchDn) {
+            const label = dn || String(id);
+            const entry = { type: "item", value: String(id), label: label, iconId: String(id) };
+            // query 是 displayName 或 id 的前缀 → 优先
+            if (q && (dnLower.startsWith(q) || idLower.startsWith(q))) {
+              exact.push(entry);
+            } else {
+              fuzzy.push(entry);
+            }
+            if (exact.length + fuzzy.length >= 60) break;
+          }
+        }
+        return exact.concat(fuzzy);
+      }
+
+      function renderAutocomplete() {
+        const layer = ensureAutocompleteLayer();
+        layer.innerHTML = "";
+        for (let i = 0; i < ac.items.length; i++) {
+          const it = ac.items[i];
+          const row = document.createElement("div");
+          row.className = "item";
+          row.style.display = "flex";
+          row.style.alignItems = "center";
+          row.style.gap = "10px";
+          row.style.padding = "10px 10px";
+          row.style.margin = "0";
+          row.style.cursor = "pointer";
+          row.style.borderRadius = "12px";
+          row.style.border = "1px solid transparent";
+          row.style.background = (i === ac.index) ? "var(--hover)" : "transparent";
+          row.addEventListener("mouseenter", () => {
+            ac.index = i;
+            renderAutocomplete();
+          });
+          row.addEventListener("click", () => {
+            applyAutocompleteSelection(i);
+          });
+
+          if (it.type === "tag") {
+            if (it.iconId) {
+              const { box, img } = createIconBox();
+              img.src = it.iconId;
+              row.appendChild(box);
+            } else {
+              const badge = document.createElement("div");
+              badge.className = "badge";
+              badge.textContent = "#";
+              row.appendChild(badge);
+            }
+          } else {
+            const { box, img } = createIconBox();
+            updateIconForValue(img, it.iconId);
+            row.appendChild(box);
+          }
+
+          const text = document.createElement("div");
+          text.style.flex = "1";
+          text.style.minWidth = "0";
+          text.style.fontSize = "12.5px";
+          text.style.whiteSpace = "nowrap";
+          text.style.overflow = "hidden";
+          text.style.textOverflow = "ellipsis";
+          text.textContent = it.label;
+          row.appendChild(text);
+
+          layer.appendChild(row);
+        }
+
+        if (!ac.items.length) {
+          const empty = document.createElement("div");
+          empty.className = "help";
+          empty.style.padding = "10px 10px";
+          empty.textContent = "—";
+          layer.appendChild(empty);
+        }
+      }
+
+      function showAutocomplete(input, type) {
+        if (!input) return;
+        const layer = ensureAutocompleteLayer();
+        ac.input = input;
+        ac.type = type;
+        ac.items = getSuggestions(type, input.value);
+        ac.index = ac.items.length ? 0 : -1;
+        renderAutocomplete();
+
+        const rect = input.getBoundingClientRect();
+        layer.style.left = (window.scrollX + rect.left) + "px";
+        layer.style.top = (window.scrollY + rect.bottom + 6) + "px";
+        layer.style.minWidth = rect.width + "px";
+        // 入场动画
+        layer.style.display = "block";
+        layer.style.opacity = "0";
+        layer.style.transform = "scale(0.95) translateY(-6px)";
+        requestAnimationFrame(() => {
+          layer.style.opacity = "1";
+          layer.style.transform = "scale(1) translateY(0)";
+        });
+      }
+
+      function applyAutocompleteSelection(index) {
+        if (!ac.input) return;
+        const it = ac.items[index];
+        if (!it) return;
+        const input = ac.input;
+        input.value = it.value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        hideAutocompleteNow();
+        input.focus();
+      }
+
+      function attachAutocomplete(input, type) {
+        if (!input) return;
+        input.setAttribute("autocomplete", "off");
+        input.addEventListener("focus", () => showAutocomplete(input, type));
+        input.addEventListener("input", () => showAutocomplete(input, type));
+        input.addEventListener("blur", () => scheduleHideAutocomplete());
+        input.addEventListener("keydown", (e) => {
+          if (!ac.layer || ac.layer.style.display === "none" || ac.input !== input) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            ac.index = Math.min(ac.items.length - 1, ac.index + 1);
+            renderAutocomplete();
+            ensureAutocompleteLayer().children[ac.index]?.scrollIntoView({ block: "nearest" });
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            ac.index = Math.max(0, ac.index - 1);
+            renderAutocomplete();
+            ensureAutocompleteLayer().children[ac.index]?.scrollIntoView({ block: "nearest" });
+          } else if (e.key === "Enter") {
+            if (ac.index >= 0) {
+              e.preventDefault();
+              applyAutocompleteSelection(ac.index);
+            }
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            hideAutocompleteNow();
+          }
+        });
+      }
+
+      function chipGroup(options, active, onChange) {
+        const row = document.createElement("div");
+        row.className = "row";
+        for (const opt of options) {
+          const c = document.createElement("div");
+          c.className = "chip" + (opt.value === active ? " active" : "");
+          c.textContent = opt.label;
+          c.onclick = () => { onChange(opt.value); notifyChange(); };
+          row.appendChild(c);
+        }
+        return row;
+      }
+
+      function renderEditor() {
+        hideAutocompleteNow();
+        const editor = $("editor");
+        const r = selectedRule();
+        // 内容淡入
+        editor.style.transition = "opacity 0.15s ease";
+        editor.style.opacity = "0";
+        setTimeout(() => {
+          if (!r) {
+            editor.innerHTML = `
+              <div class="help">${escapeHtml(t("helpEmpty"))}</div>
+            `;
+            $("editorTitle").textContent = t("editor");
+            $("editorMeta").textContent = "";
+            editor.style.opacity = "1";
+            return;
+          }
+
+          $("editorTitle").textContent = t("editorRule");
+          $("editorMeta").textContent = t("editorMeta", r.inputs.length, modeLabel(r.output && r.output.mode ? r.output.mode : ""));
+
+        const root = document.createElement("div");
+        root.className = "grid";
+
+        const inputsHeader = document.createElement("div");
+        inputsHeader.className = "field";
+        inputsHeader.innerHTML = `<div class="label">${escapeHtml(t("inputsLabel"))}</div><div class="help">${escapeHtml(t("inputsHelp"))}</div>`;
+        root.appendChild(inputsHeader);
+
+        const inputBtns = document.createElement("div");
+        inputBtns.className = "field";
+        const row = document.createElement("div");
+        row.className = "row";
+        const addItem = document.createElement("button");
+        addItem.className = "btn";
+        addItem.textContent = t("addInput");
+        addItem.onclick = () => {
+          r.inputs.push({ kind: "item", value: "", count: 1, componentsText: "" });
+          render();
+        };
+        const clearInputs = document.createElement("button");
+        clearInputs.className = "btn ghost";
+        clearInputs.textContent = t("clearInputs");
+        clearInputs.onclick = () => {
+          r.inputs = [];
+          render();
+        };
+        row.appendChild(addItem);
+        row.appendChild(clearInputs);
+        inputBtns.appendChild(row);
+        root.appendChild(inputBtns);
+
+        r.inputs.forEach((inp, idx) => {
+          const kindField = document.createElement("div");
+          kindField.className = "field third";
+          kindField.innerHTML = `<div class="label">${escapeHtml(t("labelType"))}</div>`;
+          kindField.appendChild(chipGroup(
+            [{ label: t("kindItem"), value: "item" }, { label: t("kindTag"), value: "tag" }],
+            inp.kind,
+            (v) => { inp.kind = v; render(); }
+          ));
+          root.appendChild(kindField);
+
+          const valueField = document.createElement("div");
+          valueField.className = "field";
+          valueField.style.gridColumn = "span 6";
+          valueField.innerHTML = `<div class="label">${escapeHtml(inp.kind === "tag" ? t("labelTagId") : t("labelItemId"))}</div>`;
+          const valueInput = document.createElement("input");
+          valueInput.className = "input";
+          valueInput.placeholder = inp.kind === "tag" ? t("placeholderTagId") : t("placeholderItemId");
+          valueInput.value = inp.value || "";
+          valueInput.oninput = (e) => { inp.value = e.target.value; notifyChange(); };
+          const valueRow = document.createElement("div");
+          valueRow.className = "input-row";
+          if (inp.kind === "item") {
+            valueRow.appendChild(valueInput);
+            attachAutocomplete(valueInput, "item");
+          } else {
+            valueRow.appendChild(valueInput);
+            attachAutocomplete(valueInput, "tag");
+          }
+          valueField.appendChild(valueRow);
+          root.appendChild(valueField);
+
+          const countField = document.createElement("div");
+          countField.className = "field third";
+          countField.innerHTML = `<div class="label">${escapeHtml(t("labelCount"))}</div>`;
+          const countInput = document.createElement("input");
+          countInput.className = "input";
+          countInput.type = "number";
+          countInput.min = "1";
+          countInput.step = "1";
+          countInput.value = String(inp.count || 1);
+          countInput.oninput = (e) => { inp.count = Number(e.target.value || 1); notifyChange(); };
+          countField.appendChild(countInput);
+          root.appendChild(countField);
+
+        // Quality moved into presets panel below
+
+          const compField = document.createElement("div");
+          compField.className = "field";
+          compField.innerHTML = `
+            <div class="label">${escapeHtml(t("labelComponents"))} <span style="font-size:11px;color:var(--muted)">（数据组件 / Data Components）</span></div>
+            <div class="help">支持原版和联动模组组件（如 quality_food、tide、kaleidoscope_tavern 等）。可直接写 JSON 或使用下方助手快速添加。多个组件会合并。</div>
+          `;
+          const comp = document.createElement("textarea");
+          comp.className = "textarea";
+          comp.placeholder = t("placeholderComponentsExampleInput");
+          comp.value = inp.componentsText || "";
+          comp.oninput = (e) => { inp.componentsText = e.target.value; render(); /* 实时刷新预览 */ };
+          compField.appendChild(comp);
+
+          // 实时组件预览
+          const preview = document.createElement("div");
+          preview.style.fontSize = "11px";
+          preview.style.marginTop = "4px";
+          preview.style.color = "var(--muted)";
+          preview.style.whiteSpace = "pre-wrap";
+          preview.style.maxHeight = "60px";
+          preview.style.overflow = "auto";
+          const updatePreview = () => {
+            try {
+              const parsed = parseMaybeJson(comp.value);
+              if (parsed && typeof parsed === "object") {
+                preview.textContent = "当前组件: " + JSON.stringify(parsed, null, 0);
+              } else if (comp.value.trim()) {
+                preview.textContent = "当前: " + comp.value.trim();
+              } else {
+                preview.textContent = "（无组件）";
+              }
+            } catch (e) {
+              preview.textContent = "格式有误: " + e.message;
+            }
+          };
+          comp.oninput = (e) => { inp.componentsText = e.target.value; updatePreview(); };
+          updatePreview();
+          compField.appendChild(preview);
+
+          const presetsField = renderPresetsField(() => inp.componentsText, (next) => { inp.componentsText = next; render(); });
+          compField.appendChild(presetsField);
+
+          // 可视化组件构建器按钮
+          const addCompBtn = document.createElement("button");
+          addCompBtn.className = "btn";
+          addCompBtn.style.marginTop = "6px";
+          addCompBtn.textContent = t("addComponent") || "添加组件";
+          addCompBtn.onclick = () => {
+            const builder = createComponentBuilder(() => inp.componentsText, (newText) => {
+              inp.componentsText = newText;
+              render();
+            });
+            // 当面板关闭时恢复按钮
+            const origRemove = builder.remove.bind(builder);
+            builder.remove = () => {
+              origRemove();
+              addCompBtn.disabled = false;
+            };
+            compField.appendChild(builder);
+            addCompBtn.disabled = true;
+          };
+          compField.appendChild(addCompBtn);
+
+          const removeRow = document.createElement("div");
+          removeRow.className = "row";
+          const removeBtn = document.createElement("button");
+          removeBtn.className = "btn danger";
+          removeBtn.textContent = t("removeInput");
+          removeBtn.onclick = () => {
+            r.inputs.splice(idx, 1);
+            render();
+          };
+          removeRow.appendChild(removeBtn);
+          compField.appendChild(removeRow);
+          root.appendChild(compField);
+
+          const sep = document.createElement("div");
+          sep.className = "sep";
+          sep.style.gridColumn = "span 12";
+          root.appendChild(sep);
+        });
+
+        // 新增：规则匹配说明（解决“匹配不清晰”问题）
+        const matchInfo = getRuleMatchInfo(r);
+        const matchBox = document.createElement("div");
+        matchBox.className = "field";
+        matchBox.innerHTML = `
+          <div class="label">规则匹配优先级</div>
+          <div class="help">后端会按优先级选择最匹配的规则（组件 > 精确物品 > 标签）。</div>
+          <div style="margin-top:4px; padding:8px 10px; border-radius:8px; background:var(--panel); border:1px solid var(--border); font-size:12px;">
+            <strong class="match-hint ${matchInfo.level}" style="font-size:12px;">${matchInfo.label}</strong>
+            <div style="margin-top:4px; color:var(--muted);">${matchInfo.desc}</div>
+          </div>
+        `;
+        root.appendChild(matchBox);
+
+        const matchTest = document.createElement("div");
+        matchTest.className = "field";
+        matchTest.innerHTML = `
+          <div class="label">快速匹配测试</div>
+          <div class="help">输入一个物品 ID，快速检查当前规则的输入条件是否能匹配它（简化预览）。</div>
+          <div class="row" style="gap:8px; margin-top:6px;">
+            <input id="testItem" class="input" placeholder="minecraft:stone" style="flex:1;" />
+            <button id="testMatchBtn" class="btn">测试是否匹配</button>
+          </div>
+          <div id="testMatchResult" style="margin-top:6px; font-size:12px; min-height:18px;"></div>
+        `;
+        root.appendChild(matchTest);
+
+        // 绑定测试按钮（简单客户端预览）
+        setTimeout(() => {
+          const testInput = matchTest.querySelector('#testItem');
+          const btn = matchTest.querySelector('#testMatchBtn');
+          const result = matchTest.querySelector('#testMatchResult');
+          if (btn && testInput) {
+            btn.onclick = () => {
+              const testId = (testInput.value || '').trim();
+              if (!testId) {
+                result.textContent = '请输入物品ID';
+                return;
+              }
+              const matches = (r.inputs || []).some(inp => {
+                const val = (inp.value || '').trim();
+                if (!val) return false;
+                if (inp.kind === 'item') {
+                  return val === testId || (testId.startsWith(val + ':') === false && val === testId.split(':')[0]); // 简单匹配
+                } else {
+                  // tag 简化认为可能匹配
+                  return true;
+                }
+              });
+              const info = getRuleMatchInfo(r);
+              result.innerHTML = matches 
+                ? `<span style="color:#30d158">✓ 当前规则的输入条件可能匹配该物品</span>（实际以服务端精确匹配为准，优先级：${info.label}）`
+                : `<span style="color:#ff453a">✗ 当前输入条件无法匹配该物品</span>`;
+            };
+            testInput.onkeydown = (e) => { if (e.key === 'Enter') btn.click(); };
+          }
+        }, 0);
+
+        const outHeader = document.createElement("div");
+        outHeader.className = "field";
+        outHeader.innerHTML = `<div class="label">${escapeHtml(t("outputLabel"))}</div><div class="help">${escapeHtml(t("outputHelp"))}</div>`;
+        root.appendChild(outHeader);
+
+        const outModeField = document.createElement("div");
+        outModeField.className = "field";
+        outModeField.appendChild(chipGroup(
+          [
+            { label: t("modeItem"), value: "item" },
+            { label: t("modeCoin"), value: "coin" },
+            { label: t("modeDynamicPricing"), value: "dynamic_pricing" },
+            { label: t("modeWeight"), value: "weight" },
+            { label: t("modeEclipticSeasons"), value: "ecliptic_seasons" }
+          ],
+          r.output.mode,
+          (v) => {
+            if (v === "item") r.output = { mode: "item", item: "", count: 1, componentsText: "" };
+            else if (v === "coin") r.output = { mode: "coin", count: 0 };
+            else if (v === "dynamic_pricing") r.output = { mode: "dynamic_pricing", coin: false, item: "", day: 0, thresholdText: "", valueText: "" };
+            else if (v === "weight") r.output = { mode: "weight", items: [{ item: "", count: 1, weight: 1, componentsText: "" }] };
+            else r.output = { mode: "ecliptic_seasons", item: "", count: 1, componentsText: "", seasonalOnly: false, seasonText: t("placeholderSeasonExample"), addBonus: 0, reduceBonus: 0 };
+            render();
+          }
+        ));
+        root.appendChild(outModeField);
+
+        renderOutputDetails(root, r);
+
+        const jsonField = document.createElement("div");
+        jsonField.className = "field";
+        jsonField.innerHTML = `<div class="label">${escapeHtml(t("jsonPreview"))}</div><div class="help">${escapeHtml(t("jsonHelp"))}</div>`;
+        const preview = document.createElement("textarea");
+        preview.id = "jsonPreviewBox";
+        preview.className = "textarea";
+        preview.readOnly = true;
+        preview.value = JSON.stringify(toJsonRule(r), null, 2);
+        jsonField.appendChild(preview);
+        root.appendChild(jsonField);
+
+        editor.innerHTML = "";
+        editor.appendChild(root);
+        editor.style.opacity = "1";
+        }, 0);
+      }
+
+      function renderOutputDetails(root, r) {
+        const o = r.output || {};
+        if (o.mode === "coin") {
+          const count = fieldNumberSmooth(t("coinCount"), o.count, 0, 0, (v) => { o.count = v; });
+          root.appendChild(count);
+          return;
+        }
+
+        if (o.mode === "item") {
+          const item = fieldText(t("labelItemId"), o.item, t("placeholderItemId"), (v) => { o.item = v; }, "dlItems");
+          item.classList.add("half");
+          root.appendChild(item);
+          const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; });
+          count.classList.add("half");
+          root.appendChild(count);
+          const compWrap = document.createElement("div");
+          compWrap.className = "field";
+          compWrap.innerHTML = `<div class="label">${escapeHtml(t("labelComponents"))} <span style="font-size:11px;color:var(--muted)">（支持多联动 mod）</span></div>`;
+          const comp = document.createElement("textarea");
+          comp.className = "textarea";
+          comp.placeholder = t("placeholderComponentsExampleOutput");
+          comp.value = o.componentsText || "";
+          comp.oninput = (e) => { o.componentsText = e.target.value; render(); };
+          compWrap.appendChild(comp);
+
+          const prev = document.createElement("div");
+          prev.style.cssText = "font-size:11px;margin:4px 0;color:var(--muted);max-height:50px;overflow:auto;";
+          const up = () => {
+            try {
+              const p = parseMaybeJson(comp.value);
+              prev.textContent = p && typeof p === 'object' ? JSON.stringify(p) : (comp.value || "(无)");
+            } catch(e){ prev.textContent = "格式错误"; }
+          };
+          comp.oninput = (e)=>{ o.componentsText = e.target.value; up(); };
+          up();
+          compWrap.appendChild(prev);
+
+          const presets = renderPresetsField(() => o.componentsText, (next) => { o.componentsText = next; render(); });
+          compWrap.appendChild(presets);
+
+          const addBtn = document.createElement("button");
+          addBtn.className = "btn";
+          addBtn.style.marginTop = "6px";
+          addBtn.textContent = t("addComponent") || "添加组件";
+          addBtn.onclick = () => {
+            const b = createComponentBuilder(() => o.componentsText, (nt) => { o.componentsText = nt; render(); });
+            const orig = b.remove.bind(b);
+            b.remove = () => { orig(); addBtn.disabled = false; };
+            compWrap.appendChild(b);
+            addBtn.disabled = true;
+          };
+          compWrap.appendChild(addBtn);
+
+          root.appendChild(compWrap);
+          return;
+        }
+
+        if (o.mode === "dynamic_pricing") {
+          const coinToggle = document.createElement("div");
+          coinToggle.className = "field";
+          coinToggle.innerHTML = `<div class="label">${escapeHtml(t("outputCoin"))}</div>`;
+          coinToggle.appendChild(chipGroup(
+            [{ label: t("no"), value: "no" }, { label: t("yes"), value: "yes" }],
+            o.coin ? "yes" : "no",
+            (v) => { o.coin = (v === "yes"); render(); }
+          ));
+          root.appendChild(coinToggle);
+
+          if (!o.coin) {
+            const item = fieldText(t("outputItemLabel"), o.item, t("placeholderItemId"), (v) => { o.item = v; }, "dlItems");
+            root.appendChild(item);
+          }
+
+          const day = fieldNumber(t("dynamicDayLabel"), o.day, 0, -1, (v) => { o.day = v; });
+          root.appendChild(day);
+
+          const th = fieldTextarea(t("dynamicThresholdLabel"), o.thresholdText, t("placeholderThresholdExample"), (v) => { o.thresholdText = v; });
+          root.appendChild(th);
+          const val = fieldTextarea(t("dynamicValueLabel"), o.valueText, t("placeholderValueExample"), (v) => { o.valueText = v; });
+          root.appendChild(val);
+          return;
+        }
+
+        if (o.mode === "weight") {
+          const header = document.createElement("div");
+          header.className = "field";
+          header.innerHTML = `<div class="label">${escapeHtml(t("weightedList"))}</div><div class="help">${escapeHtml(t("weightedHelp"))}</div>`;
+          root.appendChild(header);
+
+          const row = document.createElement("div");
+          row.className = "field";
+          const buttons = document.createElement("div");
+          buttons.className = "row";
+          const add = document.createElement("button");
+          add.className = "btn";
+          add.textContent = t("addCandidate");
+          add.onclick = () => { o.items.push({ item: "", count: 1, weight: 1, componentsText: "" }); render(); };
+          const clear = document.createElement("button");
+          clear.className = "btn ghost";
+          clear.textContent = t("clearCandidates");
+          clear.onclick = () => { o.items = []; render(); };
+          buttons.appendChild(add);
+          buttons.appendChild(clear);
+          row.appendChild(buttons);
+          root.appendChild(row);
+
+          o.items.forEach((w, idx) => {
+            const item = fieldText(t("candidateItemLabel"), w.item, t("placeholderItemId"), (v) => { w.item = v; }, "dlItems");
+            item.classList.add("half");
+            root.appendChild(item);
+            const count = fieldNumber(t("labelCount"), w.count, 1, 1, (v) => { w.count = v; });
+            count.classList.add("third");
+            root.appendChild(count);
+            const weight = fieldNumber(t("weightLabel"), w.weight, 1, 1, (v) => { w.weight = v; });
+            weight.classList.add("third");
+            root.appendChild(weight);
+            const comp = fieldTextarea(t("labelComponents"), w.componentsText, "", (v) => { w.componentsText = v; });
+            root.appendChild(comp);
+            const presets = renderPresetsField(() => w.componentsText, (next) => { w.componentsText = next; render(); });
+            root.appendChild(presets);
+
+            const addBtn = document.createElement("button");
+            addBtn.className = "btn";
+            addBtn.textContent = t("addComponent") || "添加组件";
+            addBtn.onclick = () => {
+              const b = createComponentBuilder(() => w.componentsText, (nt) => { w.componentsText = nt; render(); });
+              root.appendChild(b);
+              addBtn.disabled = true;
+            };
+            root.appendChild(addBtn);
+
+            const remove = document.createElement("div");
+            remove.className = "field";
+            const rr = document.createElement("div");
+            rr.className = "row";
+            const btn = document.createElement("button");
+            btn.className = "btn danger";
+            btn.textContent = t("removeCandidate");
+            btn.onclick = () => { o.items.splice(idx, 1); render(); };
+            rr.appendChild(btn);
+            remove.appendChild(rr);
+            root.appendChild(remove);
+
+            const sep = document.createElement("div");
+            sep.className = "sep";
+            sep.style.gridColumn = "span 12";
+            root.appendChild(sep);
+          });
+          return;
+        }
+
+        if (o.mode === "ecliptic_seasons") {
+          const item = fieldText(t("outputItemLabel"), o.item, t("placeholderItemId"), (v) => { o.item = v; }, "dlItems");
+          item.classList.add("half");
+          root.appendChild(item);
+          const count = fieldNumber(t("labelCount"), o.count, 1, 1, (v) => { o.count = v; });
+          count.classList.add("half");
+          root.appendChild(count);
+          const seasons = fieldText(t("seasonLabel"), o.seasonText, t("placeholderSeasonExample"), (v) => { o.seasonText = v; });
+          root.appendChild(seasons);
+
+          const seasonalOnly = document.createElement("div");
+          seasonalOnly.className = "field";
+          seasonalOnly.innerHTML = `<div class="label">${escapeHtml(t("seasonalOnlyLabel"))}</div>`;
+          seasonalOnly.appendChild(chipGroup(
+            [{ label: t("no"), value: "no" }, { label: t("yes"), value: "yes" }],
+            o.seasonalOnly ? "yes" : "no",
+            (v) => { o.seasonalOnly = (v === "yes"); }
+          ));
+          root.appendChild(seasonalOnly);
+
+          const addBonus = fieldNumber(t("addBonusLabel"), o.addBonus, 0, 0, (v) => { o.addBonus = v; });
+          addBonus.classList.add("half");
+          root.appendChild(addBonus);
+          const reduceBonus = fieldNumber(t("reduceBonusLabel"), o.reduceBonus, 0, 0, (v) => { o.reduceBonus = v; });
+          reduceBonus.classList.add("half");
+          root.appendChild(reduceBonus);
+
+          const comp = fieldTextarea(t("labelComponents"), o.componentsText, "", (v) => { o.componentsText = v; });
+          root.appendChild(comp);
+          const presets = renderPresetsField(() => o.componentsText, (next) => { o.componentsText = next; render(); });
+          root.appendChild(presets);
+
+          const addBtn = document.createElement("button");
+          addBtn.className = "btn";
+          addBtn.textContent = t("addComponent") || "添加组件";
+          addBtn.onclick = () => {
+            const b = createComponentBuilder(() => o.componentsText, (nt) => { o.componentsText = nt; render(); });
+            root.appendChild(b);
+            addBtn.disabled = true;
+          };
+          root.appendChild(addBtn);
+          return;
+        }
+      }
+
+      /** 自定义下拉选择器，风格与整体 UI 一致 */
+      function customSelect(options, currentValue, onChange) {
+        const el = document.createElement("div");
+        el.className = "input";
+        el.style.position = "relative";
+        el.style.cursor = "pointer";
+        el.style.display = "flex";
+        el.style.alignItems = "center";
+        el.style.justifyContent = "space-between";
+        el.style.userSelect = "none";
+
+        const label = document.createElement("span");
+        const arrow = document.createElement("span");
+        arrow.textContent = "▾";
+        arrow.style.fontSize = "10px";
+        arrow.style.opacity = "0.5";
+        arrow.style.transition = "transform 0.2s ease";
+
+        const setLabel = (val) => {
+          const opt = options.find(o => o.value === val);
+          label.textContent = opt ? opt.label : (options[0] ? options[0].label : "");
+          label.style.opacity = val ? "1" : "0.45";
+        };
+        setLabel(currentValue);
+        el.appendChild(label);
+        el.appendChild(arrow);
+
+        let open = false;
+        let layer = null;
+
+        const reposition = () => {
+          if (!layer) return;
+          const r = el.getBoundingClientRect();
+          layer.style.left = r.left + "px";
+          layer.style.top = (r.bottom + 4) + "px";
+          const lr = layer.getBoundingClientRect();
+          if (lr.bottom > window.innerHeight - 8) {
+            layer.style.top = (r.top - lr.height - 4) + "px";
+          }
+        };
+
+        const close = () => {
+          open = false;
+          arrow.style.transform = "rotate(0deg)";
+          if (layer) { layer.remove(); layer = null; }
+          document.removeEventListener("click", onOutside, true);
+          window.removeEventListener("scroll", onScroll, true);
+        };
+
+        const onOutside = (e) => {
+          if (layer && !layer.contains(e.target) && e.target !== el && !el.contains(e.target)) {
+            close();
+          }
+        };
+
+        const onScroll = () => { reposition(); };
+
+        el.onclick = (e) => {
+          e.stopPropagation();
+          if (open) { close(); return; }
+          open = true;
+          arrow.style.transform = "rotate(180deg)";
+
+          layer = document.createElement("div");
+          layer.style.position = "fixed";
+          layer.style.minWidth = el.getBoundingClientRect().width + "px";
+          layer.style.maxHeight = "280px";
+          layer.style.overflow = "auto";
+          layer.style.zIndex = "10001";
+          layer.style.padding = "4px";
+          layer.style.borderRadius = "12px";
+          layer.style.border = "1px solid var(--border)";
+          layer.style.background = "var(--panel-2)";
+          layer.style.boxShadow = "var(--shadow)";
+          layer.style.backdropFilter = "blur(18px)";
+          layer.style.transition = "opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, border-color 0.3s ease";
+
+          options.forEach(opt => {
+            const row = document.createElement("div");
+            row.style.padding = "9px 12px";
+            row.style.borderRadius = "8px";
+            row.style.fontSize = "12.5px";
+            row.style.color = "var(--text)";
+            row.style.cursor = "pointer";
+            row.style.transition = "background 0.15s ease";
+            row.textContent = opt.label;
+            row.onmouseenter = () => { row.style.background = "var(--hover)"; };
+            row.onmouseleave = () => { row.style.background = ""; };
+            row.onclick = (ev) => {
+              ev.stopPropagation();
+              setLabel(opt.value);
+              onChange(opt.value);
+              close();
+            };
+            layer.appendChild(row);
+          });
+
+          document.body.appendChild(layer);
+          reposition();
+          // 入场动画
+          layer.style.opacity = "0";
+          layer.style.transform = "scale(0.95) translateY(-6px)";
+          requestAnimationFrame(() => {
+            layer.style.opacity = "1";
+            layer.style.transform = "scale(1) translateY(0)";
+          });
+
+          setTimeout(() => {
+            document.addEventListener("click", onOutside, true);
+            window.addEventListener("scroll", onScroll, true);
+          }, 0);
+        };
+
+        return { el, setValue: (val) => { setLabel(val); onChange(val); } };
+      }
+
+      function fieldText(label, value, placeholder, onChange, listId) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
+        const input = document.createElement("input");
+        input.className = "input";
+        input.placeholder = placeholder || "";
+        input.value = value || "";
+        input.oninput = (e) => { onChange(e.target.value); notifyChange(); };
+        if (listId === "dlItems") {
+          attachAutocomplete(input, "item");
+          field.appendChild(input);
+        } else {
+          field.appendChild(input);
+        }
+        return field;
+      }
+
+      function fieldNumber(label, value, def, min, onChange) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
+        const input = document.createElement("input");
+        input.className = "input";
+        input.type = "number";
+        input.step = "1";
+        if (typeof min === "number") input.min = String(min);
+        input.value = String(Number.isFinite(Number(value)) ? value : def);
+        input.oninput = (e) => { onChange(Math.trunc(Number(e.target.value || def))); notifyChange(); };
+        field.appendChild(input);
+        return field;
+      }
+
+      let renderListTimer = null;
+      function scheduleRenderList() {
+        if (renderListTimer) clearTimeout(renderListTimer);
+        renderListTimer = setTimeout(() => {
+          renderList();
+          renderListTimer = null;
+        }, 120);
+      }
+
+      function updateJsonPreviewForSelected() {
+        const r = selectedRule();
+        const el = document.getElementById("jsonPreviewBox");
+        if (!r || !el) return;
+        el.value = JSON.stringify(toJsonRule(r), null, 2);
+      }
+
+      function notifyChange() {
+        if (state.listCache && state.selectedId) state.listCache.dirtyIds.add(state.selectedId);
+        updateJsonPreviewForSelected();
+        scheduleRenderList();
+      }
+
+      function fieldNumberSmooth(label, value, def, min, setValue) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
+        const input = document.createElement("input");
+        input.className = "input";
+        input.type = "number";
+        input.step = "1";
+        if (typeof min === "number") input.min = String(min);
+        input.value = String(Number.isFinite(Number(value)) ? value : def);
+        input.addEventListener("input", (e) => {
+          const raw = e.target.value;
+          const n = raw === "" ? def : Number(raw);
+          if (!Number.isFinite(n)) return;
+          setValue(Math.trunc(n));
+          notifyChange();
+        });
+        input.addEventListener("blur", (e) => {
+          const raw = e.target.value;
+          const n = raw === "" ? def : Number(raw);
+          if (!Number.isFinite(n)) {
+            input.value = String(def);
+            setValue(Math.trunc(def));
+            notifyChange();
+            return;
+          }
+          const fixed = Math.trunc(n);
+          input.value = String(fixed);
+          setValue(fixed);
+          notifyChange();
+        });
+        field.appendChild(input);
+        return field;
+      }
+
+      function fieldTextarea(label, value, placeholder, onChange) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML = `<div class="label">${escapeHtml(label)}</div>`;
+        const input = document.createElement("textarea");
+        input.className = "textarea";
+        input.placeholder = placeholder || "";
+        input.value = value || "";
+        input.oninput = (e) => { onChange(e.target.value); notifyChange(); };
+        field.appendChild(input);
+        return field;
+      }
+
+      function render() {
+        renderList();
+        renderEditor();
+
+        // 如果 JSON 侧边栏打开，则自动刷新预览
+        const sidebar = $("jsonSidebar");
+        if (sidebar && sidebar.classList.contains("open")) {
+          updateJsonPreview();
+        }
+      }
+
+      function setSubtitle() {
+        $("subTitle").textContent = t("subTitleFallback", (state.file || "editor.json"));
+      }
+
+      async function apiLoadFile(file) {
+        const res = await fetch("/api/load?token=" + encodeURIComponent(token) + "&file=" + encodeURIComponent(file), { method: "GET" });
+        if (!res.ok) throw new Error(t("apiLoadFailed", res.status));
+        return await res.json();
+      }
+
+      async function loadRegistry() {
+        const res = await fetch("/api/registry?token=" + encodeURIComponent(token), { method: "GET" });
+        if (!res.ok) throw new Error(t("apiRegistryFailed", res.status));
+        const json = await res.json();
+        state.registry.items = Array.isArray(json.items) ? json.items : [];
+        state.registry.tags = Array.isArray(json.tags) ? json.tags : [];
+        state.registryItemsSet = new Set(state.registry.items.map((x) => String(x)));
+      }
+
+      async function loadIconManifest() {
+        try {
+          const res = await fetch("/manifest?token=" + encodeURIComponent(token), { method: "GET" });
+          if (!res.ok) throw new Error("manifest http " + res.status);
+          const json = await res.json();
+
+          if (json.status === "missing_cache" || !json.items) {
+            state.iconManifest = null;
+            state.iconCacheMap.clear();
+            state.displayNameMap.clear();
+            state.tagIconMap.clear();
+            state.iconCacheReady = false;
+            console.log("[Editor] Icon cache not ready:", json.message);
+            return;
+          }
+
+          state.iconManifest = json;
+          state.iconCacheMap.clear();
+          state.displayNameMap.clear();
+          state.tagIconMap.clear();
+
+          const base = window.location.origin;
+
+          if (Array.isArray(json.items)) {
+            for (const it of json.items) {
+              if (it.id && it.path) {
+                const url = base + it.path + "?token=" + encodeURIComponent(token);
+                state.iconCacheMap.set(it.id, url);
+              }
+              if (it.id && it.displayName) {
+                state.displayNameMap.set(it.id, it.displayName);
+              }
+            }
+          }
+          if (Array.isArray(json.blocks)) {
+            for (const b of json.blocks) {
+              if (b.id && b.path) {
+                const url = base + b.path + "?token=" + encodeURIComponent(token);
+                state.iconCacheMap.set(b.id, url);
+              }
+              if (b.id && b.displayName) {
+                if (!state.displayNameMap.has(b.id)) {
+                  state.displayNameMap.set(b.id, b.displayName);
+                }
+              }
+            }
+          }
+          // tag → 代表性图标
+          if (json.tagIcons && typeof json.tagIcons === "object") {
+            for (const [tagId, path] of Object.entries(json.tagIcons)) {
+              state.tagIconMap.set(tagId, base + path + "?token=" + encodeURIComponent(token));
+            }
+          }
+          // 完整 tag 列表覆盖 registry
+          if (Array.isArray(json.tags)) {
+            state.registry.tags = json.tags;
+          }
+          state.iconCacheReady = true;
+          console.log("[Editor] Icon cache manifest loaded, items:", state.iconCacheMap.size);
+          // 素材就绪，加载动态背景
+          if (!bgParticlesSpawned) spawnBgParticles();
+        } catch (e) {
+          state.iconCacheReady = false;
+          state.iconCacheMap.clear();
+          state.displayNameMap.clear();
+          state.tagIconMap.clear();
+          console.warn("[Editor] Failed to load icon manifest:", e);
+        }
+      }
+
+      // 获取实时缓存进度（可用于前端轮询显示生成进度）
+      async function getCacheProgress() {
+        try {
+          const res = await fetch("/cache_status?token=" + encodeURIComponent(token));
+          if (!res.ok) return null;
+          return await res.json(); // {status, processed, total, error?}
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // 示例：轮询直到缓存完成，然后刷新 manifest
+      // async function waitForIconCacheAndReload() {
+      //   while (true) {
+      //     const p = await getCacheProgress();
+      //     if (!p) break;
+      //     if (p.status === 'done' || p.status === 'ready') break;
+      //     console.log(`Icon cache progress: ${p.processed}/${p.total}`);
+      //     await new Promise(r => setTimeout(r, 1200));
+      //   }
+      //   await loadIconManifest();
+      // }
+
+      async function apiSaveRules(payload) {
+        const res = await fetch("/api/save?token=" + encodeURIComponent(token) + "&file=" + encodeURIComponent(state.file || "editor.json"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(t("apiSaveFailed", res.status));
+        return await res.json();
+      }
+
+      async function apiReloadGame() {
+        const res = await fetch("/api/reload?token=" + encodeURIComponent(token), { method: "POST" });
+        if (!res.ok) throw new Error(t("apiReloadFailed", res.status));
+        return await res.json();
+      }
+
+      async function refresh() {
+        setSubtitle();
+        const json = await apiLoadFile(state.file || "editor.json");
+        if (json && json.ok === false) {
+          toast(String(json.error || t("loadFailed")), "bad");
+          state.rules = [];
+          state.rulesVersion++;
+          state.selectedId = null;
+          render();
+          return;
+        }
+        const raw = Array.isArray(json.rules) ? json.rules : [];
+        state.rules = raw.map((r, idx) => fromJsonRule(r, idx));
+        state.rulesVersion++;
+        if (!state.selectedId && state.rules.length) state.selectedId = state.rules[0].id;
+        render();
+
+        // Load icon cache manifest (non-blocking, best effort)
+        loadIconManifest().catch(() => {});
+
+        toast(t("loaded", state.rules.length, (state.file || "editor.json")), "ok");
+      }
+
+      state.lang = detectDefaultLang();
+      state.theme = detectDefaultThemePref();
+      applyI18nStatic();
+      applyTheme();
+      initBgAnim();
+      setSubtitle();
+
+      $("btnLang").onclick = () => {
+        state.lang = state.lang === "zh-CN" ? "en-US" : "zh-CN";
+        localStorage.setItem(STORAGE_LANG, state.lang);
+        applyI18nStatic();
+        applyTheme();
+        setSubtitle();
+        render();
+      };
+
+      $("btnTheme").onclick = () => {
+        const currentActual = (state.theme === "system" ? getSystemTheme() : state.theme);
+        state.theme = currentActual === "light" ? "dark" : "light";
+        localStorage.setItem(STORAGE_THEME, state.theme);
+        applyTheme();
+      };
+
+      if (window.matchMedia) {
+        const media = window.matchMedia("(prefers-color-scheme: light)");
+        const listener = () => {
+          if (state.theme === "system") {
+            applyTheme();
+          }
+        };
+        if (media.addEventListener) media.addEventListener("change", listener);
+        else if (media.addListener) media.addListener(listener);
+      }
+
+      $("search").addEventListener("input", (e) => {
+        state.filter = e.target.value || "";
+        renderList();
+      });
+
+      document.addEventListener("dragover", (e) => {
+        if (!e.target.closest("#list")) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+
+      document.addEventListener("drop", (e) => {
+        if (!e.target.closest("#list")) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+
+      $("btnRefresh").onclick = () => refresh().catch((e) => toast(String(e.message || e), "bad"));
+      $("btnOpenFile").onclick = () => {
+        const v = ($("filePath").value || "").trim();
+        state.file = v || "editor.json";
+        state.selectedId = null;
+        refresh().catch((e) => toast(String(e.message || e), "bad"));
+      };
+      $("btnNew").onclick = () => {
+        const r = { id: "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2), inputs: [{ kind: "item", value: "", count: 1, componentsText: "" }], output: { mode: "item", item: "", count: 1, componentsText: "" } };
+        state.rules.unshift(r);
+        state.rulesVersion++;
+        state.selectedId = r.id;
+        render();
+      };
+      $("btnDuplicate").onclick = () => {
+        const r = selectedRule();
+        if (!r) return;
+        const copy = JSON.parse(JSON.stringify(r));
+        copy.id = "r_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2);
+        state.rules.unshift(copy);
+        state.rulesVersion++;
+        state.selectedId = copy.id;
+        render();
+      };
+      $("btnDelete").onclick = () => {
+        const r = selectedRule();
+        if (!r) return;
+        if (!confirm(t("confirmDelete"))) return;
+        const idx = state.rules.findIndex((x) => x.id === r.id);
+        if (idx >= 0) state.rules.splice(idx, 1);
+        state.rulesVersion++;
+        state.selectedId = state.rules.length ? state.rules[Math.min(idx, state.rules.length - 1)].id : null;
+        render();
+      };
+
+      $("btnSave").onclick = async () => {
+        try {
+          const payload = { rules: state.rules.map(toJsonRule) };
+          const res = await apiSaveRules(payload);
+          if (res && res.ok) {
+            toast(t("saved", (res.savedPath || state.file)), "ok");
+            const btn = $("btnSave");
+            btn.classList.add("success-pulse");
+            setTimeout(() => btn.classList.remove("success-pulse"), 800);
+          } else {
+            toast(String((res && res.error) || t("saveFailed")), "bad");
+          }
+        } catch (e) {
+          toast(String(e.message || e), "bad");
+        }
+      };
+
+      $("btnReloadFromGame").onclick = async () => {
+        try {
+          await apiReloadGame();
+          toast(t("reloadQueued"), "ok");
+        } catch (e) {
+          toast(String(e.message || e), "bad");
+        }
+      };
+
+      if (!token) {
+        toast(t("missingToken"), "bad");
+      } else {
+        $("filePath").value = state.file || "editor.json";
+        setSubtitle();
+        loadRegistry()
+          .catch((e) => toast(String(e.message || e), "bad"))
+          .finally(() => refresh().catch((e) => toast(String(e.message || e), "bad")));
+      }
+
+      // 初始化 JSON 侧边栏
+      initJsonSidebar();
+    </script>
+  </body>
+</html>

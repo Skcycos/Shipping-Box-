@@ -55,6 +55,43 @@ public class ShippingBoxNetworking {
                 PacketExchangeEffects.STREAM_CODEC,
                 PacketExchangeEffects::handle
         );
+
+        // 网页编辑器相关数据包
+        registrar.playToClient(
+                PacketStartLocalWebEditor.TYPE,
+                PacketStartLocalWebEditor.STREAM_CODEC,
+                PacketStartLocalWebEditor::handle
+        );
+
+        registrar.playToServer(
+                PacketEditorSaveRules.TYPE,
+                PacketEditorSaveRules.STREAM_CODEC,
+                PacketEditorSaveRules::handle
+        );
+
+        registrar.playToServer(
+                PacketEditorReadFile.TYPE,
+                PacketEditorReadFile.STREAM_CODEC,
+                PacketEditorReadFile::handle
+        );
+
+        registrar.playToClient(
+                PacketEditorReadFileResult.TYPE,
+                PacketEditorReadFileResult.STREAM_CODEC,
+                PacketEditorReadFileResult::handle
+        );
+
+        registrar.playToClient(
+                PacketEditorSaveRulesResult.TYPE,
+                PacketEditorSaveRulesResult.STREAM_CODEC,
+                PacketEditorSaveRulesResult::handle
+        );
+
+        registrar.playToServer(
+                PacketEditorReloadRequest.TYPE,
+                PacketEditorReloadRequest.STREAM_CODEC,
+                PacketEditorReloadRequest::handle
+        );
     }
 
     /**
