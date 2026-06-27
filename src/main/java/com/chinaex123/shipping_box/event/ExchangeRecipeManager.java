@@ -47,6 +47,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
     /** 配置文件夹路径 */
     private static final String CONFIG_FOLDER = "exchange_rules";
+    private static final int MAX_RULE_COUNT = 1_000_000;
 
     /** 当前生效的兑换规则列表 */
     private static List<ExchangeRule> currentRules = new ArrayList<>();
@@ -669,25 +670,51 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * @return 物品有效返回true，否则返回false
      */
     private boolean validateInputItem(ExchangeRule.InputItem input) {
-        // 如果是标签形式
+        if (!isPositiveRuleNumber(input.getCount())) {
+            return false;
+        }
+
         if (input.getTag() != null && !input.getTag().isEmpty()) {
             try {
                 String tagId = input.getTag().startsWith("#") ? input.getTag().substring(1) : input.getTag();
                 ResourceLocation tagResource = ResourceLocation.tryParse(tagId);
                 return tagResource != null;
-                // 标签验证通过
             } catch (Exception e) {
                 return false;
             }
-        }
-        // 如果是物品ID形式
-        else if (input.getItem() != null && !input.getItem().isEmpty()) {
+        } else if (input.getItem() != null && !input.getItem().isEmpty()) {
             return validateItemWithComponents(input.getItem());
         }
 
         return false;
     }
 
+    private boolean isPositiveRuleNumber(int value) {
+        return value > 0 && value <= MAX_RULE_COUNT;
+    }
+
+    private boolean validateDynamicPricing(ExchangeRule.DynamicPricingProperties properties) {
+        if (properties == null) {
+            return false;
+        }
+
+        int[] thresholds = properties.getThreshold();
+        int[] values = properties.getValue();
+        if (thresholds == null || values == null || thresholds.length == 0 || thresholds.length != values.length) {
+            return false;
+        }
+
+        for (int i = 0; i < thresholds.length; i++) {
+            if (thresholds[i] < 0 || !isPositiveRuleNumber(values[i])) {
+                return false;
+            }
+            if (i > 0 && thresholds[i] <= thresholds[i - 1]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
     /**
      * 验证输出物品的有效性
      *
@@ -695,85 +722,51 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * @return 物品有效返回true，否则返回false
      */
     private boolean validateOutputItem(ExchangeRule.OutputItem output) {
-        // 虚拟货币模式下不需要验证物品 ID
+        if (output == null) {
+            return false;
+        }
+
         if (output.isCoin()) {
-            // 对于动态定价 + 虚拟货币模式，只需要验证动态属性
             if ("dynamic_pricing".equals(output.getType())) {
-                if (output.getDynamicProperties() == null) {
-                    return false;
-                }
-
-                int[] thresholds = output.getDynamicProperties().getThreshold();
-                int[] values = output.getDynamicProperties().getValue();
-
-                if (thresholds == null || values == null || thresholds.length != values.length) {
-                    return false;
-                }
-
-                // 验证阈值数组是否递增
-                for (int i = 1; i < thresholds.length; i++) {
-                    if (thresholds[i] <= thresholds[i-1]) {
-                        return false;
-                    }
-                }
-
-                return true; // 虚拟货币模式不需要验证具体物品
+                return validateDynamicPricing(output.getDynamicProperties());
             }
-            return true; // 普通虚拟货币模式
+            return isPositiveRuleNumber(output.getCount());
         }
 
-        // 动态定价模式验证（非虚拟货币）
         if ("dynamic_pricing".equals(output.getType())) {
-            if (output.getItem() == null || output.getItem().isEmpty()) {
-                return false;
-            }
-
-            if (output.getDynamicProperties() == null) {
-                return false;
-            }
-
-            int[] thresholds = output.getDynamicProperties().getThreshold();
-            int[] values = output.getDynamicProperties().getValue();
-
-            if (thresholds == null || values == null || thresholds.length != values.length) {
-                return false;
-            }
-
-            // 验证阈值数组是否递增
-            for (int i = 1; i < thresholds.length; i++) {
-                if (thresholds[i] <= thresholds[i-1]) {
-                    return false;
-                }
-            }
-
-            return validateItemWithComponents(output.getItem());
+            return output.getItem() != null && !output.getItem().isEmpty()
+                    && isPositiveRuleNumber(output.getCount())
+                    && validateDynamicPricing(output.getDynamicProperties())
+                    && validateItemWithComponents(output.getItem());
         }
 
-        // 权重模式验证
-        if ("weight".equals(output.getType()) && output.getItems() != null) {
+        if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
+            long totalWeight = 0L;
             for (ExchangeRule.WeightedItem weightedItem : output.getItems()) {
-                if (!validateItemWithComponents(weightedItem.getItem())) {
+                if (weightedItem.getItem() == null || weightedItem.getItem().isEmpty()
+                        || !isPositiveRuleNumber(weightedItem.getCount())
+                        || weightedItem.getWeight() <= 0
+                        || !validateItemWithComponents(weightedItem.getItem())) {
+                    return false;
+                }
+                totalWeight += weightedItem.getWeight();
+                if (totalWeight > Integer.MAX_VALUE) {
                     return false;
                 }
             }
-            return true;
+            return totalWeight > 0;
         }
 
-        // 节气联动模式验证
         if ("ecliptic_seasons".equals(output.getType())) {
-            // 验证基本物品信息
-            if (output.getItem() == null || output.getItem().isEmpty()) {
+            if (output.getItem() == null || output.getItem().isEmpty() || !isPositiveRuleNumber(output.getCount())) {
                 return false;
             }
 
-            // 验证节气联动属性
             if (output.getEclipticSeasonsProperties() == null) {
                 return false;
             }
 
             var ecsProps = output.getEclipticSeasonsProperties();
-
-            // 验证季节列表
             if (ecsProps.getSeason() == null || ecsProps.getSeason().isEmpty()) {
                 return false;
             }
@@ -781,20 +774,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return validateItemWithComponents(output.getItem());
         }
 
-        if (output.getItem() == null || output.getItem().isEmpty()) {
+        if (output.getItem() == null || output.getItem().isEmpty() || !isPositiveRuleNumber(output.getCount())) {
             return false;
         }
 
         return validateItemWithComponents(output.getItem());
     }
-
-    /**
-     * 验证可能包含组件的物品ID字符串
-     * 支持物品ID与组件信息的组合格式验证
-     *
-     * @param itemString 物品字符串（可能包含组件信息）
-     * @return 物品有效返回true，否则返回false
-     */
     private boolean validateItemWithComponents(String itemString) {
         try {
             String itemId = itemString;

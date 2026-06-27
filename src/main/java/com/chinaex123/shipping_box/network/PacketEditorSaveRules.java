@@ -64,6 +64,11 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
 
     public static void handle(PacketEditorSaveRules packet, IPayloadContext context) {
         context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.hasPermissions(2)) {
+                sendResult(context, packet.requestId(), false, "", "Permission denied");
+                return;
+            }
+
             JsonObject obj;
             try {
                 obj = JsonParser.parseString(packet.rulesJson()).getAsJsonObject();
@@ -97,7 +102,7 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
                 Files.createDirectories(file.getParent());
                 Files.writeString(file, packet.rulesJson(), StandardCharsets.UTF_8);
 
-                var server = context.player().getServer();
+                var server = serverPlayer.getServer();
                 server.execute(() -> {
                     var commandSource = server.createCommandSourceStack().withPermission(4);
                     try {

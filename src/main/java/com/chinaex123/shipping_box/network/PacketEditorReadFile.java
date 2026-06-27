@@ -36,6 +36,16 @@ public record PacketEditorReadFile(String requestId, String relativePath) implem
 
     public static void handle(PacketEditorReadFile packet, IPayloadContext context) {
         context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.hasPermissions(2)) {
+                if (context.player() instanceof ServerPlayer player) {
+                    PacketDistributor.sendToPlayer(
+                            player,
+                            new PacketEditorReadFileResult(packet.requestId(), false, "", "Permission denied")
+                    );
+                }
+                return;
+            }
+
             String content = "{\"rules\":[]}";
             String error = null;
             boolean ok = true;
@@ -59,13 +69,10 @@ public record PacketEditorReadFile(String requestId, String relativePath) implem
                 ok = false;
                 error = e.getMessage();
             }
-
-            if (context.player() instanceof ServerPlayer serverPlayer) {
-                PacketDistributor.sendToPlayer(
-                        serverPlayer,
-                        new PacketEditorReadFileResult(packet.requestId(), ok, content, error == null ? "" : error)
-                );
-            }
+            PacketDistributor.sendToPlayer(
+                    serverPlayer,
+                    new PacketEditorReadFileResult(packet.requestId(), ok, content, error == null ? "" : error)
+            );
         }).exceptionally(e -> null);
     }
 

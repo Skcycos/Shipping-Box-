@@ -21,34 +21,31 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * 自动售货箱菜单。继承 AbstractContainerMenu，构造时直接按 ShippingBoxLayout 坐标 addSlot。
- */
+/** Automated shipping box menu. */
 public class AutoShippingBoxMenu extends AbstractContainerMenu {
+
+    private static final double MAX_INTERACTION_DISTANCE_SQR = 64.0D;
 
     private final AutoShippingBoxBlockEntity blockEntity;
     private final Container shippingContainer;
-
-    private static BlockPos storedPos = null;
-    private static Level storedLevel = null;
-
-    // ──────── 客户端构造器 ────────
+    private final BlockPos menuPos;
+    private final Level menuLevel;
 
     public AutoShippingBoxMenu(int id, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
         super(ModMenuTypes.AUTO_SHIPPING_BOX.get(), id);
-        this.blockEntity = findBlockEntity(buf.readBlockPos());
+        this.menuPos = buf.readBlockPos();
+        this.blockEntity = findBlockEntity(menuPos);
+        this.menuLevel = blockEntity != null ? blockEntity.getLevel() : Minecraft.getInstance().level;
         this.shippingContainer = new SimpleContainer(54);
         addAllSlots(playerInventory);
     }
 
-    // ──────── 服务端构造器 ────────
-
     public AutoShippingBoxMenu(int id, Inventory playerInventory, AutoShippingBoxBlockEntity blockEntity) {
         super(ModMenuTypes.AUTO_SHIPPING_BOX.get(), id);
         this.blockEntity = blockEntity;
-        storedPos = blockEntity.getBlockPos();
-        storedLevel = blockEntity.getLevel();
-        this.shippingContainer = blockEntity; // AutoShippingBoxBlockEntity 本身就是 Container
+        this.menuPos = blockEntity.getBlockPos();
+        this.menuLevel = blockEntity.getLevel();
+        this.shippingContainer = blockEntity;
         this.shippingContainer.startOpen(playerInventory.player);
         addAllSlots(playerInventory);
     }
@@ -62,10 +59,7 @@ public class AutoShippingBoxMenu extends AbstractContainerMenu {
         return null;
     }
 
-    // ──────── 一次性创建所有槽位 ────────
-
     private void addAllSlots(Inventory playerInventory) {
-        // 主容器槽位 (0-53)
         for (int row = 0; row < ShippingBoxLayout.CHEST_ROWS; row++) {
             for (int col = 0; col < ShippingBoxLayout.CHEST_COLS; col++) {
                 this.addSlot(new Slot(this.shippingContainer,
@@ -74,7 +68,6 @@ public class AutoShippingBoxMenu extends AbstractContainerMenu {
                         ShippingBoxLayout.CHEST_START_Y + row * ShippingBoxLayout.SLOT_STEP));
             }
         }
-        // 玩家背包槽位 (54-80)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 this.addSlot(new Slot(playerInventory, col + row * 9 + 9,
@@ -82,7 +75,6 @@ public class AutoShippingBoxMenu extends AbstractContainerMenu {
                         ShippingBoxLayout.PLAYER_INV_START_Y + row * ShippingBoxLayout.SLOT_STEP));
             }
         }
-        // 快捷栏槽位 (81-89)
         for (int col = 0; col < 9; col++) {
             this.addSlot(new Slot(playerInventory, col,
                     ShippingBoxLayout.HOTBAR_START_X + col * ShippingBoxLayout.SLOT_STEP,
@@ -90,14 +82,19 @@ public class AutoShippingBoxMenu extends AbstractContainerMenu {
         }
     }
 
-    // ──────── stillValid ────────
-
     @Override
     public boolean stillValid(Player player) {
-        return true;
+        if (blockEntity == null || blockEntity.isRemoved() || menuLevel == null || player.level() != menuLevel) {
+            return false;
+        }
+        if (blockEntity.getLevel() != menuLevel || !menuPos.equals(blockEntity.getBlockPos())) {
+            return false;
+        }
+        if (menuLevel.getBlockEntity(menuPos) != blockEntity) {
+            return false;
+        }
+        return player.distanceToSqr(menuPos.getX() + 0.5D, menuPos.getY() + 0.5D, menuPos.getZ() + 0.5D) <= MAX_INTERACTION_DISTANCE_SQR;
     }
-
-    // ──────── quickMoveStack ────────
 
     @Override
     public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
@@ -117,17 +114,15 @@ public class AutoShippingBoxMenu extends AbstractContainerMenu {
         return itemstack1;
     }
 
-    // ──────── removed ────────
-
     @Override
     public void removed(Player player) {
         super.removed(player);
         this.shippingContainer.stopOpen(player);
-        if (storedLevel != null && !storedLevel.isClientSide && player instanceof ServerPlayer) {
-            storedLevel.playSound(null, storedPos,
+        if (menuLevel != null && !menuLevel.isClientSide && player instanceof ServerPlayer) {
+            menuLevel.playSound(null, menuPos,
                     SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.close")),
                     SoundSource.BLOCKS, 0.5F,
-                    storedLevel.random.nextFloat() * 0.1F + 0.9F);
+                    menuLevel.random.nextFloat() * 0.1F + 0.9F);
         }
     }
 

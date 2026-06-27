@@ -22,37 +22,33 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.UUID;
 
-/**
- * 普通售货箱菜单。继承 AbstractContainerMenu，构造时直接按 ShippingBoxLayout 坐标 addSlot，
- * 不依赖 ChestMenu 的默认布局，不 clear，不 rebuild。
- */
+/** Regular shipping box menu with player-specific storage. */
 public class ShippingBoxMenu extends AbstractContainerMenu {
+
+    private static final double MAX_INTERACTION_DISTANCE_SQR = 64.0D;
 
     private final UUID playerUUID;
     private final ShippingBoxBlockEntity blockEntity;
     private final Container shippingContainer;
-
-    private static BlockPos storedPos = null;
-    private static Level storedLevel = null;
-
-    // ──────── 客户端构造器 ────────
+    private final BlockPos menuPos;
+    private final Level menuLevel;
 
     public ShippingBoxMenu(int id, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
         super(ModMenuTypes.SHIPPING_BOX.get(), id);
         this.playerUUID = buf.readUUID();
-        this.blockEntity = findBlockEntity(buf.readBlockPos());
+        this.menuPos = buf.readBlockPos();
+        this.blockEntity = findBlockEntity(menuPos);
+        this.menuLevel = blockEntity != null ? blockEntity.getLevel() : Minecraft.getInstance().level;
         this.shippingContainer = new SimpleContainer(54);
         addAllSlots(playerInventory);
     }
-
-    // ──────── 服务端构造器 ────────
 
     public ShippingBoxMenu(int id, Inventory playerInventory, ShippingBoxBlockEntity blockEntity, UUID playerUUID) {
         super(ModMenuTypes.SHIPPING_BOX.get(), id);
         this.playerUUID = playerUUID;
         this.blockEntity = blockEntity;
-        storedPos = blockEntity.getBlockPos();
-        storedLevel = blockEntity.getLevel();
+        this.menuPos = blockEntity.getBlockPos();
+        this.menuLevel = blockEntity.getLevel();
         this.shippingContainer = new PlayerSpecificContainer(blockEntity, playerUUID);
         this.shippingContainer.startOpen(playerInventory.player);
         addAllSlots(playerInventory);
@@ -67,10 +63,7 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
         return null;
     }
 
-    // ──────── 一次性创建所有槽位（正确坐标，不移动） ────────
-
     private void addAllSlots(Inventory playerInventory) {
-        // 主容器槽位 (0-53)：9×6
         for (int row = 0; row < ShippingBoxLayout.CHEST_ROWS; row++) {
             for (int col = 0; col < ShippingBoxLayout.CHEST_COLS; col++) {
                 this.addSlot(new Slot(this.shippingContainer,
@@ -79,7 +72,6 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
                         ShippingBoxLayout.CHEST_START_Y + row * ShippingBoxLayout.SLOT_STEP));
             }
         }
-        // 玩家背包槽位 (54-80)：9×3
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 this.addSlot(new Slot(playerInventory, col + row * 9 + 9,
@@ -87,15 +79,12 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
                         ShippingBoxLayout.PLAYER_INV_START_Y + row * ShippingBoxLayout.SLOT_STEP));
             }
         }
-        // 快捷栏槽位 (81-89)：9×1
         for (int col = 0; col < 9; col++) {
             this.addSlot(new Slot(playerInventory, col,
                     ShippingBoxLayout.HOTBAR_START_X + col * ShippingBoxLayout.SLOT_STEP,
                     ShippingBoxLayout.HOTBAR_START_Y));
         }
     }
-
-    // ──────── Container ────────
 
     private record PlayerSpecificContainer(ShippingBoxBlockEntity blockEntity, UUID playerUUID) implements Container {
         @Override public int getContainerSize() { return 54; }
@@ -115,18 +104,25 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
             blockEntity.setItemForPlayer(slot, stack, playerUUID);
         }
         @Override public void setChanged() { blockEntity.setChanged(); }
-        @Override public boolean stillValid(Player player) { return true; }
+        @Override public boolean stillValid(Player player) { return isBlockEntityValid(blockEntity, player); }
         @Override public void clearContent() { blockEntity.getPlayerItems(playerUUID).clear(); }
     }
 
-    // ──────── stillValid ────────
-
     @Override
     public boolean stillValid(Player player) {
-        return true;
+        return isBlockEntityValid(blockEntity, player) && menuLevel == blockEntity.getLevel() && menuPos.equals(blockEntity.getBlockPos());
     }
 
-    // ──────── quickMoveStack ────────
+    private static boolean isBlockEntityValid(ShippingBoxBlockEntity blockEntity, Player player) {
+        if (blockEntity == null || blockEntity.isRemoved() || blockEntity.getLevel() == null || player.level() != blockEntity.getLevel()) {
+            return false;
+        }
+        BlockPos pos = blockEntity.getBlockPos();
+        if (player.level().getBlockEntity(pos) != blockEntity) {
+            return false;
+        }
+        return player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= MAX_INTERACTION_DISTANCE_SQR;
+    }
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
@@ -145,21 +141,17 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
         return itemstack1;
     }
 
-    // ──────── removed ────────
-
     @Override
     public void removed(Player player) {
         super.removed(player);
         this.shippingContainer.stopOpen(player);
-        if (storedLevel != null && !storedLevel.isClientSide && player instanceof ServerPlayer) {
-            storedLevel.playSound(null, storedPos,
+        if (menuLevel != null && !menuLevel.isClientSide && player instanceof ServerPlayer) {
+            menuLevel.playSound(null, menuPos,
                     SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.close")),
                     SoundSource.BLOCKS, 0.5F,
-                    storedLevel.random.nextFloat() * 0.1F + 0.9F);
+                    menuLevel.random.nextFloat() * 0.1F + 0.9F);
         }
     }
-
-    // ──────── Getters ────────
 
     public UUID getPlayerUUID() { return playerUUID; }
     public ShippingBoxBlockEntity getBlockEntity() { return blockEntity; }
