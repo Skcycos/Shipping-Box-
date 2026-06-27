@@ -79,7 +79,7 @@ public class ListRulesCommand {
             return 1;
 
         } catch (Exception e) {
-            context.getSource().sendFailure(Component.literal("Error listing rules: " + e.getMessage()));
+            context.getSource().sendFailure(Component.translatable("command.shipping_box.error.execution", e.getMessage()));
             return 0;
         }
     }
@@ -221,6 +221,6 @@ public class ListRulesCommand {
         }
         
         // 如果都失败了，返回原始 ID
-        return itemId != null ? "§c" + itemId + "§r" : (tagId != null ? "§e" + tagId + "§r" : "未知物品");
+        return itemId != null ? "§c" + itemId + "§r" : (tagId != null ? "§e" + tagId + "§r" : "Unknown Item");
     }
 }

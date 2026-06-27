@@ -91,7 +91,7 @@ public class CountRulesCommand {
             return 1;
 
         } catch (Exception e) {
-            context.getSource().sendFailure(Component.literal("Error counting rules: " + e.getMessage()));
+            context.getSource().sendFailure(Component.translatable("command.shipping_box.error.execution", e.getMessage()));
             return 0;
         }
     }

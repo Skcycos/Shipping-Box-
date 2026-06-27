@@ -123,13 +123,15 @@ public class EditorIconCacheManager {
 
         // 计算进度百分比
         float progress = total.get() > 0 ? (float) processed.get() / total.get() : 0f;
-        // 构建标题文本
-        String title = "正在缓存图标... (" + processed.get() + " / " + total.get() + ")";
+        // 构建标题文本（使用可翻译文本）
+        Component title = Component.translatable(
+                "command.shipping_box.icon_cache.bossbar.title",
+                processed.get(), total.get());
 
         // 创建Boss条事件
         LerpingBossEvent event = new LerpingBossEvent(
                 bossBarId,
-                Component.literal(title),
+                title,
                 progress,
                 BossEvent.BossBarColor.BLUE, // 蓝色进度条
                 BossEvent.BossBarOverlay.PROGRESS, // 进度条样式

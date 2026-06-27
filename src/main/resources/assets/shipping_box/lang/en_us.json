@@ -142,5 +142,6 @@
   "command.shipping_box.editor.cache_status": "Icon cache status: %s (%d/%d)",
   "command.shipping_box.editor.cache_status.with_error": "Icon cache status: %s (%d/%d) error: %s",
   "command.shipping_box.editor.cache_clear.success": "Icon cache cleared.",
+  "command.shipping_box.error.execution": "Error executing command: %s",
   "command.shipping_box.icon_cache.bossbar.title": "Caching icons... (%s / %s)"
 }
