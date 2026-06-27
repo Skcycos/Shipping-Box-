@@ -8,6 +8,7 @@ import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.init.ModCreativeTabs;
 import com.chinaex123.shipping_box.init.ModItems;
+import com.chinaex123.shipping_box.init.ModMenuTypes;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.client.tooltip.TooltipEventHandler;
 import com.chinaex123.shipping_box.web.WebEditorLocalServer;
@@ -47,6 +48,7 @@ public class ShippingBox {
         ModBlocks.register(modEventBus); // 注册方块
         ModItems.register(modEventBus); // 注册物品
         ModBlockEntities.register(modEventBus); // 注册方块实体
+        ModMenuTypes.register(modEventBus); // 注册自定义菜单类型
         ModAttributes.ATTRIBUTES.register(modEventBus); // 注册自定义属性系统
         NeoForge.EVENT_BUS.register(TooltipEventHandler.class); // 注册工具提示事件处理器
     }

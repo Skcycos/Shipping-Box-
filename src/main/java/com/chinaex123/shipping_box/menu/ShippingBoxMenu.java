@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.menu;
 
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
+import com.chinaex123.shipping_box.init.ModMenuTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,7 +11,6 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -41,7 +41,7 @@ public class ShippingBoxMenu extends ChestMenu {
      * @param playerUUID 当前玩家的唯一标识符
      */
     public ShippingBoxMenu(int id, Inventory playerInventory, ShippingBoxBlockEntity blockEntity, UUID playerUUID) {
-        super(MenuType.GENERIC_9x6, id, playerInventory,
+        super(ModMenuTypes.SHIPPING_BOX.get(), id, playerInventory,
                 new PlayerSpecificContainer(blockEntity, playerUUID), 6);
         this.playerUUID = playerUUID;
         this.blockEntity = blockEntity;

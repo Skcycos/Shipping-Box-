@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.menu;
 
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
+import com.chinaex123.shipping_box.init.ModMenuTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -9,7 +10,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -25,7 +25,7 @@ public class AutoShippingBoxMenu extends ChestMenu {
     private static Level storedLevel = null;
 
     public AutoShippingBoxMenu(int id, Inventory playerInventory, AutoShippingBoxBlockEntity blockEntity) {
-        super(MenuType.GENERIC_9x6, id, playerInventory, blockEntity, 6);
+        super(ModMenuTypes.AUTO_SHIPPING_BOX.get(), id, playerInventory, blockEntity, 6);
         this.blockEntity = blockEntity;
         storedPos = blockEntity.getBlockPos();
         storedLevel = blockEntity.getLevel();

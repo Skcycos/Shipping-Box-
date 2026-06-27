@@ -94,7 +94,10 @@ public class ShippingBoxBlock extends BaseEntityBlock {
                         (windowId, playerInventory, playerEntity) ->
                                 new ShippingBoxMenu(windowId, playerInventory, shippingBox, serverPlayer.getUUID()),
                         Component.translatable("block.shipping_box.shipping_box")
-                ));
+                ), buf -> {
+                    buf.writeBlockPos(pos);
+                    buf.writeUUID(serverPlayer.getUUID());
+                });
             }
             // 播放打开音效
             level.playSound(

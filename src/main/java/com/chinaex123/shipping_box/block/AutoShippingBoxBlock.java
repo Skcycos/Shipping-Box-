@@ -178,7 +178,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @return 交互结果枚举值，CONSUME表示消耗此次交互
      */
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
 
             if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
@@ -190,7 +190,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                             SoundSource.BLOCKS,
                             0.5F, level.random.nextFloat() * 0.1F + 0.9F);
 
-                    player.openMenu(autoBox);
+                    serverPlayer.openMenu(autoBox, buf -> buf.writeBlockPos(pos));
                 } else {
                     player.displayClientMessage(Component.translatable("message.shipping_box.access_denied"), true);
                 }

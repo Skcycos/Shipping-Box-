@@ -12,6 +12,11 @@
   "block.shipping_box.shipping_box": "售货箱",
   "block.shipping_box.auto_shipping_box": "自动售货箱",
 
+  "screen.shipping_box.bill_title": "§6§l账单",
+  "screen.shipping_box.bill_estimated_earnings": "§7预计收益",
+  "screen.shipping_box.bill_items_placed": "§7已放入",
+  "screen.shipping_box.bill_settlement_time": "§7明早 %s",
+
   "message.shipping_box.exchange_success": "§a§l出售成功！§r物品已放入售货箱",
   "message.shipping_box.dimensional_pouch.no_container_coins": "§c容器中未找到实体货币！",
   "message.shipping_box.dimensional_pouch.current_balance": "§e当前余额：%s◎",

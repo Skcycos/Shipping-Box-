@@ -12,6 +12,11 @@
   "block.shipping_box.shipping_box": "Shipping Box",
   "block.shipping_box.auto_shipping_box": "Auto Shipping Box",
 
+  "screen.shipping_box.bill_title": "§6§lBill",
+  "screen.shipping_box.bill_estimated_earnings": "§7Est. Earnings",
+  "screen.shipping_box.bill_items_placed": "§7Placed",
+  "screen.shipping_box.bill_settlement_time": "§7Tomorrow %s",
+
   "message.shipping_box.exchange_success": "§a§lExchange Successful! §rReceived items in shipping box.",
   "message.shipping_box.dimensional_pouch.no_container_coins": "§cNo physical coins found in container!",
   "message.shipping_box.dimensional_pouch.current_balance": "§eCurrent balance: %s◎",
