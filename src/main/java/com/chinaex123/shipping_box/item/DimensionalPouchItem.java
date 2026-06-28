@@ -2,7 +2,7 @@ package com.chinaex123.shipping_box.item;
 
 import com.chinaex123.shipping_box.init.ModItems;
 import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
-import com.chinaex123.client.tooltip.TooltipItems;
+import com.chinaex123.shipping_box.client.tooltip.TooltipItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;

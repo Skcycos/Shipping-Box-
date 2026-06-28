@@ -1,12 +1,10 @@
-package com.chinaex123.client.tooltip;
+package com.chinaex123.shipping_box.client.tooltip;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -28,7 +26,7 @@ public class TooltipEventHandler {
                 return;
             }
 
-            // 获取兑换信息（不传递游戏日参数）
+            // 获取兑换信息
             TooltipData tooltipData = ExchangeTooltipProvider.getExchangeTooltip(stack);
 
             if (tooltipData != null && tooltipData.hasExchangeInfo()) {

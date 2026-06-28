@@ -1,6 +1,6 @@
 package com.chinaex123.shipping_box.compat.ViScriptShop;
 
-import com.chinaex123.client.tooltip.TooltipItems;
+import com.chinaex123.shipping_box.client.tooltip.TooltipItems;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;

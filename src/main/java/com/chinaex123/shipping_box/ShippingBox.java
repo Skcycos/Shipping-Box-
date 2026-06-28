@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box;
 
-import com.chinaex123.client.screen.AutoShippingBoxScreen;
-import com.chinaex123.client.screen.ShippingBoxScreen;
+import com.chinaex123.shipping_box.client.screen.AutoShippingBoxScreen;
+import com.chinaex123.shipping_box.client.screen.ShippingBoxScreen;
 import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.init.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
@@ -12,7 +12,7 @@ import com.chinaex123.shipping_box.init.ModCreativeTabs;
 import com.chinaex123.shipping_box.init.ModItems;
 import com.chinaex123.shipping_box.init.ModMenuTypes;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
-import com.chinaex123.client.tooltip.TooltipEventHandler;
+import com.chinaex123.shipping_box.client.tooltip.TooltipEventHandler;
 import com.chinaex123.shipping_box.web.WebEditorLocalServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.config.ModConfig;

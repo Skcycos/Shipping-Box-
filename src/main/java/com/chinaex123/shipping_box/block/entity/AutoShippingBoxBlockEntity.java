@@ -27,11 +27,22 @@ import java.util.*;
  */
 public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity implements MenuProvider {
 
+    /** 物品存储列表（本地缓存） */
     private NonNullList<ItemStack> items;
+
+    /** 绑定的玩家 UUID（只有该玩家可以操作此容器） */
     private UUID boundPlayerUUID;
+
+    /** 上次兑换日期（用于判断是否到新的一天） */
     private long lastExchangeDay = -1L;
+
+    /** 记录每个槽位是否已兑换完成 */
     private final Map<Integer, Boolean> slotIsExchanged = new HashMap<>();
+
+    /** 记录每个已兑换槽位的物品原型（用于验证身份） */
     private final Map<Integer, ItemStack> exchangedItemPrototype = new HashMap<>();
+
+    /** 兑换过程中跳过重置状态的标志 */
     private boolean skipResetDuringExchange = false;
 
     /**
@@ -70,7 +81,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
             boolean isExchanged = slotIsExchanged.getOrDefault(slot, false);
             
             if (!isExchanged) {
-                return ItemStack.EMPTY;
+                return ItemStack.EMPTY; // 槽位未兑换，拒绝提取
             }
             
             // 获取当前槽位的物品和兑换时记录的原型物品
@@ -168,18 +179,35 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         syncItems();
     }
 
+    /**
+     * 同步内部物品存储与物品处理器的状态
+     * <p>
+     * 将 itemHandler 中的所有槽位物品复制到 items 列表中，保持两者数据一致
+     */
     private void syncItems() {
         for (int i = 0; i < 54; i++) {
             items.set(i, itemHandler.getStackInSlot(i));
         }
     }
 
+    /**
+     * 获取物品列表
+     * 同步物品处理器状态后返回内部物品存储列表
+     *
+     * @return 物品列表（54格）
+     */
     @Override
     protected @NotNull NonNullList<ItemStack> getItems() {
         syncItems();
         return items;
     }
 
+    /**
+     * 设置物品列表
+     * 将传入的物品列表同步到内部存储和物品处理器中
+     *
+     * @param items 新的物品列表
+     */
     @Override
     protected void setItems(@NotNull NonNullList<ItemStack> items) {
         this.items = items;
@@ -188,33 +216,65 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         }
     }
 
+    /**
+     * 获取容器的默认显示名称
+     *
+     * @return 本地化名称组件
+     */
     @Override
     protected @NotNull Component getDefaultName() {
         return Component.translatable("block.shipping_box.auto_shipping_box");
     }
 
+    /**
+     * 创建容器菜单
+     * 为玩家打开自动售货箱界面时创建对应的菜单实例
+     *
+     * @param id 菜单ID
+     * @param playerInventory  玩家物品栏
+     * @return 自动售货箱菜单实例
+     */
     @Override
     protected @NotNull AbstractContainerMenu createMenu(int id, @NotNull Inventory playerInventory) {
         return new AutoShippingBoxMenu(id, playerInventory, this);
     }
 
+    /**
+     * 获取物品处理器（用于能力系统）
+     *
+     * @return ItemStackHandler 实例
+     */
     public ItemStackHandler getItemHandler() {
         return itemHandler;
     }
 
+    /**
+     * 获取能力处理器（兼容 Forge 能力系统）
+     *
+     * @return IItemHandler 实例
+     */
     public IItemHandler getCapabilityHandler() {
         return itemHandler;
     }
 
+    /**
+     * 获取绑定的玩家 UUID
+     *
+     * @return 绑定的玩家 UUID，可能为 null
+     */
     public UUID getBoundPlayerUUID() {
         return boundPlayerUUID;
     }
 
+    /**
+     * 强制执行物品兑换
+     * 在服务端立即执行兑换操作并更新兑换日期
+     */
     public void forceExchange() {
         if (level != null && !level.isClientSide) {
             performExchange(level.getDayTime() / 24000);
             lastExchangeDay = level.getDayTime() / 24000;
-            setChanged();
+            setChanged(); // 标记数据已变更
         }
     }
 
@@ -463,32 +523,52 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         rebuildMissingExchangePrototypes();
     }
 
+    /**
+     * 重建缺失的兑换物品原型记录
+     * 清理无效的兑换状态并为已兑换槽位补充原型数据，确保数据一致性
+     */
     private void rebuildMissingExchangePrototypes() {
         for (Iterator<Map.Entry<Integer, Boolean>> iterator = slotIsExchanged.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<Integer, Boolean> entry = iterator.next();
             int slot = entry.getKey();
+
+            // 检查槽位是否有效且标记为已兑换
             if (!entry.getValue() || slot < 0 || slot >= itemHandler.getSlots()) {
                 exchangedItemPrototype.remove(slot);
                 if (entry.getValue()) {
-                    iterator.remove();
+                    iterator.remove(); // 移除无效的兑换状态
                 }
                 continue;
             }
 
+            // 获取当前槽位的物品
             ItemStack stack = itemHandler.getStackInSlot(slot);
             if (stack.isEmpty()) {
+                // 槽位为空，清除兑换状态和原型
                 exchangedItemPrototype.remove(slot);
                 iterator.remove();
             } else if (!exchangedItemPrototype.containsKey(slot)) {
+                // 缺少原型记录，补充当前物品的副本
                 exchangedItemPrototype.put(slot, stack.copy());
             }
         }
     }
+
+    /**
+     * 获取容器大小
+     *
+     * @return 固定返回 54 格
+     */
     @Override
     public int getContainerSize() {
         return 54;
     }
 
+    /**
+     * 检查容器是否为空
+     *
+     * @return 如果所有槽位都为空则返回 true，否则返回 false
+     */
     @Override
     public boolean isEmpty() {
         for (int i = 0; i < 54; i++) {
@@ -499,11 +579,25 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         return true;
     }
 
+    /**
+     * 获取指定槽位的物品
+     *
+     * @param slot 槽位编号
+     * @return 该槽位的物品堆栈
+     */
     @Override
     public @NotNull ItemStack getItem(int slot) {
         return itemHandler.getStackInSlot(slot);
     }
 
+    /**
+     * 从指定槽位移除指定数量的物品
+     * 玩家手动取出物品时不受兑换状态限制，物品被取完时重置兑换状态
+     *
+     * @param slot  槽位编号
+     * @param count 要移除的物品数量
+     * @return 实际移除的物品堆栈（可能为空）
+     */
     @Override
     public @NotNull ItemStack removeItem(int slot, int count) {
         // 玩家手动取出物品时，不受兑换状态限制
@@ -512,8 +606,11 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
             return ItemStack.EMPTY;
         }
 
+        // 从物品堆中分离出指定数量
         ItemStack result = stack.split(count);
+        // 更新实际物品栏
         itemHandler.setStackInSlot(slot, stack);
+        // 同步更新本地缓存
         items.set(slot, stack);
 
         // 如果物品被取完，重置兑换状态
@@ -525,6 +622,13 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         return result;
     }
 
+    /**
+     * 从指定槽位移除所有物品且不更新
+     * 玩家手动取出物品时不受兑换状态限制，移除后重置兑换状态
+     *
+     * @param slot 槽位编号
+     * @return 被移除的物品堆栈（可能为空）
+     */
     @Override
     public @NotNull ItemStack removeItemNoUpdate(int slot) {
         // 玩家手动取出物品时，不受兑换状态限制
@@ -539,6 +643,14 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         return stack;
     }
 
+    /**
+     * 设置指定槽位的物品
+     * 同时更新物品处理器和内部存储，并重置该槽位的兑换状态
+     *
+     * @param slot  要设置物品的槽位编号
+     * @param stack 要放入的物品堆栈（可以为空，表示清空该槽位）
+     * @throws IllegalArgumentException 如果 slot 无效（由 itemHandler 或 items 抛出）
+     */
     @Override
     public void setItem(int slot, @NotNull ItemStack stack) {
         itemHandler.setStackInSlot(slot, stack);
@@ -553,6 +665,10 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         return true;
     }
 
+    /**
+     * 清空所有内容
+     * 清空所有槽位的物品和兑换状态记录
+     */
     @Override
     public void clearContent() {
         for (int i = 0; i < 54; i++) {
@@ -563,23 +679,51 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         exchangedItemPrototype.clear();
     }
 
+    /**
+     * 检查指定槽位是否处于“已交换”状态。
+     *
+     * @param slot 槽位编号
+     * @return true 表示该槽位已标记为交换状态，false 表示未标记（或槽位不存在于记录中）
+     */
     public boolean isSlotExchanged(int slot) {
         return slotIsExchanged.getOrDefault(slot, false);
     }
 
+    /**
+     * 获取所有已标记为“已交换”的槽位编号集合。
+     * 返回的是 Map 的键集视图，对返回集合的修改会直接影响原 Map。
+     *
+     * @return 所有已交换槽位的编号集合（不可保证顺序）
+     */
     public Set<Integer> getExchangedSlots() {
         return slotIsExchanged.keySet();
     }
 
+    /**
+     * 将该交换容器绑定到指定玩家。
+     * 绑定后，只有该玩家可以操作此容器（如打开界面、进行交换等）。
+     *
+     * @param playerUUID 要绑定的玩家 UUID，传入 null 表示解除绑定（允许任何人访问）
+     */
     public void bindPlayer(UUID playerUUID) {
         this.boundPlayerUUID = playerUUID;
         setChanged();
     }
 
+    /**
+     * 检查指定玩家是否有权限访问此交换容器。
+     * <p>
+     * 访问规则：
+     * 1. 如果未绑定任何玩家（boundPlayerUUID == null），则所有玩家均可访问
+     * 2. 如果已绑定玩家，则只有绑定者本人可以访问
+     *
+     * @param player 要检查权限的玩家对象
+     * @return true 表示允许访问，false 表示拒绝访问
+     */
     public boolean canPlayerAccess(Player player) {
         if (boundPlayerUUID == null) {
-            return true;
+            return true; // 未绑定：允许任何人访问
         }
-        return boundPlayerUUID.equals(player.getUUID());
+        return boundPlayerUUID.equals(player.getUUID()); // 已绑定，仅允许绑定者访问
     }
 }

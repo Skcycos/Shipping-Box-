@@ -1,4 +1,4 @@
-package com.chinaex123.client.tooltip;
+package com.chinaex123.shipping_box.client.tooltip;
 
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
@@ -126,7 +126,7 @@ public class ExchangeTooltipProvider {
                     }
                 } catch (Exception e) {
                     // 静默处理异常
-                    LOGGER.warn("[Shipping Box]处理兑换工具提示时出错: {}", e.getMessage());
+                    LOGGER.warn("[Shipping Box-ExchangeTooltipProvider]处理兑换工具提示时出错: {}", e.getMessage());
                 }
             }
         }
@@ -884,7 +884,7 @@ public class ExchangeTooltipProvider {
 
 
     /**
-     * 获取最新的销售计数（优先使用客户端缓存）
+     * 获取最新的销售计数
      */
     private static int getLatestSoldCount(String itemIdentifier) {
         try {

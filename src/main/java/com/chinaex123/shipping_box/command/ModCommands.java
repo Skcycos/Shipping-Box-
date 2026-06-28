@@ -24,7 +24,7 @@ public class ModCommands {
                         // count - 统计规则数量
                         .then(Commands.literal("count")
                                 .executes(CountRulesCommand::execute))
-                        // list - 列出规则（支持分页）
+                        // list - 列出规则
                         .then(Commands.literal("list")
                                 .then(Commands.argument("page", IntegerArgumentType.integer(1))
                                         .executes(ListRulesCommand::execute))

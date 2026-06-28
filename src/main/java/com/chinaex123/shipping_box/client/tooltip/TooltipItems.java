@@ -1,4 +1,4 @@
-package com.chinaex123.client.tooltip;
+package com.chinaex123.shipping_box.client.tooltip;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;

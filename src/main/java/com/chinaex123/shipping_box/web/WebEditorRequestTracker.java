@@ -27,20 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>Web服务器从Future获取结果并返回给前端</li>
  * </ol>
  *
- * <p>使用示例：</p>
- * <pre>
- * // Web服务器处理加载请求
- * String requestId = UUID.randomUUID().toString();
- * CompletableFuture&lt;Response&gt; future = WebEditorRequestTracker.create(requestId);
- * PacketDistributor.sendToServer(new PacketEditorReadFile(requestId, file));
- *
- * // 等待响应（超时5秒）
- * Response response = future.get(5, TimeUnit.SECONDS);
- *
- * // 在服务端的响应处理器中
- * WebEditorRequestTracker.complete(requestId, new Response(true, content, null));
- * </pre>
- *
  * @see WebEditorLocalServer 使用此追踪器处理HTTP请求
  * @see PacketEditorReadFile 读取文件的网络包
  * @see PacketEditorSaveRules 保存规则的网络包
@@ -51,7 +37,7 @@ public final class WebEditorRequestTracker {
      * 存储所有待处理的请求
      * Key: 请求ID (UUID字符串)
      * Value: 对应的CompletableFuture，用于等待响应
-     *
+     * <p>
      * 使用ConcurrentHashMap保证多线程环境下的线程安全
      */
     private static final Map<String, CompletableFuture<Response>> PENDING = new ConcurrentHashMap<>();

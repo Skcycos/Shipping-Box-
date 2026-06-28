@@ -25,6 +25,12 @@ import javax.annotation.ParametersAreNonnullByDefault;
 /**
  * 普通售货箱方块类；
  * 负处理方块的右键交互、破坏掉落和刻更新器注册
+ *
+ * 核心特性：
+ * 1. 所有玩家都可以使用普通售货箱（无绑定限制）
+ * 2. 支持每日定时兑换
+ * 3. 使用玩家独立存储（每个玩家拥有自己的54格存储空间）
+ * 4. 与自动售货箱不同，普通售货箱不限制访问权限
  */
 @ParametersAreNonnullByDefault
 public class ShippingBoxBlock extends BaseEntityBlock {
@@ -80,6 +86,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      */
     @Override
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        // 客户端只返回成功，不执行实际逻辑
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         }
@@ -87,18 +94,21 @@ public class ShippingBoxBlock extends BaseEntityBlock {
         if (player instanceof ServerPlayer serverPlayer) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof ShippingBoxBlockEntity shippingBox) {
+                // ========== 打开GUI菜单 ==========
+                // 通过缓冲区传递方块位置和玩家UUID
+                // 玩家UUID用于在菜单中加载该玩家的个人存储
                 serverPlayer.openMenu(shippingBox, buf -> {
                     buf.writeBlockPos(pos);
                     buf.writeUUID(serverPlayer.getUUID());
                 });
             }
-            // 播放打开音效
+
+            // ========== 播放打开音效 ==========
+            // 使用桶打开的音效，音调随机微调增加真实感
             level.playSound(
-                    null,
-                    pos,
+                    null, pos,
                     SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
-                    SoundSource.BLOCKS,
-                    0.5F,
+                    SoundSource.BLOCKS, 0.5F,
                     level.random.nextFloat() * 0.1F + 0.9F
             );
         }
@@ -118,7 +128,10 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      */
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        // 只有当方块类型发生变化时才执行移除逻辑（即被真正破坏）
         if (!state.is(newState.getBlock())) {
+            // 调用父类方法处理基础掉落
+            // 由于物品存储在GlobalPlayerStorage中，这里不需要额外处理
             super.onRemove(state, level, pos, newState, isMoving);
         }
     }
@@ -135,8 +148,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      */
     @Nullable
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
-                                                                  BlockEntityType<T> type) {
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
         if (!level.isClientSide) {
             return (lvl, pos, st, be) -> {
                 if (be instanceof ShippingBoxBlockEntity shippingBox) {

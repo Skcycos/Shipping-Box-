@@ -32,7 +32,7 @@ public class ForceExchangeCommand {
                 return 0;
             }
 
-            // 获取玩家视线指向的方块（最大距离 20 方块）
+            // 获取玩家视线指向的方块
             HitResult hitResult = player.pick(20.0D, 0.0F, false);
 
             if (hitResult.getType() != HitResult.Type.BLOCK) {

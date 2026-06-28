@@ -8,6 +8,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -16,11 +18,9 @@ import java.util.function.Consumer;
 public class ShippingBoxAPI {
     
     // 存储兑换事件处理器列表
-    private static final java.util.List<Consumer<ExchangeEvent>> EXCHANGE_EVENT_LISTENERS = new java.util.ArrayList<>();
+    private static final List<Consumer<ExchangeEvent>> EXCHANGE_EVENT_LISTENERS = new ArrayList<>();
 
-    /**
-     * 兑换事件数据类
-     */
+    /** 兑换事件数据类 **/
     public static class ExchangeEvent {
         private final BlockEntity box;
         private final Level level;
@@ -43,58 +43,42 @@ public class ShippingBoxAPI {
             this.rule = rule;
         }
         
-        /**
-         * 获取售货箱方块实体
-         */
+        /** 获取售货箱方块实体 **/
         public BlockEntity getBox() {
             return box;
         }
         
-        /**
-         * 获取世界实例
-         */
+        /** 获取世界实例 **/
         public Level getLevel() {
             return level;
         }
         
-        /**
-         * 获取输入物品列表
-         */
+        /** 获取输入物品列表 **/
         public NonNullList<ItemStack> getInputs() {
             return inputs;
         }
         
-        /**
-         * 获取输出物品列表
-         */
+        /** 获取输出物品列表 **/
         public NonNullList<ItemStack> getOutputs() {
             return outputs;
         }
         
-        /**
-         * 获取虚拟货币数量
-         */
+        /** 获取虚拟货币数量 **/
         public int getVirtualCurrency() {
             return virtualCurrency;
         }
         
-        /**
-         * 获取匹配的兑换规则
-         */
+        /** 获取匹配的兑换规则 **/
         public ExchangeRule getRule() {
             return rule;
         }
         
-        /**
-         * 取消此次兑换
-         */
+        /** 取消此次兑换 **/
         public void cancel() {
             this.canceled = true;
         }
         
-        /**
-         * 检查是否被取消
-         */
+        /** 检查是否被取消 **/
         public boolean isCanceled() {
             return canceled;
         }
@@ -178,7 +162,7 @@ public class ShippingBoxAPI {
     
     /**
      * 获取售货箱中的物品数量（总槽位数）
-     * @param box 售货箱方块实体（必须实现 Container）
+     * @param box 售货箱方块实体
      * @return 槽位总数
      */
     public static int getSlotCount(BlockEntity box) {
@@ -199,7 +183,7 @@ public class ShippingBoxAPI {
     
     /**
      * 获取指定槽位的物品
-     * @param box 售货箱方块实体（必须实现 Container）
+     * @param box 售货箱方块实体
      * @param slot 槽位索引
      * @return 物品堆（空物品堆如果槽位无效或不支持）
      */
@@ -223,7 +207,7 @@ public class ShippingBoxAPI {
     
     /**
      * 获取所有物品
-     * @param box 售货箱方块实体（必须实现 Container）
+     * @param box 售货箱方块实体
      * @return 所有物品的副本列表
      */
     public static NonNullList<ItemStack> getAllItems(BlockEntity box) {
@@ -269,7 +253,7 @@ public class ShippingBoxAPI {
 
     /**
      * 向指定槽位添加物品
-     * @param box 售货箱方块实体（必须实现 Container）
+     * @param box 售货箱方块实体
      * @param slot 槽位索引
      * @param stack 要添加的物品堆
      * @return 实际添加的数量
@@ -308,7 +292,7 @@ public class ShippingBoxAPI {
     
     /**
      * 从指定槽位移除物品
-     * @param box 售货箱方块实体（必须实现 Container）
+     * @param box 售货箱方块实体
      * @param slot 槽位索引
      * @param count 要移除的数量
      * @return 实际移除的物品堆
@@ -351,7 +335,7 @@ public class ShippingBoxAPI {
     
     /**
      * 清空指定槽位
-     * @param box 售货箱方块实体（必须实现 Container）
+     * @param box 售货箱方块实体
      * @param slot 槽位索引
      * @return 被清空的物品堆
      */
@@ -380,7 +364,7 @@ public class ShippingBoxAPI {
     
     /**
      * 清空所有槽位
-     * @param box 售货箱方块实体（必须实现 Container）
+     * @param box 售货箱方块实体
      * @return 被清空的所有物品
      */
     public static NonNullList<ItemStack> clearAllSlots(BlockEntity box) {

@@ -85,7 +85,7 @@ public class ListRulesCommand {
     }
 
     /**
-     * 格式化单条规则的信息（使用本地化名称）
+     * 格式化单条规则的信息
      */
     private static Component formatRuleInfo(int index, ExchangeRule rule) {
         // 创建可变文本组件
