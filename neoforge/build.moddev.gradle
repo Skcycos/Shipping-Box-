@@ -1,0 +1,150 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.140'
+    id 'idea'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    accessTransformers {
+        file('src/main/resources/META-INF/accesstransformer.cfg')
+    }
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            data()
+
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    // 鑱斿姩 - ViScriptShop
+    //localRuntime "curse.maven:ldlib-626676:7658151"
+    //localRuntime "curse.maven:viscriptshop-1408178:7594435"
+    implementation "curse.maven:ldlib-626676:8280846"
+    implementation "curse.maven:viscriptshop-1408178:8318336"
+    // 鑱斿姩 - 鑺傛皵
+    //localRuntime "curse.maven:ecliptic-seasons-1118306:7733270"
+    localRuntime "curse.maven:ecliptic-seasons-1118306:8291973"
+
+    // 瑙勫垯娴嬭瘯
+    localRuntime "curse.maven:cloth-config-348521:5729127"
+    localRuntime "curse.maven:tide-884685:8295525" // 娼睈
+    localRuntime "curse.maven:fintastic-supreme-1553548:8143923" // 槌嶅鑷虫瀬
+    localRuntime "curse.maven:quality-food-973932:7653821" // 鍝佽川浣滅墿
+    localRuntime "curse.maven:kaleidoscope-tavern-1475175:8091783" // 妫綏閰掗
+
+    // 杈呭姪
+    localRuntime "curse.maven:jei-238222:7420587"
+    localRuntime "curse.maven:jade-324717:7545219"
+    localRuntime "curse.maven:apothic-attributes-898963:7445079"
+    localRuntime "curse.maven:placebo-283644:6926281"
+    localRuntime "curse.maven:pipez-443900:5609056"
+    localRuntime "curse.maven:kubejs-238086:7278501"
+    localRuntime "curse.maven:rhino-416294:7104526"
+
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+}
+

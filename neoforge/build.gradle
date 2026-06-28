@@ -1,0 +1,90 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+architectury {
+    platformSetupLoomIde()
+    neoForge()
+}
+
+configurations {
+    common {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentNeoForge.extendsFrom common
+
+    shadowBundle {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+    srcDir 'src/main/templates'
+}
+
+repositories {
+    maven {
+        name = 'NeoForged'
+        url = 'https://maven.neoforged.net/releases'
+    }
+}
+
+dependencies {
+    neoForge "net.neoforged:neoforge:$rootProject.neoforge_version"
+    modImplementation "dev.architectury:architectury-neoforge:$rootProject.architectury_api_version"
+
+    implementation "curse.maven:ldlib-626676:8280846"
+    implementation "curse.maven:viscriptshop-1408178:8318336"
+
+    localRuntime "curse.maven:ecliptic-seasons-1118306:8291973"
+    localRuntime "curse.maven:cloth-config-348521:5729127"
+    localRuntime "curse.maven:tide-884685:8295525"
+    localRuntime "curse.maven:fintastic-supreme-1553548:8143923"
+    localRuntime "curse.maven:quality-food-973932:7653821"
+    localRuntime "curse.maven:kaleidoscope-tavern-1475175:8091783"
+    localRuntime "curse.maven:jei-238222:7420587"
+    localRuntime "curse.maven:jade-324717:7545219"
+    localRuntime "curse.maven:apothic-attributes-898963:7445079"
+    localRuntime "curse.maven:placebo-283644:6926281"
+    localRuntime "curse.maven:pipez-443900:5609056"
+    localRuntime "curse.maven:kubejs-238086:7278501"
+    localRuntime "curse.maven:rhino-416294:7104526"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
+}
+
+processResources {
+    def replaceProperties = [
+            minecraft_version      : rootProject.minecraft_version,
+            minecraft_version_range: rootProject.minecraft_version_range,
+            neo_version            : rootProject.neo_version,
+            loader_version_range   : rootProject.loader_version_range,
+            mod_id                 : rootProject.mod_id,
+            mod_name               : rootProject.mod_name,
+            mod_license            : rootProject.mod_license,
+            mod_version            : project.version,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand replaceProperties
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = 'dev-shadow'
+}
+
+remapJar {
+    inputFile.set shadowJar.archiveFile
+}

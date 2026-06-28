@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "Add a shipping box for exchanging items.",
+  "authors": [
+    "ChinaEX123"
+  ],
+  "license": "${mod_license}",
+  "icon": "logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.chinaex123.shipping_box.fabric.ShippingBoxFabric"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*",
+    "architectury": "*"
+  }
+}

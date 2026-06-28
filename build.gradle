@@ -1,160 +1,73 @@
 plugins {
-    id 'java-library'
-    id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.140'
-    id 'idea'
+    id 'dev.architectury.loom' version '1.11-SNAPSHOT' apply false
+    id 'architectury-plugin' version '3.4-SNAPSHOT'
+    id 'com.gradleup.shadow' version '8.3.6' apply false
 }
 
-tasks.named('wrapper', Wrapper).configure {
-    distributionType = Wrapper.DistributionType.BIN
+architectury {
+    minecraft = project.minecraft_version
 }
 
-version = mod_version
-group = mod_group_id
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-    maven {
-        url "https://cursemaven.com"
-        content {
-            includeGroup "curse.maven"
-        }
-    }
+allprojects {
+    group = rootProject.maven_group
+    version = rootProject.mod_version
 }
 
-base {
-    archivesName = mod_id
-}
+subprojects {
+    apply plugin: 'dev.architectury.loom'
+    apply plugin: 'architectury-plugin'
+    apply plugin: 'maven-publish'
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-
-neoForge {
-    version = project.neo_version
-
-    accessTransformers {
-        file('src/main/resources/META-INF/accesstransformer.cfg')
+    base {
+        archivesName = "$rootProject.archives_name-$project.name"
     }
 
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
-
-    runs {
-        client {
-            client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        server {
-            server()
-            programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        gameTestServer {
-            type = "gameTestServer"
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        data {
-            data()
-
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-        }
-
-        configureEach {
-            systemProperty 'forge.logging.markers', 'REGISTRIES'
-            logLevel = org.slf4j.event.Level.DEBUG
-        }
-    }
-
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
-        }
-    }
-}
-
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-configurations {
-    runtimeClasspath.extendsFrom localRuntime
-}
-
-dependencies {
-    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-    // 联动 - ViScriptShop
-    //localRuntime "curse.maven:ldlib-626676:7658151"
-    //localRuntime "curse.maven:viscriptshop-1408178:7594435"
-    implementation "curse.maven:ldlib-626676:8280846"
-    implementation "curse.maven:viscriptshop-1408178:8318336"
-    // 联动 - 节气
-    //localRuntime "curse.maven:ecliptic-seasons-1118306:7733270"
-    localRuntime "curse.maven:ecliptic-seasons-1118306:8291973"
-
-    // 规则测试
-    localRuntime "curse.maven:cloth-config-348521:5729127"
-    localRuntime "curse.maven:tide-884685:8295525" // 潮汐
-    localRuntime "curse.maven:fintastic-supreme-1553548:8143923" // 鳍妙至极
-    localRuntime "curse.maven:quality-food-973932:7653821" // 品质作物
-    localRuntime "curse.maven:kaleidoscope-tavern-1475175:8091783" // 森罗酒馆
-
-    // 辅助
-    localRuntime "curse.maven:jei-238222:7420587"
-    localRuntime "curse.maven:jade-324717:7545219"
-    localRuntime "curse.maven:apothic-attributes-898963:7445079"
-    localRuntime "curse.maven:placebo-283644:6926281"
-    localRuntime "curse.maven:pipez-443900:5609056"
-    localRuntime "curse.maven:kubejs-238086:7278501"
-    localRuntime "curse.maven:rhino-416294:7104526"
-
-}
-
-var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
-    var replaceProperties = [
-            minecraft_version      : minecraft_version,
-            minecraft_version_range: minecraft_version_range,
-            neo_version            : neo_version,
-            loader_version_range   : loader_version_range,
-            mod_id                 : mod_id,
-            mod_name               : mod_name,
-            mod_license            : mod_license,
-            mod_version            : mod_version,
-    ]
-    inputs.properties replaceProperties
-    expand replaceProperties
-    from "src/main/templates"
-    into "build/generated/sources/modMetadata"
-}
-sourceSets.main.resources.srcDir generateModMetadata
-neoForge.ideSyncTask generateModMetadata
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            from components.java
-        }
-    }
     repositories {
+        mavenCentral()
+        mavenLocal()
+        maven { url = 'https://maven.parchmentmc.org' }
+        maven { url = 'https://maven.neoforged.net/releases' }
         maven {
-            url "file://${project.projectDir}/repo"
+            url = 'https://cursemaven.com'
+            content {
+                includeGroup 'curse.maven'
+            }
         }
     }
-}
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-}
-
-idea {
-    module {
-        downloadSources = true
-        downloadJavadoc = true
+    loom {
+        silentMojangMappingsLicense()
     }
-}
 
-tasks.named('test', Test).configure {
-    useJUnitPlatform()
+    dependencies {
+        minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
+        mappings loom.layered {
+            officialMojangMappings()
+            parchment("org.parchmentmc.data:parchment-$rootProject.parchment_minecraft_version:$rootProject.parchment_mappings_version@zip")
+        }
+    }
+
+    java {
+        withSourcesJar()
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        it.options.release = 21
+        it.options.encoding = 'UTF-8'
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                artifactId = base.archivesName.get()
+                from components.java
+            }
+        }
+    }
 }
