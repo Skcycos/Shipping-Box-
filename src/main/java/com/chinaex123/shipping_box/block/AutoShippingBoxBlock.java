@@ -190,7 +190,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                             SoundSource.BLOCKS,
                             0.5F, level.random.nextFloat() * 0.1F + 0.9F);
 
-                    player.openMenu(autoBox);
+                    player.openMenu(autoBox, buf -> buf.writeBlockPos(pos));
                 } else {
                     player.displayClientMessage(Component.translatable("message.shipping_box.access_denied"), true);
                 }

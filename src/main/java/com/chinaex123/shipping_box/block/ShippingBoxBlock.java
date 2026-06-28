@@ -1,16 +1,13 @@
 package com.chinaex123.shipping_box.block;
 
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
-import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -90,11 +87,10 @@ public class ShippingBoxBlock extends BaseEntityBlock {
         if (player instanceof ServerPlayer serverPlayer) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof ShippingBoxBlockEntity shippingBox) {
-                serverPlayer.openMenu(new SimpleMenuProvider(
-                        (windowId, playerInventory, playerEntity) ->
-                                new ShippingBoxMenu(windowId, playerInventory, shippingBox, serverPlayer.getUUID()),
-                        Component.translatable("block.shipping_box.shipping_box")
-                ));
+                serverPlayer.openMenu(shippingBox, buf -> {
+                    buf.writeBlockPos(pos);
+                    buf.writeUUID(serverPlayer.getUUID());
+                });
             }
             // 播放打开音效
             level.playSound(

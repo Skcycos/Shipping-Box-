@@ -1,5 +1,7 @@
 package com.chinaex123.shipping_box;
 
+import com.chinaex123.client.screen.AutoShippingBoxScreen;
+import com.chinaex123.client.screen.ShippingBoxScreen;
 import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.init.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
@@ -8,6 +10,7 @@ import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.init.ModCreativeTabs;
 import com.chinaex123.shipping_box.init.ModItems;
+import com.chinaex123.shipping_box.init.ModMenuTypes;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.client.tooltip.TooltipEventHandler;
 import com.chinaex123.shipping_box.web.WebEditorLocalServer;
@@ -15,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
@@ -40,6 +44,7 @@ public class ShippingBox {
 
         modEventBus.addListener(this::registerCapabilities); // 能力注册事件
         modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
+        modEventBus.addListener(this::registerScreens); // 注册自定义 Screen
         // 注册配置文件
         modContainer.registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
 
@@ -47,6 +52,7 @@ public class ShippingBox {
         ModBlocks.register(modEventBus); // 注册方块
         ModItems.register(modEventBus); // 注册物品
         ModBlockEntities.register(modEventBus); // 注册方块实体
+        ModMenuTypes.register(modEventBus); // 注册自定义 MenuType
         ModAttributes.ATTRIBUTES.register(modEventBus); // 注册自定义属性系统
         NeoForge.EVENT_BUS.register(TooltipEventHandler.class); // 注册工具提示事件处理器
     }
@@ -127,5 +133,14 @@ public class ShippingBox {
                 },
                 ModBlocks.AUTO_SHIPPING_BOX.get()
         );
+    }
+
+    /**
+     * 注册自定义 Screen 与 MenuType 的绑定（仅客户端触发）
+     */
+    @SubscribeEvent
+    public void registerScreens(RegisterMenuScreensEvent event) {
+        event.register(ModMenuTypes.SHIPPING_BOX.get(), ShippingBoxScreen::new);
+        event.register(ModMenuTypes.AUTO_SHIPPING_BOX.get(), AutoShippingBoxScreen::new);
     }
 }

@@ -13,6 +13,7 @@ version = mod_version
 group = mod_group_id
 
 repositories {
+    mavenCentral()
     mavenLocal()
     maven {
         url "https://cursemaven.com"
@@ -30,6 +31,10 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 neoForge {
     version = project.neo_version
+
+    accessTransformers {
+        file('src/main/resources/META-INF/accesstransformer.cfg')
+    }
 
     parchment {
         mappingsVersion = project.parchment_mappings_version
@@ -79,6 +84,8 @@ configurations {
 }
 
 dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
     // 联动 - ViScriptShop
     //localRuntime "curse.maven:ldlib-626676:7658151"
     //localRuntime "curse.maven:viscriptshop-1408178:7594435"
@@ -146,4 +153,8 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }

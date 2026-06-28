@@ -6,9 +6,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** 编辑器重新加载请求包 **/
+/** Editor reload request packet. **/
 public record PacketEditorReloadRequest() implements CustomPacketPayload {
     public static final Type<PacketEditorReloadRequest> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_reload_request")
@@ -24,18 +25,23 @@ public record PacketEditorReloadRequest() implements CustomPacketPayload {
 
     public static void handle(PacketEditorReloadRequest packet, IPayloadContext context) {
         context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.hasPermissions(2)) {
+                context.player().displayClientMessage(Component.literal("Permission denied"), false);
+                return;
+            }
+
             try {
-                context.player().getServer().execute(() -> {
+                serverPlayer.getServer().execute(() -> {
                     try {
-                        context.player().getServer().getCommands().performPrefixedCommand(
-                                context.player().getServer().createCommandSourceStack(),
+                        serverPlayer.getServer().getCommands().performPrefixedCommand(
+                                serverPlayer.getServer().createCommandSourceStack(),
                                 "reload"
                         );
                     } catch (Exception ignored) {}
                 });
-                context.player().displayClientMessage(Component.literal("Reload queued"), false);
+                serverPlayer.displayClientMessage(Component.literal("Reload queued"), false);
             } catch (Exception e) {
-                context.player().displayClientMessage(Component.literal("Failed to queue reload"), false);
+                serverPlayer.displayClientMessage(Component.literal("Failed to queue reload"), false);
             }
         }).exceptionally(e -> null);
     }

@@ -41,11 +41,14 @@ public class ExchangeManager {
             return;
         }
 
-        List<ItemStack> initialItems = new ArrayList<>(); // 记录初始物品用于日志
+        List<ItemStack> initialItems = new ArrayList<>();
+        NonNullList<ItemStack> initialSnapshot = NonNullList.withSize(items.size(), ItemStack.EMPTY);
         List<ItemStack> currentItems = new ArrayList<>();
-        for (ItemStack stack : items) {
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack stack = items.get(i);
+            initialSnapshot.set(i, stack.copy());
             if (!stack.isEmpty()) {
-                initialItems.add(stack.copy()); // 保存初始物品的副本
+                initialItems.add(stack.copy());
                 currentItems.add(stack.copy());
             }
         }
@@ -58,27 +61,23 @@ public class ExchangeManager {
         boolean exchanged;
         int totalVirtualCurrency = 0;
         boolean hasValidExchange = false;
-        ExchangeRule lastMatchedRule = null; // 保存最后匹配的兑换规则用于日志
+        ExchangeRule lastMatchedRule = null;
 
-        // 执行兑换逻辑
         do {
             exchanged = false;
             ExchangeRule rule = ExchangeRecipeManager.findMatchingRule(currentItems);
 
             if (rule != null) {
-                lastMatchedRule = rule; // 保存规则引用
-                
-                // 检查如果是虚拟货币兑换但模组未加载，则完全跳过处理
+                lastMatchedRule = rule;
+
                 if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
                     return;
                 }
 
-                // 检查节气联动 - 如果启用了仅限季节出售且当前不在指定季节，跳过
                 if (rule.getOutputItem().getEclipticSeasonsProperties() != null) {
                     var ecsProps = rule.getOutputItem().getEclipticSeasonsProperties();
                     if (ecsProps.isSeasonal_only() &&
                             !EclipticSeasonsUtil.isInSeasons(level, ecsProps.getSeason())) {
-                        // 不在指定季节，跳过此兑换
                         break;
                     }
                 }
@@ -86,12 +85,10 @@ public class ExchangeManager {
                 int maxExchanges = getMaxExchanges(rule, currentItems);
 
                 if (maxExchanges > 0) {
-                    // 消耗输入物品
                     for (int i = 0; i < maxExchanges; i++) {
                         currentItems = ExchangeRecipeManager.consumeInputs(rule, currentItems);
                     }
 
-                    // 执行兑换策略
                     ExchangeStrategy strategy = ExchangeStrategyFactory.getStrategy(rule);
                     AtomicInteger currencyWrapper = new AtomicInteger(totalVirtualCurrency);
                     strategy.execute(rule, maxExchanges, level, boundPlayerUUID, results, currencyWrapper);
@@ -103,47 +100,33 @@ public class ExchangeManager {
             }
         } while (exchanged);
 
-        // 如果有虚拟货币要添加
-        if (totalVirtualCurrency > 0 && boundPlayerUUID != null) {
-            ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
-            if (player != null && ViScriptShopUtil.isAvailable()) {
-                // 获取玩家当前余额并开始动画
-                int currentBalance = ViScriptShopUtil.getMoney(player);
-                startBalanceAnimation(player, currentBalance, totalVirtualCurrency, 1);
-
-                ViScriptShopUtil.addMoney(player, totalVirtualCurrency);
-            }
-        }
-
-        // 如果有有效兑换发生
         if (hasValidExchange) {
-
-            // 计算实际消耗的物品
             List<ItemStack> consumedItems = calculateConsumedItems(initialItems, currentItems);
 
-            // 在应用结果前触发事件
             if (ShippingBoxAPI.onExchange(
-                    null, // 如果是售货箱则传入 box，否则传 null
+                    null,
                     level,
                     createNonNullList(consumedItems),
                     createNonNullList(results),
                     totalVirtualCurrency,
                     lastMatchedRule)) {
-                // 事件被取消，还原物品并返回
                 for (int i = 0; i < items.size(); i++) {
-                    if (i < consumedItems.size()) {
-                        items.set(i, consumedItems.get(i).copy());
-                    } else {
-                        items.set(i, ItemStack.EMPTY);
-                    }
+                    items.set(i, initialSnapshot.get(i).copy());
                 }
                 return;
             }
 
-            // 添加剩余物品
+            if (totalVirtualCurrency > 0 && boundPlayerUUID != null) {
+                ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
+                if (player != null && ViScriptShopUtil.isAvailable()) {
+                    int currentBalance = ViScriptShopUtil.getMoney(player);
+                    startBalanceAnimation(player, currentBalance, totalVirtualCurrency, 1);
+                    ViScriptShopUtil.addMoney(player, totalVirtualCurrency);
+                }
+            }
+
             results.addAll(currentItems);
 
-            // 统一堆叠处理 - 合并相同物品
             List<ItemStack> stackedResults = new ArrayList<>();
             for (ItemStack stack : results) {
                 if (stack.isEmpty()) continue;
@@ -172,7 +155,6 @@ public class ExchangeManager {
                 }
             }
 
-            // 清空并重新填充
             Collections.fill(items, ItemStack.EMPTY);
             int slotIndex = 0;
 
@@ -182,7 +164,6 @@ public class ExchangeManager {
                 int maxStackSize = result.getMaxStackSize();
                 int remainingCount = result.getCount();
 
-                // 遍历所有槽位，将物品按最大堆叠数分配到各个槽位中
                 while (remainingCount > 0 && slotIndex < items.size()) {
                     if (items.get(slotIndex).isEmpty()) {
                         int stackSize = Math.min(remainingCount, maxStackSize);
@@ -195,27 +176,22 @@ public class ExchangeManager {
                 }
             }
 
-            // 播放成功音效
             serverLevel.playSound(null, blockPos,
                     SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
                     SoundSource.BLOCKS,
                     0.5F, 1.0F);
 
-            // 发送兑换成功消息到绑定玩家
             if (boundPlayerUUID != null) {
                 ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
                 if (player != null) {
-                    // 使用新的网络包系统发送成功提示
                     PacketDistributor.sendToPlayer(player, new PacketShowSuccessMessage());
-                    
-                    // 只有启用特效时才发送特效数据包
+
                     if (CommonConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
                         PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(totalVirtualCurrency));
                     }
                 }
             }
 
-            // 记录交易日志（如果启用）
             if (CommonConfig.ENABLE_TRANSACTION_LOGGING.get()) {
                 String playerName = "Unknown";
                 if (boundPlayerUUID != null) {
@@ -228,7 +204,6 @@ public class ExchangeManager {
             }
         }
     }
-
     /**
      * 开始余额动画
      */

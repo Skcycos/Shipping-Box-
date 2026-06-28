@@ -61,7 +61,7 @@ public class ForceExchangeCommand {
             }
 
         } catch (Exception e) {
-            context.getSource().sendFailure(Component.literal("Error executing command: " + e.getMessage()));
+            context.getSource().sendFailure(Component.translatable("command.shipping_box.error.execution", e.getMessage()));
             return 0;
         }
     }

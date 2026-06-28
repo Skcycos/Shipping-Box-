@@ -378,6 +378,15 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
             exchangedTag.putBoolean(String.valueOf(entry.getKey()), entry.getValue());
         }
         tag.put("SlotExchanged", exchangedTag);
+
+        CompoundTag prototypeTag = new CompoundTag();
+        for (Map.Entry<Integer, ItemStack> entry : exchangedItemPrototype.entrySet()) {
+            ItemStack stack = entry.getValue();
+            if (stack != null && !stack.isEmpty()) {
+                prototypeTag.put(String.valueOf(entry.getKey()), stack.save(registries));
+            }
+        }
+        tag.put("ExchangedItemPrototype", prototypeTag);
         
         // 如果绑定了玩家，保存玩家 UUID
         if (boundPlayerUUID != null) {
@@ -413,6 +422,9 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         }
         
         // 加载槽位兑换状态
+        slotIsExchanged.clear();
+        exchangedItemPrototype.clear();
+
         if (tag.contains("SlotExchanged")) {
             CompoundTag exchangedTag = tag.getCompound("SlotExchanged");
             for (String key : exchangedTag.getAllKeys()) {
@@ -427,14 +439,51 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         }
         
         // 加载绑定的玩家 UUID
+        if (tag.contains("ExchangedItemPrototype")) {
+            CompoundTag prototypeTag = tag.getCompound("ExchangedItemPrototype");
+            for (String key : prototypeTag.getAllKeys()) {
+                try {
+                    int slot = Integer.parseInt(key);
+                    ItemStack stack = ItemStack.parseOptional(registries, prototypeTag.getCompound(key));
+                    if (!stack.isEmpty()) {
+                        exchangedItemPrototype.put(slot, stack);
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignore malformed slot keys.
+                }
+            }
+        }
+
         if (tag.contains("BoundPlayer")) {
             boundPlayerUUID = UUID.fromString(tag.getString("BoundPlayer"));
         }
         
         // 同步内部存储与物品处理器
         syncItems();
+        rebuildMissingExchangePrototypes();
     }
 
+    private void rebuildMissingExchangePrototypes() {
+        for (Iterator<Map.Entry<Integer, Boolean>> iterator = slotIsExchanged.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<Integer, Boolean> entry = iterator.next();
+            int slot = entry.getKey();
+            if (!entry.getValue() || slot < 0 || slot >= itemHandler.getSlots()) {
+                exchangedItemPrototype.remove(slot);
+                if (entry.getValue()) {
+                    iterator.remove();
+                }
+                continue;
+            }
+
+            ItemStack stack = itemHandler.getStackInSlot(slot);
+            if (stack.isEmpty()) {
+                exchangedItemPrototype.remove(slot);
+                iterator.remove();
+            } else if (!exchangedItemPrototype.containsKey(slot)) {
+                exchangedItemPrototype.put(slot, stack.copy());
+            }
+        }
+    }
     @Override
     public int getContainerSize() {
         return 54;
@@ -470,6 +519,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         // 如果物品被取完，重置兑换状态
         if (stack.isEmpty()) {
             slotIsExchanged.put(slot, false);
+            exchangedItemPrototype.remove(slot);
         }
 
         return result;
@@ -484,6 +534,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         
         // 重置兑换状态
         slotIsExchanged.put(slot, false);
+        exchangedItemPrototype.remove(slot);
         
         return stack;
     }
@@ -494,6 +545,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         items.set(slot, stack);
         // 当物品被放入时，重置兑换状态
         slotIsExchanged.put(slot, false);
+        exchangedItemPrototype.remove(slot);
     }
 
     @Override
@@ -507,6 +559,8 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
             itemHandler.setStackInSlot(i, ItemStack.EMPTY);
             items.set(i, ItemStack.EMPTY);
         }
+        slotIsExchanged.clear();
+        exchangedItemPrototype.clear();
     }
 
     public boolean isSlotExchanged(int slot) {

@@ -54,6 +54,11 @@ public final class WebEditorLocalServer {
     // 安全的随机数生成器，用于生成访问令牌
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    private static final int MAX_REQUEST_LINE_BYTES = 4096;
+    private static final int MAX_HEADER_LINE_BYTES = 8192;
+    private static final int MAX_HEADER_BYTES = 16 * 1024;
+    private static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
+
     // 服务器套接字，用于监听HTTP请求
     private static volatile ServerSocket serverSocket;
 
@@ -747,8 +752,7 @@ public final class WebEditorLocalServer {
      * @return 请求对象，包含方法、路径和请求体
      */
     private static Request readRequest(InputStream in) throws IOException {
-        // 读取请求行
-        String requestLine = readLine(in);
+        String requestLine = readLine(in, MAX_REQUEST_LINE_BYTES);
         if (requestLine == null || requestLine.isBlank()) {
             return null;
         }
@@ -759,12 +763,16 @@ public final class WebEditorLocalServer {
         String method = parts[0].trim().toUpperCase();
         String pathWithQuery = parts[1].trim();
 
-        // 解析请求头，获取Content-Length
         int contentLength = 0;
         boolean hasContentLength = false;
+        int headerBytes = requestLine.length() + 2;
         while (true) {
-            String line = readLine(in);
+            String line = readLine(in, MAX_HEADER_LINE_BYTES);
             if (line == null) {
+                return null;
+            }
+            headerBytes += line.length() + 2;
+            if (headerBytes > MAX_HEADER_BYTES) {
                 return null;
             }
             if (line.isEmpty()) {
@@ -777,18 +785,19 @@ public final class WebEditorLocalServer {
                 if ("Content-Length".equalsIgnoreCase(key)) {
                     try {
                         contentLength = Integer.parseInt(value);
+                        if (contentLength < 0 || contentLength > MAX_BODY_BYTES) {
+                            return null;
+                        }
                         hasContentLength = true;
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException ignored) {
+                        return null;
+                    }
                 }
             }
         }
 
-        // 如果请求体存在，读取指定长度的数据
         byte[] body = null;
         if (("POST".equals(method) || "PUT".equals(method) || "PATCH".equals(method)) && hasContentLength) {
-            if (contentLength < 0) {
-                return null;
-            }
             body = readFixedBytes(in, contentLength);
             if (body.length != contentLength) {
                 return null;
@@ -798,10 +807,10 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 从输入流读取一行文本
+     * 浠庤緭鍏ユ祦璇诲彇涓€琛屾枃鏈?
      */
-    private static String readLine(InputStream in) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(128);
+    private static String readLine(InputStream in, int maxBytes) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(128, maxBytes));
         while (true) {
             int b = in.read();
             if (b == -1) {
@@ -814,6 +823,9 @@ public final class WebEditorLocalServer {
                 break;
             }
             if (b != '\r') {
+                if (baos.size() >= maxBytes) {
+                    return null;
+                }
                 baos.write(b);
             }
         }
@@ -821,10 +833,13 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 从输入流读取指定长度的字节
+     * 浠庤緭鍏ユ祦璇诲彇鎸囧畾闀垮害鐨勫瓧鑺?
      */
     private static byte[] readFixedBytes(InputStream in, int length) throws IOException {
         if (length <= 0) {
+            return new byte[0];
+        }
+        if (length > MAX_BODY_BYTES) {
             return new byte[0];
         }
         byte[] buf = new byte[length];
@@ -839,7 +854,6 @@ public final class WebEditorLocalServer {
         if (off == length) {
             return buf;
         }
-        // 如果读取不完整，返回已读取的部分
         byte[] partial = new byte[off];
         System.arraycopy(buf, 0, partial, 0, off);
         return partial;
