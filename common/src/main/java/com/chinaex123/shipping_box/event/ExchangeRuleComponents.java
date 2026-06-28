@@ -14,40 +14,45 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.core.Holder;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.core.RegistryAccess;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /** 组件匹配器 **/
 public class ExchangeRuleComponents {
 
     // 缓存附魔注册表，避免重复查找
     private static Registry<Enchantment> enchantmentRegistry = null;
+    private static Supplier<RegistryAccess> registryAccessSupplier;
 
     /**
      * 辅助方法：安全地获取附魔注册表
      * 优先使用已初始化的注册表，如果没有则尝试从当前服务器获取
      */
+    public static void setRegistryAccessSupplier(Supplier<RegistryAccess> supplier) {
+        registryAccessSupplier = supplier;
+        enchantmentRegistry = null;
+    }
+
     private static Registry<Enchantment> getEnchantmentRegistry() {
-        // 如果已有注册表，直接返回
         if (enchantmentRegistry != null) {
             return enchantmentRegistry;
         }
-        
-        // 尝试从当前运行的服务器获取
+
         try {
-            var server = ServerLifecycleHooks.getCurrentServer();
-            if (server != null) {
-                RegistryAccess registryAccess = server.registryAccess();
-                enchantmentRegistry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
-                return enchantmentRegistry;
+            if (registryAccessSupplier != null) {
+                RegistryAccess registryAccess = registryAccessSupplier.get();
+                if (registryAccess != null) {
+                    enchantmentRegistry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+                    return enchantmentRegistry;
+                }
             }
         } catch (Exception e) {
-            // 忽略异常
+            // Ignore registry lookup failures and keep component handling permissive.
         }
-        
+
         return null;
     }
 

@@ -8,6 +8,7 @@ import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
 import com.chinaex123.shipping_box.init.ModBlockEntities;
 import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
+import com.chinaex123.shipping_box.event.ExchangeRuleComponents;
 import com.chinaex123.shipping_box.init.ModCreativeTabs;
 import com.chinaex123.shipping_box.init.ModItems;
 import com.chinaex123.shipping_box.init.ModMenuTypes;
@@ -38,6 +39,10 @@ public class ShippingBox {
     public static final String MOD_ID = "shipping_box";
 
     public ShippingBox(IEventBus modEventBus, ModContainer modContainer) {
+        ExchangeRuleComponents.setRegistryAccessSupplier(() -> {
+            var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+            return server != null ? server.registryAccess() : null;
+        });
         NeoForge.EVENT_BUS.addListener(this::onServerStopping); // 添加服务器停止事件监听器
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn); // 注册玩家登录事件监听器
         NeoForge.EVENT_BUS.addListener(this::registerCommands); // 注册命令

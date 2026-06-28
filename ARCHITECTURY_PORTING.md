@@ -10,6 +10,8 @@ This branch starts the migration from a single NeoForge project to a multi-loade
 
 ## Recommended extraction order
 
+Progress: ExchangeRule and ExchangeRuleComponents now live in common/; NeoForge injects the server registry access provider for component parsing.
+
 1. Move rule data classes, JSON loading helpers, and validation into `common/`.
 2. Move pure exchange calculation into `common/`.
 3. Keep block entities, menus, networking, commands, capabilities, and client screens in loader-specific projects until their abstractions are clear.
