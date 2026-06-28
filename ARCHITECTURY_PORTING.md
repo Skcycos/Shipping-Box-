@@ -10,13 +10,25 @@ This branch starts the migration from a single NeoForge project to a multi-loade
 
 ## Recommended extraction order
 
-Progress: ExchangeRule and ExchangeRuleComponents now live in common/; NeoForge injects the server registry access provider for component parsing.
+Progress: Steps 1 and 2 largely complete.
 
-1. Move rule data classes, JSON loading helpers, and validation into `common/`.
-2. Move pure exchange calculation into `common/`.
-3. Keep block entities, menus, networking, commands, capabilities, and client screens in loader-specific projects until their abstractions are clear.
-4. Add small platform services for logging, config paths, networking, and item storage only when shared code actually needs them.
-5. After `common` owns the stable logic, convert `neoforge/` from ModDev to the Architectury Loom NeoForge setup and wire it to `common`.
+**common/** now owns:
+- `ExchangeRule`, `ExchangeRuleComponents` — rule data model and component matching.
+- `ExchangeRuleParser` — JSON parsing, validation, rule matching, serialisation/deserialisation (extracted from NeoForge `ExchangeRecipeManager`).
+- `ExchangeCalculator` — pure calculation helpers: `getMaxExchanges`, `calculateConsumedItems`, `createNonNullList`.
+- `ExchangeStrategy` — strategy interface (concrete implementations remain in NeoForge due to `applySellingPriceBoost` dependency).
+
+**neoforge/** retains:
+- `ExchangeRecipeManager` — resource reload listener, event bus, external config loading (delegates parsing/validation to common).
+- `ExchangeManager` — `performExchange` orchestration, `applySellingPriceBoost` (NeoForge attributes + mod compat).
+- Strategy implementations (`CoinSimpleStrategy`, `ItemSimpleStrategy`, etc.) — depend on `applySellingPriceBoost` and `DynamicPricingManager`.
+- `DynamicPricingManager` / `PricingData` — use `ServerLifecycleHooks` and `PacketDistributor`.
+- Block entities, menus, networking, commands, client screens, compat modules.
+
+Remaining work:
+1. Create platform abstraction for `applySellingPriceBoost` (attributes + EclipticSeasons compat) to move strategy implementations to common.
+2. Create platform abstraction for `DynamicPricingManager` (server lifecycle + networking) to move to common.
+3. Convert `neoforge/` from ModDev to Architectury Loom NeoForge setup.
 
 ## Version pins
 

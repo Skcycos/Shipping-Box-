@@ -22,10 +22,10 @@ class SecurityAndRegressionTest {
 
     @Test
     void ruleValidationRejectsUnsafeCountsAndWeights() throws Exception {
-        String source = readSource("src/main/java/com/chinaex123/shipping_box/event/ExchangeRecipeManager.java");
+        String source = readSource("../common/src/main/java/com/chinaex123/shipping_box/event/ExchangeRuleParser.java");
 
         assertTrue(source.contains("!isPositiveRuleNumber(input.getCount())"));
-        assertTrue(source.contains("return isPositiveRuleNumber(output.getCount())"));
+        assertTrue(source.contains("isPositiveRuleNumber(output.getCount())"));
         assertTrue(source.contains("!isPositiveRuleNumber(values[i])"));
         assertTrue(source.contains("weightedItem.getWeight() <= 0"));
         assertTrue(source.contains("totalWeight > Integer.MAX_VALUE"));
