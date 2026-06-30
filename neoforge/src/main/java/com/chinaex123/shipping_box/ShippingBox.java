@@ -7,8 +7,9 @@ import com.chinaex123.shipping_box.init.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
 import com.chinaex123.shipping_box.init.ModBlockEntities;
 import com.chinaex123.shipping_box.config.CommonConfig;
-import com.chinaex123.shipping_box.event.DynamicPricingManager;
-import com.chinaex123.shipping_box.event.ExchangeRuleComponents;
+import com.chinaex123.shipping_box.common.event.BalanceAnimationManager;
+import com.chinaex123.shipping_box.common.event.DynamicPricingManager;
+import com.chinaex123.shipping_box.common.event.ExchangeRuleComponents;
 import com.chinaex123.shipping_box.init.ModCreativeTabs;
 import com.chinaex123.shipping_box.init.ModItems;
 import com.chinaex123.shipping_box.init.ModMenuTypes;
@@ -22,6 +23,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -43,9 +45,10 @@ public class ShippingBox {
             var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
             return server != null ? server.registryAccess() : null;
         });
-        NeoForge.EVENT_BUS.addListener(this::onServerStopping); // 添加服务器停止事件监听器
-        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn); // 注册玩家登录事件监听器
-        NeoForge.EVENT_BUS.addListener(this::registerCommands); // 注册命令
+        NeoForge.EVENT_BUS.addListener(this::onServerStopping);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(this::registerCommands);
+        NeoForge.EVENT_BUS.addListener(this::onServerTick);
 
         modEventBus.addListener(this::registerCapabilities); // 能力注册事件
         modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
@@ -100,8 +103,11 @@ public class ShippingBox {
      */
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        // 不再需要手动初始化附魔注册表
-        // 现在会在需要时自动从 ServerLifecycleHooks 获取
+    }
+
+    @SubscribeEvent
+    public void onServerTick(ServerTickEvent.Post event) {
+        BalanceAnimationManager.tick(event.getServer());
     }
 
     /**

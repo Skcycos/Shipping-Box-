@@ -1,6 +1,6 @@
 package com.chinaex123.shipping_box.fabric;
 
-import com.chinaex123.shipping_box.ShippingBoxCommon;
+import com.chinaex123.shipping_box.common.ShippingBoxCommon;
 import net.fabricmc.api.ModInitializer;
 
 public final class ShippingBoxFabric implements ModInitializer {

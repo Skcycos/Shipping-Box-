@@ -1,34 +1,70 @@
 # Architectury Porting Notes
 
-This branch starts the migration from a single NeoForge project to a multi-loader layout.
+This branch tracks the migration from a single NeoForge project to a multi-loader layout.
 
 ## Current shape
 
-- `neoforge/` contains the existing NeoForge implementation with its original ModDev build.
-- `common/` is the target for platform-neutral code.
-- `fabric/` is an Architectury/Fabric skeleton that currently only calls the shared common entry point.
+- `common/` owns all platform-neutral code.
+- `neoforge/` contains NeoForge-specific wiring (event bus, capabilities, networking registration, screen registration, config).
+- `fabric/` is an Architectury/Fabric skeleton with platform abstraction stubs.
 
-## Recommended extraction order
+## Completed work
 
-Progress: Steps 1 and 2 largely complete.
+### Build system (Step 3)
+- `neoforge/` converted from ModDev Gradle to Architectury Loom NeoForge setup.
+- `build.moddev.gradle` deleted.
+- Access transformers declared in `neoforge.mods.toml`.
+- `gradle.properties` consolidated (`neoforge_version` only).
 
-**common/** now owns:
-- `ExchangeRule`, `ExchangeRuleComponents` — rule data model and component matching.
-- `ExchangeRuleParser` — JSON parsing, validation, rule matching, serialisation/deserialisation (extracted from NeoForge `ExchangeRecipeManager`).
-- `ExchangeCalculator` — pure calculation helpers: `getMaxExchanges`, `calculateConsumedItems`, `createNonNullList`.
-- `ExchangeStrategy` — strategy interface (concrete implementations remain in NeoForge due to `applySellingPriceBoost` dependency).
+### Platform abstractions (Steps 1 & 2)
+All abstractions use Architectury `@ExpectPlatform` pattern:
 
-**neoforge/** retains:
-- `ExchangeRecipeManager` — resource reload listener, event bus, external config loading (delegates parsing/validation to common).
-- `ExchangeManager` — `performExchange` orchestration, `applySellingPriceBoost` (NeoForge attributes + mod compat).
-- Strategy implementations (`CoinSimpleStrategy`, `ItemSimpleStrategy`, etc.) — depend on `applySellingPriceBoost` and `DynamicPricingManager`.
-- `DynamicPricingManager` / `PricingData` — use `ServerLifecycleHooks` and `PacketDistributor`.
-- Block entities, menus, networking, commands, client screens, compat modules.
+| Class | Methods | NeoForge | Fabric |
+|-------|---------|----------|--------|
+| `PlatformNetworking` | `sendToPlayer`, `sendToAllPlayers` | `PacketDistributor` | `ServerPlayNetworking` |
+| `PlatformServerAccess` | `getCurrentServer()` | `ServerLifecycleHooks` | Static field |
+| `PlatformAttributes` | `getSellingPriceBoost(ServerPlayer)` | `ModAttributes.SELLING_PRICE_BOOST` | Returns 0.0 |
+| `PlatformModCheck` | `isModLoaded(String)` | `ModList` | `FabricLoader` |
+| `PlatformConfig` | `getExchangeTime`, `isExchangeEffectsEnabled`, `isTransactionLoggingEnabled` | `CommonConfig` | Default values |
+| `PlatformPaths` | `getConfigDir()` | `FMLPaths.CONFIGDIR` | `FabricLoader.getConfigDir` |
 
-Remaining work:
-1. Create platform abstraction for `applySellingPriceBoost` (attributes + EclipticSeasons compat) to move strategy implementations to common.
-2. Create platform abstraction for `DynamicPricingManager` (server lifecycle + networking) to move to common.
-3. Convert `neoforge/` from ModDev to Architectury Loom NeoForge setup.
+### Code moved to common
+
+**Platform-neutral (no changes):**
+- `EclipticSeasonsUtil` — pure reflection
+- `ViScriptShopUtil` — pure reflection
+- `ICurrencyProvider` — vanilla interface
+
+**Refactored to use platform abstractions:**
+- `ExchangeManager` — uses `PlatformNetworking`, `PlatformAttributes`, `PlatformConfig`
+- `DynamicPricingManager` — uses `PlatformServerAccess`, `PlatformNetworking`
+- `PricingData` — uses `PlatformServerAccess`
+- `TransactionLogger` — uses `PlatformPaths`, `PlatformConfig`
+- `BalanceAnimationManager` — tick logic in common, event binding in NeoForge
+- All 5 strategy implementations + `ExchangeStrategyFactory`
+- `ExchangeRuleRegistry` — new class holding the shared rule list
+
+**Network packet records (vanilla-only parts):**
+- `PacketShowSuccessMessage`, `PacketExchangeEffects`, `PacketSoldCountSync`
+
+### NeoForge retains
+- `ExchangeRecipeManager` — resource reload listener, event bus, external config loading (delegates to `ExchangeRuleRegistry`)
+- `ShippingBox` — NeoForge `@Mod` entry point, event bus wiring
+- `ModAttributes` — NeoForge attribute registration
+- `CommonConfig` — NeoForge `ModConfigSpec`
+- `ShippingBoxNetworking` — NeoForge payload registration
+- `PacketHandlers` — NeoForge packet handle methods (client-side logic)
+- Block entities, menus, screens, commands, client tooltips, web editor
+- `ViScriptCoinItemServer` — NeoForge tick events + tooltip items
+- All registration classes (`ModBlocks`, `ModItems`, etc.)
+
+## Remaining work
+
+1. Migrate `ShippingBoxAPI` to common (references `AutoShippingBoxBlockEntity`)
+2. Migrate block entities, menus, screens to common with platform abstractions for capabilities
+3. Migrate networking registration and remaining packet classes to common
+4. Migrate client-side code (screens, tooltips) to common
+5. Implement Fabric-side functionality (currently stubs)
 
 ## Version pins
 

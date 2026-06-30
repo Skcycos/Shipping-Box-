@@ -1,6 +1,9 @@
 package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.ShippingBox;
+import com.chinaex123.shipping_box.common.event.ExchangeRule;
+import com.chinaex123.shipping_box.common.event.ExchangeRuleParser;
+import com.chinaex123.shipping_box.common.event.ExchangeRuleRegistry;
 import com.google.gson.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -33,8 +36,6 @@ import java.util.Optional;
 public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<ExchangeRule>> {
 
     private static final String CONFIG_FOLDER = "exchange_rules";
-
-    private static List<ExchangeRule> currentRules = new ArrayList<>();
 
     private static final List<String> pendingErrorMessages = new ArrayList<>();
 
@@ -163,15 +164,15 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
     @Override
     protected void apply(List<ExchangeRule> rules, ResourceManager resourceManager, ProfilerFiller profiler) {
-        currentRules = rules;
+        ExchangeRuleRegistry.setRules(rules);
     }
 
     public static List<ExchangeRule> getRules() {
-        return currentRules;
+        return ExchangeRuleRegistry.getRules();
     }
 
     public static ExchangeRule findMatchingRule(List<ItemStack> availableStacks) {
-        return ExchangeRuleParser.findMatchingRule(currentRules, availableStacks);
+        return ExchangeRuleParser.findMatchingRule(ExchangeRuleRegistry.getRules(), availableStacks);
     }
 
     public static List<ItemStack> consumeInputs(ExchangeRule rule, List<ItemStack> availableStacks) {
@@ -179,11 +180,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     public static String serializeRulesToJson() {
-        return ExchangeRuleParser.serializeRulesToJson(currentRules);
+        return ExchangeRuleParser.serializeRulesToJson(ExchangeRuleRegistry.getRules());
     }
 
     public static void setClientRules(String json) {
-        currentRules = ExchangeRuleParser.deserializeRulesFromJson(json);
+        ExchangeRuleRegistry.setRules(ExchangeRuleParser.deserializeRulesFromJson(json));
     }
 
     private void loadConfigRules(List<ExchangeRule> rules, List<String> errors) {

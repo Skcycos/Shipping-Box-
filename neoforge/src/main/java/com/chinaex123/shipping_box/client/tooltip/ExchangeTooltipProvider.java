@@ -1,9 +1,9 @@
 package com.chinaex123.shipping_box.client.tooltip;
 
-import com.chinaex123.shipping_box.event.DynamicPricingManager;
+import com.chinaex123.shipping_box.common.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
-import com.chinaex123.shipping_box.event.ExchangeRule;
-import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
+import com.chinaex123.shipping_box.common.event.ExchangeRule;
+import com.chinaex123.shipping_box.common.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.ClientSoldCountCache;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;

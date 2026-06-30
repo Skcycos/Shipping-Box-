@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box.command.CommandLogic;
 
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
-import com.chinaex123.shipping_box.event.ExchangeRule;
+import com.chinaex123.shipping_box.common.event.ExchangeRule;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;

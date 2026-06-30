@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box.api;
 
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
-import com.chinaex123.shipping_box.event.ExchangeRule;
+import com.chinaex123.shipping_box.common.event.ExchangeRule;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;

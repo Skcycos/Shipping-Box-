@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.block.entity;
 
+import com.chinaex123.shipping_box.common.event.ExchangeManager;
 import com.chinaex123.shipping_box.event.*;
 import com.chinaex123.shipping_box.init.ModBlockEntities;
 import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
